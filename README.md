@@ -19,12 +19,12 @@ To install the necessary dependencies, please follow these steps:
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/pinn_tau.git
+    git clone https://github.com/yourusername/FieldSense.git
     ```
 
 2. Navigate to the project directory:
     ```bash
-    cd pinn_tau
+    cd FieldSense
     ```
 
 3. Install the required packages:
