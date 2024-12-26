@@ -1,0 +1,11 @@
+﻿Name,Location,Longitude_DecDeg,Latitude_DecDeg,Type,Unit,Resolution (mm)
+Jarn,Järnbrottsmotet,11.943145,57.646067,Weighing,millimetre,0.1
+Torp,Torpagatan,12.035572,57.718613,Weighing,millimetre,0.1
+Bergsj,Bergsjön,12.073303,57.751128,Weighing,millimetre,0.1
+Torsl,Torslanda flygpl,11.785332,57.712069,Weighing,millimetre,0.1
+Chalm,Chalmers,11.98083,57.683236,Weighing,millimetre,0.1
+Tole,Tolered,11.911754,57.731041,Weighing,millimetre,0.1
+Barl,Barlastplatsen,11.937618,57.700099,Weighing,millimetre,0.1
+Drakeg,Drakegatan,11.993077,57.706026,Tipping-bucket,millimetre,0.2
+Lbom,Lilla Bommen,11.967087,57.714739,Tipping-bucket,millimetre,0.2
+Askim,Askim Ögärdesv,11.943581,57.632511,Tipping-bucket,millimetre,0.2

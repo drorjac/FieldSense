@@ -1,0 +1,18 @@
+Station information
+Station name,Göteborg A
+Station ID (klimatnummer),71420
+Station height above sea level (m),3.038
+Latitude (decimal degrees),57.7156
+Longitude (decimal degrees),11.9924
+Quality Codes (QC),G = quality controlled and approved values. Y = uncontrolled real-time data or crudely controlled archive data or suspicious data or aggregated values
+Link,https://www.smhi.se/data/meteorologi/ladda-ner-meteorologiska-observationer#stationid=71420
+
+Parameter information
+Short name,English name,Swedish name,Unit,Measurement height above ground (m),Description
+Pvol,Precipitation volume,Nederbördsmängd,millimetre,2,Precipitation sum over preceeding 15min period
+Ta,Air temperature,Lufttemperatur,degree celsius,2,Momentaneous value once per hour
+RH,Relative humidity,Relativ Luftfuktighet,percent,2,Momentaneous value once per hour
+Pmsl,Air pressure reduced to sea level,Lufttryck reducerat havsytans nivå,hectopascal,0,Momentaneous value once per hour at sea level
+Vmean,Wind speed,Vindhastighet,metre per second,10,Average value during the preceeding 10 minutes
+Vdir,Wind direction,Vindriktning,degree true,10,Average value during the preceeding 10 minutes
+Vg,Gust wind speed,Byvind,metre per second,10,Maximum value during the preceeding hour
