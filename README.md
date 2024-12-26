@@ -1,5 +1,5 @@
 # FieldSense tau
-This project focuses on environmental sensing (ES) with wireless communication using physics-informed AI tools.
+This project focuses on environmental sensing (ES) with wireless communication.
 
 ## Project Description
 This project focuses on ES using physics-informed AI tools, with wireless communication, how to merge different sensors to physical field sensing including sensing, \\ characterization on spatio-temporal evolusion of the the fields.
