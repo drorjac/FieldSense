@@ -1,4 +1,62 @@
-dataset/open_datasets/OpenMRG_Sweden/radar/radar.nc
-dataset/open_datasets/OpenMRG_Sweden/cml/files/sub_networks_ma.pkl
-dataset/open_datasets/OpenMRG_Sweden/radar/radar.nc
-dataset/open_datasets/OpenMRG_Sweden/cml/files/sub_networks_ma.pkl
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large files
+*.csv
+*.nc
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.parquet
+*.feather
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Model files
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.joblib
+
+# Data folders (uncomment if needed)
+# data/
+# datasets/
+
+# Results (uncomment if you don't want to track)
+# results/
+# outputs/
+
+# Logs
+*.log
+logs/
+
+# PySR generated files
+hall_of_fame*.csv
+.SymbolicRegression.jl/

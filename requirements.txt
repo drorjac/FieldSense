@@ -1,0 +1,19 @@
+# Core scientific
+numpy
+scipy
+pandas
+matplotlib
+scikit-learn
+
+# Dynamics & symbolic regression
+scikit-learn==1.5.2
+pysindy
+pysr
+sympy
+
+# Notebooks
+jupyter
+ipykernel
+
+# Utilities
+tqdm

@@ -1,55 +1,37 @@
-# FieldSense tau
-This project focuses on environmental sensing (ES) with wireless communication.
+# FieldSense
 
-## Project Description
-This project focuses on ES using physics-informed AI tools, with wireless communication, how to merge different sensors to physical field sensing including sensing, \\ characterization on spatio-temporal evolusion of the the fields.
+Environmental sensing (ES) using physics-informed AI tools with wireless communication networks.
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+## Overview
 
-## Introduction
-Environmental sensing and monitoring are crucial for various applications including weather monitoring and disaster management. By leveraging physics-informed neural networks (PINNs), this project aims to enhance the accuracy and efficiency of wireless communication systems in environmental sensing tasks. The project includes data fusion in multi-sensor environments and examines where and how to integrate wireless link sensors into these environments.
+This project explores multi-sensor data fusion for physical field sensing, including spatio-temporal field characterization and integration of wireless link sensors into sensing environments.
+
+## Structure
+
+```
+FieldSense/
+├── core/                 # Shared utilities (protected)
+├── dataset/              # Shared data (protected)
+├── projects/             # Research projects
+│   ├── estimation_after_detection/
+│   ├── physics_ml/
+│   └── spatial_interpolation/
+├── requirements.txt
+└── CONTRIBUTING.md
+```
 
 ## Installation
-To install the necessary dependencies, please follow these steps:
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/yourusername/FieldSense.git
-    ```
-
-2. Navigate to the project directory:
-    ```bash
-    cd FieldSense
-    ```
-
-3. Install the required packages:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## Usage
-To run the project, use the following command:
 ```bash
-python main.py
+git clone https://github.com/USERNAME/FieldSense.git
+cd FieldSense
+pip install -r requirements.txt
 ```
 
 ## Contributing
-We welcome contributions to improve this project. Please follow these steps:
 
-1. Fork the repository.
-2. Create a new branch.
-3. Make your changes.
-4. Submit a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
-## Acknowledgements
-We would like to thank all contributors and supporters of this project.
-
-
+MIT License — see [LICENSE](LICENSE) for details.
