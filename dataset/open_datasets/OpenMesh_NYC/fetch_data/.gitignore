@@ -1,0 +1,19 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data outputs (stored in src/data/ instead)
+*/data/
+*/output/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+*.key
+
+# OS files
+.DS_Store
