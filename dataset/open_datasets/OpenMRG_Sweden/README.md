@@ -5,3 +5,7 @@ This dataset contains open data from Sweden, combining microwave links, radar, a
 **Dataset Link:** [OpenMRG Dataset](https://opensenseaction.eu/datasets/openmrg-open-data-from-microwave-links-radar-and-gauges/)
 
 **Source:** [OpenSense Action - OpenMRG](https://opensenseaction.eu/outputs/datasets/)
+
+**Example:** : https://github.com/OpenSenseAction/opensense_example_data/tree/main/OpenMRG
+
+
