@@ -1,0 +1,2 @@
+# No third-party dependencies: src/mop.py uses only the Python standard library (re).
+# Building the PDF requires a LaTeX distribution (TeX Live / MacTeX), not pip.
