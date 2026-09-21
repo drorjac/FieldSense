@@ -1,0 +1,533 @@
+% =============================================================================
+%  IEEE ISAC 2026 — Conference Paper Draft
+%  Title: Data-Driven Dynamical Models for Rainfall Nowcasting from
+%         Commercial Microwave Links
+%
+%  Build instructions (Overleaf):
+%    1. New Project -> Upload Project -> drop this .tex in (or paste contents).
+%    2. Compiler: pdfLaTeX. Bibliography is inline (\bibitem) -- no .bib needed.
+%    3. Results numbers are marked \tbd{} -- replace once experiments finish.
+% =============================================================================
+
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{hyperref}
+
+\newcommand{\tbd}{\textcolor{red}{\textbf{TBD}}}
+\newcommand{\note}[1]{\textcolor{blue}{[#1]}}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+% =============================================================================
+\title{Data-Driven Dynamical Models for Rainfall Nowcasting from Commercial Microwave Links}
+
+\author{%
+\IEEEauthorblockN{Author Name\IEEEauthorrefmark{1}}
+\IEEEauthorblockA{%
+\IEEEauthorrefmark{1}Department / Lab\\
+Institution\\
+City, Country\\
+\texttt{email@domain}}%
+}
+
+\maketitle
+
+% =============================================================================
+\begin{abstract}
+Commercial microwave link (CML) networks deployed by cellular operators
+form a natural \emph{opportunistic} Integrated Sensing and Communication
+(OISAC) substrate: links already provisioned for backhaul attenuate
+during rainfall and can be repurposed as a dense rain-sensing layer at
+zero hardware cost, without any modification of the underlying
+communication waveform. While CML-based
+rainfall \emph{estimation} is by now a mature line of work, short-term
+rainfall \emph{nowcasting} (15--60\,min ahead) from CML observations is
+an emerging direction in which a unifying methodological framework that
+places competing dynamical paradigms on equal footing is still missing.
+We propose such a framework as a two-stage spatiotemporal learning
+problem: a recurrent estimation network maps raw CML attenuation signals
+to per-link rain rates which are interpolated onto a regular grid, and a
+downstream \emph{dynamical model} learns to propagate the resulting
+CML-derived rain fields forward in time. A central methodological
+proposition is a \emph{CML self-supervised} forecasting objective in
+which the dynamical model is trained against future CML-derived fields
+with no external rain reference at Stage~2, preserving the OISAC
+premise end to end. Within this framework we benchmark three families of data-driven
+dynamical models against persistence baselines: a Transformer encoder
+over flattened map tokens, a reduced-order POD--SINDy model that
+identifies an explicit nonlinear ODE in a low-dimensional latent space,
+and a recurrent state-space sequence model in the spirit of Mamba. Each
+family is further ablated under single-step versus multi-horizon
+prediction heads and under the proposed CML self-supervision versus a
+sparse gauge-supervised baseline. Experiments
+on the OpenMRG dataset (Gothenburg, summer 2015) with both point-to-pixel
+(against rain gauges) and grid-to-grid (against weather radar) evaluation
+indicate that \tbd{}.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Integrated sensing and communication, opportunistic sensing, commercial
+microwave links, rainfall nowcasting, spatiotemporal forecasting,
+state-space models, transformers, sparse identification of nonlinear
+dynamics.
+\end{IEEEkeywords}
+
+% =============================================================================
+\section{Introduction}
+\label{sec:intro}
+While ISAC as a co-design paradigm targets future beyond-5G systems, opportunistic weather sensing with existing wireless communication network (WCN) infrastructure is already an established, operational reality. The foundational concept of repurposing communication signals for environmental monitoring was initially demonstrated using commercial microwave links (CMLs)~\cite{messer2006}. Operating in the $6-80$ GHz band and widely deployed as cellular backhaul, these CMLs serve as a canonical ISAC modality. Their received signal level (RSL) is directly attenuated by hydrometeors along the path, providing a highly informative measure of path-averaged rain rates~\cite{leijnse2007,overeem2013}. This approach now leverages infrastructure across diverse network types and geographical scales. Regional and city-scale datasets, such as OpenRainER (Emilia-Romagna, Italy)~\cite{covi2026openrainer} and OpenMRG (Gothenburg, Sweden)~\cite{andersson2022openmrg}, provide detailed coverage over varied terrain. Meanwhile, country-wide efforts include multi-year CML archives for the Netherlands~\cite{overeem2024netherlands} and operational rainfall monitoring across Germany~\cite{graf2020rainfall}, which are typically verified using radar products or official weather stations. Moreover, as next-generation networks increasingly deploy high-frequency, short-range links in V-band (60 GHz) and E-band (70–80 GHz) to achieve dense urban coverage, they unlock unprecedented spatial resolution for environmental monitoring. The utilization of community-driven mesh networks, such as those in New York City~\cite{jacoby2025openmesh}, alongside smart-city infrastructure~\cite{hadar2020parameter,ostrometzky2024opportunistic}, demonstrates high-resolution urban weather sensing as a rapidly emerging application of this ubiquitous architecture. WCN therefore constitute a free, dense, and distributed OISAC weather-sensing layer that complements traditional monitoring systems and has been recognized as a key component in ISAC frameworks for environmental monitoring~\cite{messer2006,cui2023integrated}.
+% Therefore, WCN backhaul networks, which operating at microwave and mmWave frequencies, constitute a free, dense, and distributed OISAC weather-sensing layer that complements traditional monitoring systems, with growing recognition in ISAC research for environmental sensing applications~\cite{9705498,cui2023integrated}.
+
+The bulk of CML-related sensing research has so far focused on the
+\emph{estimation} problem: given CML attenuation at time $t$, recover
+the instantaneous rain rate at $t$~\cite{habi2020,zhang2023environment,chwala2019}. The
+\emph{nowcasting} problem -- predicting rainfall fields several tens of
+minutes into the future from CML observations alone -- has received much
+less attention, despite being arguably more useful for downstream
+applications such as urban drainage, flash-flood early warning, and
+short-horizon decision support for outdoor activity. Weather radar, while accurate, requires significant capital investment and operational costs, and provides limited coverage in many regions. Rain gauges offer direct point measurements but are extremely sparse and fail to capture spatial variability.
+
+Modern data-driven sequence modelling offers three broadly distinct
+families of dynamical models that are natural candidates for this task.
+\emph{Attention-based} models such as the
+Transformer~\cite{vaswani2017} learn unconstrained long-range
+dependencies among input tokens. \emph{State-space sequence models},
+including Mamba~\cite{gu2023mamba}, parametrise a continuous-time linear
+dynamical system whose parameters depend on the input, yielding
+recurrent inference with strong long-context behaviour. \emph{Equation
+discovery} methods such as the Sparse Identification of Nonlinear
+Dynamics (SINDy)~\cite{brunton2016sindy}, combined with a Proper
+Orthogonal Decomposition (POD), instead identify an \emph{explicit}
+parsimonious ODE in a low-dimensional latent space. Each family encodes
+a different inductive bias about how a rainfall field evolves; a fair
+head-to-head comparison on a CML-driven nowcasting task is, to our
+knowledge, missing from the literature.
+
+\paragraph*{Contributions} This paper makes four contributions:
+
+\begin{itemize}
+  \item We formalise CML-driven rainfall nowcasting as a two-stage
+        spatiotemporal learning problem -- a recurrent CML-to-rain
+        estimator followed by a learned dynamical model on the resulting
+        rain field -- and clarify the resulting upper-bound and bias
+        properties.
+  \item We adapt and benchmark three families of dynamical models
+        (Transformer, POD--SINDy, recurrent SSM) within this framework
+        on the public OpenMRG dataset~\cite{andersson2022openmrg}, using
+        identical inputs, lookback, and supervision protocols.
+  \item We study two orthogonal design axes that are usually conflated
+        in the nowcasting literature: \emph{(i)} single-step (one
+        specialised model per horizon) versus multi-horizon
+        (one model emitting all horizons) prediction; and \emph{(ii)}
+        dense self-supervision on the estimated rain field versus sparse
+        gauge-anchored supervision at the loss level.
+  \item We report a dual evaluation -- point-to-pixel against rain
+        gauges and grid-to-grid against weather radar -- with
+        continuous and detection-oriented metrics across four horizons
+        (15--60\,min), and discuss implications for ISAC-driven
+        environmental sensing.
+\end{itemize}
+
+% =============================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph*{CML-based rain estimation}
+The use of CML attenuation for rain monitoring dates back to
+Messer~\emph{et~al.}~\cite{messer2006} and has since been refined with
+careful baseline (dry-period) identification, wet-antenna attenuation
+correction, and rain-rate retrieval~\cite{overeem2013,chwala2019}.
+Recent learning-based estimators replace handcrafted pipelines with
+recurrent or attention networks trained against gauge
+references~\cite{habi2020,pynncml}; the \texttt{pynncml} toolkit and the
+publicly released OpenMRG dataset~\cite{andersson2022openmrg} have made
+reproducible benchmarking practical.
+
+\paragraph*{Rainfall nowcasting}
+Classical radar-based nowcasting techniques such as optical-flow
+extrapolation and the Lagrangian persistence implemented in
+PySTEPS~\cite{pulkkinen2019pysteps} remain strong baselines.
+Deep-learning approaches -- ConvLSTM~\cite{shi2015convlstm},
+PredRNN~\cite{wang2017predrnn}, and more recently NowcastNet and related
+generative models -- have shown improvements on radar-only benchmarks.
+With rare exceptions, none of these methods consume CML data, and the
+spatial inductive biases they assume (dense, gridded radar input) are
+not directly suitable for sparse, line-integrated CML observations.
+
+\paragraph*{Dynamical sequence models}
+Beyond rainfall, the choice between attention~\cite{vaswani2017},
+selective state-space recurrence~\cite{gu2023mamba}, and
+equation-discovery~\cite{brunton2016sindy,kaiser2018sindyc} is now a
+recurring question in any spatiotemporal forecasting application.
+POD--SINDy in particular has been used to identify reduced-order models
+for fluid and atmospheric fields~\cite{loiseau2018sindyfluid}, but its
+behaviour on CML-derived precipitation maps -- which are noisy,
+sparsely informed, and intermittently zero -- has not been characterised.
+
+% =============================================================================
+\section{Problem Formulation}
+\label{sec:problem}
+
+Let $\mathcal{L}=\{1,\dots,L\}$ index a set of CMLs, each with a
+recorded RSL/TSL time series $\mathbf{s}_\ell(\tau)\in\mathbb{R}^{2}$
+and static metadata $\mathbf{m}_\ell\in\mathbb{R}^{d_m}$ (length,
+frequency, polarisation, endpoint coordinates). Let
+$\mathcal{G}=\{1,\dots,G\}$ index $G$ rain gauges providing point rain
+rates $r^{\mathrm{g}}_g(\tau)$, and let $R^{\mathrm{rad}}(t,x,y)$ denote
+the gridded weather-radar rain field on a regular $H\times W$ lattice.
+
+\subsection{Stage~1: CML-to-Rain Estimation}
+
+A learned mapping
+$f_{\theta}:\mathbf{s}_\ell,\mathbf{m}_\ell \mapsto
+\widehat{r}_\ell(\tau)$ produces a per-link rain estimate, trained
+against gauge-derived link supervision in the standard manner. A fixed
+inverse-distance-weighted (IDW) operator $\Phi$ then projects the
+per-link estimates onto the radar grid, producing the CML-derived
+rain map
+\begin{equation}
+  \widehat{R}^{\mathrm{cml}}(t,x,y) \;=\;
+  \Phi\!\bigl(\{\widehat{r}_\ell(t)\}_{\ell\in\mathcal{L}}\bigr)(x,y).
+\end{equation}
+This map is the input substrate of the downstream forecaster; the radar
+field is never used as a training target at this stage.
+
+\subsection{Stage~2: Learned Spatiotemporal Dynamics}
+
+Let $T_{\mathrm{lb}}$ denote the lookback length (we use
+$T_{\mathrm{lb}}=8$ frames of 15\,min, i.e.~two hours of context).
+Stage~2 learns a parametric dynamical operator
+\begin{equation}
+  g_{\phi}\colon\;
+  \widehat{R}^{\mathrm{cml}}_{[t-T_{\mathrm{lb}}+1:t]}
+  \;\longmapsto\;
+  \widehat{R}^{\mathrm{pred}}_{t+h},
+  \quad h\in\mathcal{H},
+\label{eq:stage2}
+\end{equation}
+where $\mathcal{H}=\{1,2,3,4\}$ (i.e.~15, 30, 45, 60\,min ahead).
+Equation~\eqref{eq:stage2} admits two natural realisations:
+\emph{(a)} a separate operator $g_\phi^{(h)}$ per horizon (single-step
+heads, $|\mathcal{H}|$ checkpoints), or \emph{(b)} a single operator
+$g_\phi$ with a $|\mathcal{H}|\!\times\!H\!\times\!W$ output head
+(multi-horizon).
+
+\subsection{Supervision Variants}
+
+Two loss specifications are considered. The \emph{self-supervised}
+variant uses dense mean-squared error against the future CML-derived
+field,
+\begin{equation}
+  \mathcal{L}_{\mathrm{self}} \;=\;
+  \tfrac{1}{HW}\sum_{x,y}\bigl(
+  \widehat{R}^{\mathrm{pred}}_{t+h}(x,y) - \widehat{R}^{\mathrm{cml}}_{t+h}(x,y)
+  \bigr)^{2}.
+\end{equation}
+The \emph{gauge-supervised} variant computes the same map output but
+restricts the loss to the $G$ gauge pixels with measured rain rate as
+target,
+\begin{equation}
+  \mathcal{L}_{\mathrm{gauge}} \;=\;
+  \tfrac{1}{G}\sum_{g}\bigl(
+  \widehat{R}^{\mathrm{pred}}_{t+h}(x_g,y_g) - r^{\mathrm{g}}_g(t+h)
+  \bigr)^{2}.
+\end{equation}
+The self-supervised variant offers dense gradient signal that is biased
+toward whatever errors Stage~1 already commits; the gauge-supervised
+variant grounds the model in physical measurements but provides only
+$G\!\sim\!\mathcal{O}(10)$ supervision points per timestep.
+
+% =============================================================================
+\section{Dynamical Models}
+\label{sec:methods}
+
+We instantiate the operator $g_\phi$ in
+Equation~\eqref{eq:stage2} with three architectures spanning the
+attention, state-space, and equation-discovery axes. All three consume
+the same lookback tensor of shape
+$(T_{\mathrm{lb}},H,W)$ and emit either a single map or a stack of
+$|\mathcal{H}|$ maps.
+
+\subsection{Attention Dynamics: Map-Token Transformer}
+
+We flatten each frame to a vector of dimension $HW$ and embed it
+linearly to a $d_\mathrm{model}$-dimensional token, producing a sequence
+of $T_{\mathrm{lb}}$ tokens. A standard pre-LN Transformer encoder with
+$n_h$ heads and $n_\ell$ layers~\cite{vaswani2017} processes the
+sequence, and a linear decoder maps the final-position embedding to one
+or $|\mathcal{H}|$ flattened $H\!\times\!W$ outputs.
+
+\subsection{Reduced-Order Equation Discovery: POD--SINDy}
+
+We compute a truncated SVD of the training rain fields with $r=10$
+modes, yielding a latent state
+$\mathbf{z}(t)=\mathbf{U}^{\!\top}\mathrm{vec}\bigl(\widehat{R}^{\mathrm{cml}}(t)\bigr)$.
+SINDy~\cite{brunton2016sindy} with a polynomial library of degree two
+and a sequentially-thresholded least-squares (STLSQ) sparsity prior
+identifies the dynamics
+\begin{equation}
+  \dot{\mathbf{z}}(t) \;=\; \mathbf{\Xi}\,\boldsymbol{\Theta}(\mathbf{z}(t)),
+\end{equation}
+where $\boldsymbol{\Theta}$ is the polynomial feature library and
+$\mathbf{\Xi}$ is sparse. Forecasting reduces to integrating the
+identified ODE for $h\!\cdot\!\Delta t$ from the initial condition
+provided by the last lookback frame, followed by an inverse SVD lift to
+the spatial grid. POD--SINDy is \emph{horizon-agnostic}: the same fitted
+$\mathbf{\Xi}$ produces every horizon by integrating the trajectory to
+the corresponding time. The gauge-supervised variant of POD--SINDy fits
+the same pipeline to the IDW gauge field instead of
+$\widehat{R}^{\mathrm{cml}}$.
+
+\subsection{State-Space Dynamics: Recurrent SSM Surrogate}
+
+In the spirit of selective state-space sequence
+models~\cite{gu2023mamba}, we instantiate a recurrent surrogate that
+processes the same flattened map-token sequence with a multi-layer gated
+recurrent unit (GRU)~\cite{cho2014gru} and projects the final hidden
+state to one or $|\mathcal{H}|$ output maps. We adopt the GRU formulation
+as a tractable SSM-style recurrence whose hidden state plays the role of
+the latent system state; replacing the GRU with the full
+Mamba block is a straightforward drop-in and is left for the camera-ready
+revision (see Section~\ref{sec:discussion}).
+
+\subsection{Single-Step versus Multi-Horizon Heads}
+
+For each architecture, the single-step variant trains $|\mathcal{H}|$
+separate parameter sets, one per horizon, each minimising the loss for
+its target horizon alone. The multi-horizon variant widens the output
+head to emit all $|\mathcal{H}|$ horizons simultaneously and trains
+under their averaged loss. The trade-off is classical: specialisation
+versus parameter sharing across horizons.
+
+% =============================================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Dataset and Splits}
+
+We use the public OpenMRG
+dataset~\cite{andersson2022openmrg}, covering Gothenburg, Sweden, over
+1~June -- 31~August 2015, comprising several hundred CMLs, a sparse rain
+gauge network, and a co-located C-band radar product. All channels are
+resampled to a common 15-minute cadence and cropped to a
+lat~$[57.55, 57.85]$, lon~$[11.70, 12.20]$ window covering the
+gauge-rich region. Radar reflectivity is converted to rain rate via the
+Marshall--Palmer relation
+$R=(Z/200)^{1/1.6}$~\cite{marshall1948}. Chronological splits are
+Train (1~Jun~--~20~Jul), Val (21~Jul~--~5~Aug), and Test
+(6~Aug~--~31~Aug); no shuffled split is used.
+
+\subsection{Stage~1 Estimator}
+
+The Stage~1 estimator is the two-step GRU rain estimator distributed
+with \texttt{pynncml}~\cite{pynncml}, trained with a regression head for
+rain rate and a binary head for wet/dry detection under the loss
+weighting recommended therein. Hyperparameters are selected by a
+ten-trial Bayesian sweep on (lr, batch, hidden size, depth, weight
+decay), and the final estimator is trained for 200 epochs on the Train
+split with selection by Val loss. The fitted estimator is then frozen
+and run over the entire campaign to produce
+$\widehat{R}^{\mathrm{cml}}$, which Stage~2 consumes.
+
+\subsection{Stage~2 Hyperparameter Search}
+
+For both the Transformer and the SSM surrogate, we run a six-trial
+Bayesian sweep over architectural hyperparameters
+($d_{\mathrm{model}}$, $n_h$, $n_\ell$ for the Transformer; hidden size
+and depth for the SSM) and optimisation hyperparameters (learning rate,
+batch size). Sweep trials train on horizon $h=1$ for 30 epochs;
+best-by-Val-loss configurations are then retrained from scratch for
+80~epochs at every horizon, with early stopping on Val loss.
+
+\subsection{Baselines}
+
+We compare against three reference predictors: \emph{(i)} naive radar
+persistence, $\widehat{R}(t+h)=R^{\mathrm{rad}}(t-h)$;
+\emph{(ii)} naive gauge persistence via IDW interpolation of past gauge
+readings; and \emph{(iii)} the Stage~1 CML estimator $\widehat{R}^{\mathrm{cml}}(t)$
+itself, treated as an $h=0$ no-forecast lower bound that any useful
+predictor at $h>0$ should at least approach.
+
+\subsection{Metrics}
+
+We report continuous metrics (RMSE, MAE, mean bias, Pearson CC) in
+mm/h and detection metrics at a wet/dry threshold of 0.1\,mm/h
+(accuracy, F1, probability of detection POD, false-alarm ratio FAR,
+critical success index CSI, and Heidke skill score HSS). Continuous
+metrics summarise quantitative agreement; detection metrics summarise
+event-level skill and HSS is particularly informative since it corrects
+for the climatological wet/dry base rate.
+
+Evaluation is performed twice. \emph{Point-to-pixel} compares the
+predicted map, sampled at the nearest grid pixel to each gauge, against
+the gauge reading -- this is the most direct physical evaluation but
+involves only $G$ test points per frame. \emph{Grid-to-grid} compares
+the full predicted map (cropped to the lat/lon window) against the
+radar field, providing spatial coverage at the cost of using a
+secondary reference.
+
+% =============================================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Headline Comparison Across Horizons}
+
+Table~\ref{tab:headline-gauges} summarises the gauge-anchored
+point-to-pixel performance of every model and baseline at all four
+horizons. Table~\ref{tab:headline-radar} reports the corresponding
+grid-to-grid evaluation against radar.
+
+\begin{table}[t]
+\centering
+\caption{Point-to-pixel performance against rain gauges (test split).
+Lower is better for RMSE, MAE, FAR; higher is better for the others.}
+\label{tab:headline-gauges}
+\begin{tabular}{l c c c c c c}
+\toprule
+Model & Horizon & RMSE & MAE & CC & F1 & HSS \\
+      & (min)   & (mm/h) & (mm/h) & & & \\
+\midrule
+Naive radar    & 15 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Naive gauge    & 15 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Transformer    & 15 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+POD--SINDy     & 15 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+SSM surrogate  & 15 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\midrule
+Naive radar    & 30 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+Transformer    & 30 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+POD--SINDy     & 30 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+SSM surrogate  & 30 & \tbd & \tbd & \tbd & \tbd & \tbd \\
+\midrule
+\multicolumn{7}{c}{\emph{(15-min and 60-min rows analogous)}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Grid-to-grid performance against weather radar (test split).}
+\label{tab:headline-radar}
+\begin{tabular}{l c c c c c c}
+\toprule
+Model & Horizon & RMSE & MAE & CC & F1 & HSS \\
+      & (min)   & (mm/h) & (mm/h) & & & \\
+\midrule
+\multicolumn{7}{c}{\emph{(populated identically to Tab.~\ref{tab:headline-gauges})}}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\tbd{} \note{Narrative: pick the best learned model on the
+gauge metric, quantify its margin over the strongest naive baseline at
+each horizon, and identify the horizon at which learned models cross or
+fail to cross the radar persistence baseline. Discuss whether the
+ranking is consistent between gauge and radar evaluation.}
+
+\subsection{Single-Step versus Multi-Horizon Heads}
+
+Within each architecture family we contrast the single-step and
+multi-horizon variants. \tbd{} \note{Narrative: report the
+per-horizon RMSE delta (multi $-$ single) for each family; identify
+whether one family benefits more than another from parameter sharing
+across horizons; comment on training cost (single requires
+$|\mathcal{H}|$ checkpoints).}
+
+\subsection{Self-Supervision versus Gauge-Supervision}
+
+Comparing the dense-MSE training against $\widehat{R}^{\mathrm{cml}}$
+with the gauge-anchored loss isolates the effect of supervision
+sparsity. \tbd{} \note{Narrative: hypothesis is that gauge-supervised
+variants win the gauge evaluation but lose the radar evaluation; confirm
+or refute. Comment on whether sparsity of supervision induces
+visibly biased spatial maps (over-/under-prediction far from gauges).}
+
+\subsection{Qualitative Inspection}
+
+For the wettest test frame, all forecasters at the 30-minute horizon
+produce maps that can be inspected against the radar truth.
+\tbd{} \note{Describe in words which model best localises the storm,
+which over- or under-predicts intensity, and whether POD--SINDy's
+low-rank reconstruction visibly smears spatial structure.}
+
+% =============================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph*{Stage~1 as a performance ceiling}
+A key consequence of the two-stage formulation is that the Stage~2
+forecasters can never outperform the underlying Stage~1 estimator at
+$h\!=\!0$. In particular, the dense self-supervised variant explicitly
+treats $\widehat{R}^{\mathrm{cml}}$ as ground truth, propagating any
+Stage~1 bias into the forecast. Reporting the Stage~1 error against
+gauges and radar (as we do) makes this ceiling explicit and clarifies
+how much of any residual nowcasting error is attributable to estimation
+versus to dynamical prediction.
+
+\paragraph*{Sparsity-induced trade-offs}
+Gauge supervision grounds the loss in direct measurements but provides
+only $G\!\sim\!\mathcal{O}(10)$ supervision points per timestep, so the
+trained map is only weakly constrained away from gauges. Conversely,
+self-supervision provides dense gradient signal at every pixel but
+optimises against an imperfect proxy. Our two-axis ablation provides
+the practitioner with empirical guidance on which trade-off is
+preferable in a given deployment.
+
+\paragraph*{Inductive biases of the three families}
+The Transformer imposes the weakest prior and is most data-hungry;
+POD--SINDy imposes the strongest prior (low-rank latent state with
+sparse polynomial dynamics) and is the most interpretable; the recurrent
+SSM sits between the two. We expect their relative ranking to depend on
+training-set size, on the variability of weather regimes seen at
+training time, and on the dominant spatial scale of the storms in the
+test split.
+
+\paragraph*{Limitations}
+The present study is restricted to one campaign (Gothenburg summer 2015)
+with a single radar reference and roughly ten gauges; the variance of
+gauge-anchored metrics is therefore non-negligible and we report
+bootstrap confidence intervals where appropriate. The recurrent SSM
+surrogate uses a GRU rather than the full Mamba block; replacing the
+GRU with a Mamba layer is a drop-in change and we expect it to improve
+long-context behaviour. Finally, an end-to-end training of Stage~1 and
+Stage~2 jointly -- bypassing the intermediate
+$\widehat{R}^{\mathrm{cml}}$ representation -- is an obvious next step,
+at the cost of architectural complexity and reduced interpretability.
+
+% =============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have presented a two-stage CML-driven rainfall nowcasting framework
+and benchmarked three families of data-driven dynamical models -- a
+Transformer, a POD--SINDy reduced-order model, and a recurrent
+state-space surrogate -- against persistence baselines on the OpenMRG
+dataset. Our results indicate that \tbd{}. More broadly, the work
+illustrates that opportunistic CML sensing, combined with modern
+sequence models, is a viable ISAC pathway toward short-term rainfall
+nowcasting at deployment scales where dedicated weather radar is not
+economic. Future work will incorporate the full Mamba block, larger
+multi-season campaigns, ensemble-based uncertainty quantification, and
+end-to-end joint training of estimation and forecasting.
+
+% =============================================================================
+\section*{Acknowledgments}
+\note{Funding, dataset access, and computing acknowledgments here.}
+
+% =============================================================================
+\bibliographystyle{IEEEtran}
+\bibliography{bibs/refs, bibs/essd}
+
+\end{document}
