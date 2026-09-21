@@ -1,0 +1,15 @@
+# Project-specific dependencies.
+# Install the root requirements first:  pip install -r ../../requirements.txt
+# (numpy, scipy, pandas, matplotlib, scikit-learn, pysr, jupyter, tqdm come from there)
+
+# Deep learning
+torch
+
+# Plotting
+seaborn
+
+# Geospatial / data I/O used by the notebook
+netCDF4
+pyproj
+geopy
+folium
