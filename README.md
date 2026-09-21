@@ -14,8 +14,9 @@ FieldSense/
 ├── dataset/              # Shared data (protected)
 ├── projects/             # Research projects
 │   ├── estimation_after_detection/
-│   ├── physics_ml/
-│   └── spatial_interpolation/
+│   ├── openmesh_nyc_paper/   # OpenMesh NYC dataset paper
+│   ├── physics_ml/           # Hybrid physics + NN rain retrieval (CMLs)
+│   └── spatial_interpolation/  # Rainfall nowcasting from CML networks
 ├── requirements.txt
 └── CONTRIBUTING.md
 ```
