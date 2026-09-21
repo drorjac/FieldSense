@@ -1,0 +1,1131 @@
+
+
+
+% \documentclass{copernicus}  
+
+
+\documentclass[manuscript]{copernicus}
+\usepackage{subcaption}    
+\usepackage{xcolor}  % needed for colors
+\usepackage{hhline}
+% Toggle for showing revisions
+\newif\ifshowrevisions
+\showrevisionstrue   % set to true in the revised version
+% \showrevisionsfalse  % comment/uncomment to hide revisions in final
+
+% Define blue highlighting command
+\newcommand{\blue}[1]{%
+  \ifshowrevisions
+    \textcolor{black}{#1}%
+  \else
+    #1%
+  \fi
+}
+
+\begin{document}
+
+\title{ OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather Sensing in New York City }
+
+
+\Author[1][drorjacoby@mail.tau.ac.il]{Dror}{Jacoby}
+\Author[2]{Shuyue}{Yu}
+\Author[2]{Qianfei}{Hu}
+\Author[2]{Zachary}{Hine}
+\Author[5]{Rob}{Johnson}
+\Author[1]{Jonatan}{Ostrometzky}
+\Author[3]{Igor}{Kadota}
+\Author[4]{Gil}{Zussman}
+\Author[1]{Hagit}{Messer}
+
+\affil[1]{School of Electrical Engineering, Tel Aviv University, Tel Aviv, Israel}
+\affil[2]{Department of Computer Science, Columbia University, New York, NY, USA}
+\affil[3]{Department of Electrical and Computer Engineering, Northwestern University, Evanston, IL, USA}
+\affil[4]{Department of Electrical Engineering, Columbia University, New York, NY, USA}
+\affil[5]{NYC Mesh, New York, NY, USA}  
+
+
+
+\runningtitle{OpenMesh: Wireless Dataset for Opportunistic Urban Sensing in New York City}
+\runningauthor{Jacoby et al.}
+
+
+
+
+
+\received{}
+\pubdiscuss{} %% only important for two-stage journals
+\revised{}
+\accepted{}
+\published{}
+
+%% These dates will be inserted by Copernicus Publications during the typesetting process.
+
+
+\firstpage{1}
+
+\maketitle
+
+\begin{abstract}
+We introduce OpenMesh, a publicly available dataset of wireless signal measurements from \blue{the NYC Mesh,} a community-run communication network in New York City (NYC). While originally designed for affordable internet access, these links can be used opportunistically for high-resolution weather monitoring \blue{in diverse settings, including dense urban areas}, providing 1-minute sampling of signal strength measurements with dense spatial coverage across the study region.
+Spanning eight months of measurements (November 2023 to June 2024), the dataset comprises 103 wireless links in Lower Manhattan and Brooklyn, operating in three primary frequency ranges: 5--6\,GHz (C-band), 24\,GHz (K-band), and 58--70\,GHz (V-band), part of the millimeter-wave (mmWave) spectrum.
+
+Our analysis incorporates meteorological records from two primary sources: 1) 37 Weather Underground (WUnderground) personal weather stations (PWS) across Manhattan and Brooklyn with 5 and 15\,min sampling, and 2) three Automated Surface Observing System (ASOS) stations.
+The study period saw total rainfall of approximately 900 mm and included diverse weather events, from intense rain to snowstorms in winter 2023--2024. These events were captured by the NYC Mesh wireless network, with intense rainfall causing attenuation up to 30 dB and frequent outages, especially on high-frequency V-band links. This highlights the trade-off of using high-frequency bands in wireless networks: while precipitation might cause severe channel disruptions, this greater sensitivity simultaneously makes them effective opportunistic weather sensors.
+The OpenMesh dataset is available at \url{https://doi.org/10.5281/zenodo.15268340}\citep{Jacoby2025OpenMesh}.
+By publishing the dataset and demonstrating its usability, we aim to encourage further research that leverages wireless networks for real-time urban weather sensing.
+\end{abstract}
+
+% We believe this open-access approach will encourage cross-disciplinary collaborations across communications engineering, meteorology, and data science, ultimately driving new innovations in environmental monitoring and more resilient urban infrastructure. % Although traditional weather measurements, such as weather radars and rain gauges (RGs), can provide broad-scale coverage, they often require costly infrastructure. Radars, in particular, suffer from clutter, path attenuation, and interference, and frequently require further calibration \citep{zawadzki1984factors}. 
+ % Rain gauges, while considered accurate, provide only point measurements, often lack \blue{spatial representativeness}, and can be scarce in many regions \citep{hu2019rainfall}. 
+
+
+\introduction  
+Opportunistic sensing (OS) uses a variety of non-traditional sensors to support environmental monitoring, \blue{such as commercial microwave links (CMLs), PWS, and satellite microwave links.}
+
+\begin{figure}[!t]
+  \centering
+  % panel (a)
+  \includegraphics[width=0.9 \linewidth ]{figs/revision/OpenMesh_map.png}
+\caption{\blue{Dataset Overview: OpenMesh NYC sublinks, PWS stations, and ASOS reference stations across the city. © OpenStreetMap contributors 2025. Distributed under the Open Data Commons Open Database License (ODbL) v1.0.}}
+  \label{fig.overview}
+\end{figure}
+
+Accurate meteorological observations, including precipitation monitoring, are \blue{fundamental to decision-making across sectors, from} water management and agriculture to urban planning and flood control \citep{stewart2015measuring}, with ground stations, weather radar, and satellites providing the core measurements \citep{national2009observing,tapiador2012global}.
+ Although traditional weather measurements, such as weather radars and rain gauges (RGs), can provide broad-scale coverage, they often require costly infrastructure.
+Radars face clutter, path attenuation, interference, and require frequent calibration \citep{zawadzki1984factors}, while RGs provide only point measurements with limited \blue{spatial representativeness} and can be sparse in many regions \citep{hu2019rainfall}. 
+OS data streams can \blue{address coverage limitations of traditional observations}, 
+with dense deployments providing complementary or even alternative coverage\blue{: 
+for example, in urban settings where fine temporal and spatial resolution is 
+particularly valuable due to short catchment response times (5--15\,min), 
+high rainfall variability over small scales (2--3\,km), and precise 
+flood/runoff modeling needs \citep{schilling1991rainfall,cristiano2017spatial, 
+berne2004temporal,michelon2021benefits}}.
+% Early 
+\blue{Early utilization of OS includes PWS networks providing dense observations and being explored for integration into forecasting workflows \citep{mandement2020contribution,cosmo2025apocs}, and CML networks used as standalone tools for city-scale precipitation nowcasting with lead times of a few minutes \citep{zhang2023reconstructing} and horizons extending up to several hours \citep{imhoff2020rainfall}.}
+Moreover, OS observations add local, short-term detail, can be used for data assimilation and independent evaluation, complement traditional monitoring networks, and potentially provide supplementary high-resolution inputs for deep-learning methods designed to ingest heterogeneous data sources. Still, utilizing OS sources requires addressing challenges related to variable data quality and sensor reliability \citep{fencl2023data,chwala2019commercial}.
+
+
+Specifically, wireless communication networks \blue{(WCNs)} operating in the microwave spectrum \blue{(1–300 GHz)} exemplify OS approaches by repurposing communication infrastructure as sensors to collect environmental data. By leveraging their inherent sensitivity to \blue{weather-induced variations in the propagation channel}, they turn what would otherwise be a “source of error” into cost-efficient meteorological observations \citep{messer2006environmental}.
+As WCNs increasingly employ higher‑frequency bands (e.g., \blue{V‑Band 40–75 GHz and E‑Band 71–76/81–86 GHz}), the \blue{wider available spectrum supports higher data throughput and capacity}, but these links also experience stronger propagation losses and atmospheric attenuation, including rain‑induced fading and the \blue{oxygen‑absorption resonance near 60 GHz, which challenge network reliability}. \blue{However,} this trend \blue{simultaneously} creates novel opportunities for real‑time environmental sensing, \blue{especially in urban environments} \citep{janco2023city}.
+
+A growing number of open data efforts \citep{fencl2023data,fencl2025new}, including \emph{OpenMRG} in Sweden \citep{andersson2022openmrg}, \emph{OpenRainER} in Italy \citep{Covi_Roversi_2024} and a country-wide dataset in the Netherlands \citep{overeem2023commercial}, \blue{make CML datasets openly available for hydrometeorological analysis and validation}. 
+These initiatives highlight the potential of OS to extend research in diverse climates and network topologies \blue{and to improve observational coverage}.
+Here, we introduce a publicly available dataset from NYC Mesh, a community-operated WCN deployed across New York City's dense urban environment, representing a topology and location not previously covered in the CML literature.
+The published OpenMesh dataset \blue{comprises} minute-scale measurements across the 5, 24, 60, and 70 GHz bands, with link lengths ranging from tens of meters to several kilometers \blue{providing a valuable test bed for OS in urban settings}. 
+We assess the OpenMesh dataset by comparing it with \blue{time-aligned} meteorological records from opportunistic and standard weather stations (WS) during the study period\blue{, including WUnderground PWS and NOAA records}. 
+
+\blue{Evaluation} of measurements during the study period shows alignment between the link signals and reference observations, \blue{suggesting these data could contribute to urban weather monitoring analysis.}
+By publicly sharing the OpenMesh dataset and demonstrating its applicability, we expand OS resources and illustrate how \blue{community WCNs} can act as opportunistic environmental sensors in densely sampled urban settings\blue{, providing a reproducible benchmark for future dense network deployments and WCN sensing applications}.
+\noindent
+
+\noindent \textbf{Organization of This Paper.} Sect.~\ref{sec:dataset} details the dataset and its context in environmental sensing. Sect.~\ref{sec:data_analysis} analyzes the data quality of the OpenMesh dataset and demonstrates its usage. Sect.~\ref{sec:discussion} discusses the main results, challenges, opportunities, and future directions. Finally, Sects.~\ref{sec:data_availability} and \ref{sec:code_availability} detail data and code availability, followed by concluding remarks in Sect.~\ref{sec:conclusion}.
+
+\section{Dataset Overview}\label{sec:dataset}
+This section introduces the dataset, outlining its collection process and \blue{its use in environmental sensing}. 
+Figure \ref{fig.overview} illustrates the OpenMesh network links and weather station locations used in this study. The figure shows published OpenMesh links from the broader NYC Mesh wireless network, densely concentrated between Lower Manhattan and Brooklyn within approximately 10 km$^2$. We analyze two data types from three sources: (i) wireless signals from OpenMesh and (ii) meteorological measurements from \blue{WUnderground PWS} and NOAA stations, \blue{providing both opportunistic and reference data from 29 October 2023 to 1 July 2024}.
+
+\begin{figure}[t]
+\centering
+    \includegraphics[width = 0.9 \linewidth]{figs/submission/intro_essd.png}
+\captionsetup{width=0.9\linewidth} % Caption width 95% of line width
+  \caption{(a) Schematic of a point-to-point wireless communication link \citep{fencl2023data}.  
+           (b) Signal attenuation per km for various atmospheric phenomena as a function of frequency \citep{ITU530, ostrometzky2017statistical}.}
+  \label{fig.mesh_intro}
+\end{figure}
+
+
+
+% % put this where the two figures should appear
+% \begin{figure}[t]
+%   \centering
+%   % ---------- panel (a) ----------
+%   \begin{minipage}{0.48\linewidth}
+%     \centering
+%     \includegraphics[height=65mm,keepaspectratio]{figs/subfigs/CML_Sensor.png}
+%   \end{minipage}
+%   \hfill
+%   % ---------- panel (b) ----------
+%   \begin{minipage}{0.48\linewidth}
+%     \centering
+%     \includegraphics[height=65mm,keepaspectratio]{figs/subfigs/ITU_graph.png}
+%   \end{minipage}
+
+%   \caption{(a) Schematic of a point-to-point wireless
+%   communication link \citep{fencl2023data}.  
+%          (b) Signal attenuation per km for various atmospheric phenomena as a function of frequency~\citep{ITU530, ostrometzky2017statistical}.  }
+%   \label{fig.mesh_intro}
+% \end{figure}
+
+\subsection{Wireless Communication Links}\label{sec:wireless_links}
+\subsubsection{\blue{Terrestrial} Microwave Links}\label{sec:microwave_mmwave_overview}
+Wireless communication links are point‑to‑point radio connections between two fixed locations.
+\blue{Terrestrial} links, often employed by mobile \blue{operators} and enterprises for backhaul, are also widely used in smart-city applications and community-driven initiatives (e.g., NYC Mesh), offering both commercial and public connectivity.
+These links span meters to kilometers and operate across a wide spectrum, from 1 GHz up to 100 GHz, depending on usage, and are used mainly for \blue{point-to-point interconnection}, with coverage and capacity determined by the frequency band and environment.
+Network management systems typically collect link performance data to automate network monitoring and quality management, but storing or archiving these datasets is not always mandated and often depends on specific network standards and operator practices.
+
+The following describes the structure of \blue{terrestrial} wireless link elements \citep{fencl2023data}: a 'site' is the physical location hosting one or more antennas; a 'hop' \blue{denotes a site-to-site segment}; a 'sublink' is a one-directional path between antennas; and a 'link' comprises the two opposite-direction sublinks between the same antenna pair, as shown in Fig.~\ref{fig.mesh_intro}a.
+% Both microwave (1--30\,GHz) and mmWave (30--300\,GHz) systems are crucial for x-haul 
+% (fronthaul, midhaul, and backhaul), connecting access nodes to core networks for data transmission.
+Wireless \blue{link} measurements can originate from diverse providers, including cellular telecommunication companies, municipal smart-city operators, and community-driven networks \blue{(e.g., NYC Mesh),} and each features distinct topologies and coverage densities. 
+
+\blue{Next generation networks are expected to shift to higher bands to access wide, underutilized spectrum—specifically mmWave bands such as the V-band (including 57–64 GHz) and the E-band (71–76, 81–86, 92–95 GHz)—which enable wider channels and higher capacity, supporting multi-gigabit rates for high-bandwidth applications \citep{ashraf20245g,brake20165g}.}
+At higher bands, signals suffer significantly greater path loss and weather-induced attenuation (see Fig.~\ref{fig.mesh_intro}b). This favors short line-of-sight links and dense site deployments, particularly in urban areas.
+
+\noindent \textbf{Signal Level Measurements.} Wireless networks typically measure signals strength using two key metrics: the transmitted signal level (TSL) and the received signal level (RSL), both expressed in dBm. The difference between them, referred to as total attenuation (in dB), is given by
+\begin{equation} \label{eq.total_att}
+    A_{\mathrm{tot}}(t) = TSL(t) - RSL(t).
+\end{equation}
+Depending on the operator’s protocols, TSL and RSL are often logged at intervals ranging 
+from seconds to minutes, hours, or even days, stored either as instantaneous values or aggregated statistics (e.g., mean, minimum, or maximum) for each sampling window. In addition, these network protocols typically quantize measurements which affects data precision. Together, these factors ultimately define the dataset’s resolution and precision.
+The total attenuation, $A_{\mathrm{tot}}(t)$, arises from multiple factors such as free‑space path loss; scattering, reflection, and diffraction by obstacles (e.g., buildings or terrain) further affect the signal.
+Atmospheric variables (e.g., humidity, temperature inversions, gaseous absorption) \blue{further increase the specific attenuation}, and when precipitation is present along the \blue{propagation path, hydrometeors add excess attenuation}. 
+In Fig.~\ref{fig.mesh_intro}b, the influence of several atmospheric phenomena on the expected attenuation (in $\mathrm{dB}\,\mathrm{km}^{-1}$) is illustrated \citep{ITU}. 
+\blue{While} rainfall increasingly dominates overall attenuation at most frequencies,especially at higher bands, a pronounced absorption peak occurs near 60~GHz due to oxygen resonance \citep{arvas2019analysis}.
+
+% Extended versions of the ITU-R model add location-tuning parameters and refined path-correction factors, improving accuracy across varied climates and better capturing the specific meteorological nuances of diverse regions \citep{alozie2022review, samad2021survey}.
+% While several environmental factors—rain, fog, oxygen absorption in dry air, and solid precipitation such as snow—can attenuate mmWave signals across most frequencies (Fig.\ref{fig.mesh_intro}b), the raw RSL trace with PWS records in Fig.\ref{fig.raw_data} shows that liquid precipitation, often associated with heavy rainfall and causing losses exceeding 30 dB at peak, is the dominant source of attenuation whenever it occurs.
+
+\noindent \textbf{Environmental Monitoring with Wireless Links.} \label{sec:sensing_overview}
+Power measurements collected from \blue{communication links} can effectively function as environmental sensors \citep{messer2006environmental}, leveraging their sensitivity to atmospheric phenomena.
+Within the OS approach, \blue{WCN infrastructure (e.g., CMLs) is repurposed as a cost-effective virtual sensor network for environmental monitoring} \citep{upton2005microwave,overeem2011measuring}.
+Notably, rainfall is the most established application, with efforts worldwide leveraging WCN datasets to retrieve urban-scale and country-wide rainfall fields \citep{graf2020rainfall,messer2016cellular,overeem2023commercial,chwala2019commercial,zhang2023precipitation,vspavckova2021year}.
+Beyond rain, wireless communication sensing has been explored for other atmospheric variables. 
+For humidity, CML attenuation shows potential for near-surface humidity retrieval \citep{rubin2022challenges}, with links near the 22.235 GHz water-vapor line (K-band) exhibiting increased sensitivity to vapor density \citep{rubin2023high}, and at higher frequencies (E-band, 71--86~GHz) paths are typically shorter, yet water-vapor sensitivity per kilometer is higher, making them attractive for humidity sensing \citep{fencl2021retrieving}. 
+Furthermore, CML-based retrievals for additional atmospheric variables represent emerging applications: for air quality, signals respond to stable stratification and inversion layers that can trap pollutants, yielding indirect indicators \citep{david2016using}. For fog, detection has been shown in analytical and event-based observations and is expected to improve with denser high-frequency deployments \citep{david2015cellular,csurgai2010fog}.
+Still, CML sensing of non-rain phenomena suffers from low SNR and confounding losses (wet-antenna, drift, multipath), coarse quantization, reliance on auxiliary data (e.g., temperature), and path/frequency/height mismatches, so estimates are indirect, uncertain, and often detect only strong events (e.g., dense fog) \citep{rubin2022challenges,david2015cellular}.
+With the rapid development of dense urban deployments and \blue{greater use of higher-frequency spectrum with increased atmospheric sensitivity}, \blue{emerging opportunities arise for urban OS applications—from high-resolution precipitation mapping to rain-cell front tracking} \citep{ostrometzky2024opportunistic,janco2023city,zhang2023environment,hadar2020parameter}.
+
+The variety of OS dataset sources and methods—including wireless links—has prompted global initiatives to establish a unified reference community and standards. One such effort is the Global Microwave Link Data Collection Initiative (GMDI) \citep{fencl2025new}, \blue{established under the COST Action OPENSENSE, which serves a specific role of cataloging microwave-link datasets and harmonizing data formats to facilitate their collection and sharing}.
+
+\blue{\textbf{Rain-Induced Attenuation.}}
+The \(k\text{-}R\) relationship describes rain-induced attenuation \(\gamma\) 
+as a function of the rainfall rate \(R\), typically expressed as \citep{ITU,Olsen}:
+\( \gamma_{r}(R) \;=\; k\,R^{\alpha}\), where \(k\) is an attenuation coefficient and \(\alpha\) is an exponent that depends on factors 
+such as signal frequency, polarization and the drop-size distribution. 
+The total rain-induced attenuation \(A_r(t)\) along the link’s propagation path can then be written as:
+
+\begin{equation} \label{eq.PL}
+    A_{r}(t) 
+    \;=\; \int_{\text{path}} \gamma_{r}\bigl(R(\ell,t)\bigr)\,\mathrm{d}\ell  
+    \; \approx \; k\,\overline{R}(t)^{\alpha}\, L,
+\end{equation}
+
+Here, \(\gamma_{r}\bigl(R(\ell,t)\bigr)\) is the local specific attenuation ($\mathrm{dB}\,\mathrm{km}^{-1}$) at rain rate \(R(\ell,t)\), and the integral \blue{accumulates} the total attenuation along the path. 
+Assuming uniform rainfall along the path, the integral simplifies to a power‑law (PL) relation in which the path‑averaged rainfall rate \(\overline{R}(t)\) and effective link length \(L\) govern attenuation—an approximation widely used in radio communications and meteorological estimation.
+While the link length $L$ is typically taken as the distance from site to site and the coefficients are derived from ITU-R standards \citep{ITU837}, methods have been proposed to calibrate them, including path-length corrections \citep{ostrometzky2016calibration,da2007prediction,janco2022rain}. Specifically, standard models can exhibit larger prediction errors on short paths ($\lesssim 1\ \mathrm{km}$) \citep{habi2020uncertainties,janco2023city}. This limitation is highly relevant for dense urban deployments, such as beyond 5G/6G networks and smart-city infrastructures. This challenge further motivates active research into methods for rainfall retrieval from wireless links and underscores the value of studying datasets in urban topologies, such as the OpenMesh dataset.
+
+
+
+% In NGNs—including smart-city infrastructures—antennas operate across a wide frequency range, from sub-6\,GHz to high mmWave bands, enabling flexible, short-range deployments. 
+% By strategically using diverse frequency bands, these systems adapt to varied applications in complex urban environments. Small cells are typically mounted on rooftops, utility poles, or other urban fixtures, delivering localized high-throughput connectivity at distances ranging from a few meters to multiple kilometers.
+% These deployments seamlessly integrate with the existing digital infrastructure, expanding capacity and enhancing key features like mobility and low latency—particularly crucial in dense urban environments.
+
+
+% The variety of OS dataset sources and methods---including wireless links---has prompted global initiatives to establish a unified reference community and standards. One such effort is the 
+% Global Microwave Link Data Collection Initiative (GMDI) \citep{fencl2025new}, which aims to foster collaboration among scientists, national weather services, sensor-network owners, and end-users of hydrological products.
+
+% \renewcommand{\arraystretch}{0.95}
+% \begin{table*}[!t]
+% \centering
+% \caption{Dataset Overview: NYC Mesh Sublinks by Frequency and Weather Stations}
+% \label{tab:nycmesh_weather_summary}
+% \begin{tabular}{|l|c|c|l|c|}
+% \hline
+% \textbf{Data Source} & \textbf{Count (Sublinks/Stations)} & \textbf{Temporal Resolution} & \textbf{Measured Variable} & \textbf{Resolution} \\
+% \hline
+% Mesh Wireless Links &
+% \begin{tabular}[c]{@{}c@{}}
+% 5\,GHz (5.0--6.0\,GHz): 54 \\ \hline
+% 24\,GHz (24.0--24.5\,GHz): 8 \\ \hline
+% 60\,GHz (58.0--66.0\,GHz): 25 \\ \hline
+% 70\,GHz (66.0--69.5\,GHz): 15 \\ \hline
+% \textbf{Total: 103}\textsuperscript{(a)}
+% \end{tabular}
+% & 1\,min & RSL & 1\,dBm \\
+% \hline
+% \multicolumn{5}{|l|}{
+% \textit{\textsuperscript{(a)} Among these, \blue{22 employ bidirectional pairs, and} 5 links use dual-band (24/60/70\,GHz + 5\,GHz backup) to mitigate rain fade.}} 
+% \\
+% \hline
+% \multicolumn{5}{|c|}{\textbf{\blue{Weather Stations}}} \\
+% \hline
+% WUnderground PWS & \blue{37} & \blue{$\sim$5--15\,min (irregular)} & \blue{Precipitation rate and accumulation}\textsuperscript{(b)} & 0.25\,mm \\
+% \hline
+% \multirow{2}{*}{\textbf{\blue{NOAA / NCEI Products}}} 
+% & \blue{ASOS (High-resolution): 3} & \blue{1--60\,min (1-min where available)} & \blue{Precipitation type and amount}\textsuperscript{(b)} & 0.25\,mm \\
+% \cline{2-5}
+% & \blue{GHCN-Daily (Daily summaries): 3} & \blue{Daily} & \blue{Precipitation and snowfall totals} & 0.25\,mm \\
+% \hline
+% \multicolumn{5}{|l|}{\textit{\textsuperscript{(b)} Station feeds also include additional meteorological variables (e.g., temperature, humidity, wind, pressure).}} \\
+% \hline
+% \multicolumn{5}{|l|}{\textit{\textsuperscript{\blue{(c)}} \blue{All NOAA/NCEI products originate from the same three physical ASOS stations (KJFK, KLGA, KNYC). The high-resolution and GHCN-Daily datasets represent distinct NCEI archives that differ in temporal resolution and quality-control level.}}} \\
+% \hline
+% \end{tabular}
+% \end{table*}
+
+
+
+
+% \begin{figure}[!t] % Use [H] to force exact placement
+% \centering
+%     \includegraphics[width=0.7\linewidth]{figs/ITU_Width.png}
+% \captionsetup{width=0.9\linewidth}
+% \caption{
+% Signal attenuation for various atmospheric phenomena as a function of frequency~\citep{ITU530, ostrometzky2017statistical}. 
+% }
+% \label{fig.itu_r}
+% \end{figure}
+
+
+
+
+% In periods of rainfall, network outages may occur; yet these same events can highlight rainfall-induced attenuation, enabling the link to function as an opportunistic sensor. 
+
+
+\subsubsection{NYC Mesh Network}\label{sec:nyc_mesh}
+NYC Mesh \citep{NYCMeshMainSite} is a community-driven network led by volunteers that \blue{builds and maintains a member supported network for internet connectivity in NYC}. 
+By deploying \blue{nodes on existing urban infrastructure, such as rooftops and balconies,} and using a \blue{hybrid} mesh, it reduces reliance on traditional internet service providers and \blue{expands local connectivity}, without logging personal data.
+NYC Mesh is a non-commercial ISP whose participant installations form direct node-to-node links, enabling dynamic routing and resilience. Its backbone connects hubs and supernodes via point-to-point wireless (the focus of this study), while selected supernodes provide fiber uplinks and peering for upstream connectivity. Community members host local services including a node database (MeshDB), network monitoring dashboards (UISP), a community wiki, and a Slack workspace for coordination \citep{NYCMeshWiki2025,NYCMeshGitHub2025,NYCMeshMainSite}.
+Wireless coverage is currently concentrated in Brooklyn and Lower Manhattan, with an ongoing expansion to the Upper West Side, Harlem, and the Bronx.
+
+\noindent \textbf{\blue{Network} Configuration.}
+NYC Mesh employs \blue{a three-tiered} network architecture that combines mesh principles with a \blue{star topology} (hub-and-spoke), blending the resilience of a mesh with the simplicity of a star—\blue{local nodes connect to nearby hubs}, while hubs interlink to maintain \blue{redundant, mesh-like connectivity across the network}. \blue{Figure \ref{fig.nyc_mesh_top} illustrates this architecture, showing fiber-connected Supernodes in data centers interfacing with internet exchange points and forming a partial mesh with wirelessly interconnected Hubs that serve as intermediate nodes:} (i) \textit{Supernodes} (Tier 1) serving as primary public Internet gateways, \blue{typically connected via fiber uplinks}; (ii) \textit{Hub Nodes} (Tier 2) are neighborhood level relay points, spanning basic Omni Hubs, intermediate Sector Hubs, and major Backbone Nodes, that aggregate traffic from multiple rooftop installations; and (iii) \textit{Member Nodes} (Tier 3) represent the network edge, comprising both standard nodes that maintain direct uplinks to Hubs and \textbf{``Omni-Only'' nodes} that rely on short-range mesh connections with nearby neighbors.
+This is a hybrid topology of fiber optic and wireless links in a distributed architecture that dynamically reroutes traffic, with fiber connections between Supernodes and central Hubs providing more reliable pathways than wireless segments, especially during weather disruptions.
+Wireless links, which are the core of our dataset, serve two distinct roles in the NYC Mesh network: (i) high-capacity links interconnect major hubs and supernodes to form a partially meshed backhaul, and (ii) access point links, which constitute the network's "last mile," provide the final hop from a neighborhood hub to individual members in a point-to-multipoint configuration.
+% To achieve independent internet access, NYC Mesh uses fiber optic connections to link its core Supernodes to Internet Exchange Points within data centers, while also deploying direct fiber to high-density buildings to supplement its primary wireless network.
+
+\begin{figure}[!h] % Figure spanning two columns
+\centering
+    \includegraphics[width=0.72\linewidth]{figs/M_REVISION/Mesh_Topology.png}
+\captionsetup{width=0.75\linewidth} % Caption width 95% of line width
+  \caption{\blue{NYC Mesh network architecture. This diagram illustrates the network's tiered hybrid topology, which combines wireless and fiber links. It shows how supernodes (Data Centers) connect to the internet via fiber and form a backbone with hubs (Mesh Nodes).}}
+
+  \label{fig.nyc_mesh_top}
+
+\end{figure}
+
+
+\noindent \textbf{Wireless Hardware and Spectrum Allocation.}
+NYC Mesh employs \blue{a wide range of commercial} hardware from vendors such as Ubiquiti and MikroTik to build a resilient urban network and \blue{uses licensed and unlicensed spectrum bands}.
+NYC Mesh uses available spectrum in multiple bands that balances the trade-offs between different frequency bands.
+The 5 GHz band is used for reliable, weather-resilient connections; the 24 GHz and unlicensed 60 GHz bands provide gigabit speeds but typically over short distances due to oxygen absorption. The 70 and recently deployed 80 GHz bands are reserved for critical backbone connections with the highest capacity.
+Figure \ref{fig.nyc_mesh_top_b} displays the OpenMesh deployment of the NYC Mesh network in the published dataset. 
+Figure \ref{fig.nyc_mesh_top_b}a maps OpenMesh links in the Brooklyn area, which presents the core of the NYC Mesh network, color-coded by carrier frequency (5 GHz in blue, 24 GHz in green, 60 GHz in orange, and 70 GHz in red), demonstrating the spectrum diversity of the multi-band deployment across a dense urban area ($\sim$10~km$^2$).
+Unlike traditional CMLs (Fig.~\ref{fig.nyc_mesh_top_b}b), which rely on dedicated telecommunication towers, NYC Mesh leverages existing urban infrastructure, primarily rooftops, as shown in Fig.~\ref{fig.mesh_intro}a, with members mounting hardware with clear line of sight.
+Moreover, NYC Mesh deploys dual-band link configurations for critical hub connections, pairing high-frequency bands with 5 GHz backup links to maintain connectivity during adverse weather conditions, trading bandwidth for link availability.
+
+
+
+\noindent \textbf{Data Collection Pipeline.}\label{sec:network-hardware}
+Wireless link metrics are collected through NYC Mesh's \blue{monitoring system, which archives telemetry from network devices}. These feeds supply 1‑minute measurements that \blue{comprise} the OpenMesh dataset.
+\blue{An} API, maintained by NYC Mesh, is reachable from any node within the mesh's private IP space; each device's JSON payload is refreshed every minute, with a timestamp indicating the time of measurement.
+\blue{To fetch from NYC Mesh, we use a} fully automated pipeline \blue{that} runs daily: it queries the NYC Mesh inventory for active devices, fetches link metrics, including signal strength (dBm), capacity, latency, and throughput, to perform standard reliability checks, flagging and retrying failed or incomplete requests before uploading validated records to a cloud database.
+The pipeline interfaces with MeshDB and UISP monitoring tools, with MeshDB additionally tracking network infrastructure updates such as new node installations and topology changes.
+
+\begin{figure}[h] % Figure spanning two columns
+\centering
+    \includegraphics[width=0.9\linewidth]{figs/revision/map_frq_antannas.png}
+\captionsetup{width=0.9\linewidth} % Caption width 95% of line width
+\caption{(a) OpenMesh sublinks in the Brooklyn area, color-coded by operating frequency band, with nearby PWS stations. © OpenStreetMap contributors 2025. Distributed under the Open Data Commons Open Database License (ODbL) v1.0. \blue{(b) Photographs of NYC Mesh rooftop installations illustrating directional-antenna configurations \cite{NYCMeshWiki2025}.}}
+
+  \label{fig.nyc_mesh_top_b}
+
+\end{figure}
+
+
+
+% Figure 1: 
+% \blue{Operational routing (OSPF) prefers hub paths, assigning higher cost to neighbor-to-neighbor ad hoc links, which are therefore used mainly as contingency. Consequently, mesh-like behavior is concentrated in the backbone and localized clusters, not across the access layer.}
+
+
+% In urban settings, routers mounted on rooftops or street poles create an interconnected coverage area that can replace or augment the usual “last mile” provided by hierarchical, wired ISPs, thus bypassing many complexities 
+% associated with traditional centralized infrastructures. 
+% https://wiki.nycmesh.net/books/5-networking/page/NYC Mesh-ospf-routing-methodology
+
+% \noindent \textbf{Network Hardware and Spectrum}\label{sec:network-hardware}
+
+
+
+
+\subsubsection{Case Study }\label{sec:study-region-dataset}
+The OpenMesh dataset \blue{spans a period of} eight months (29~October~2023–1~July~2024), with all timestamps in UTC. The dataset comprises two main components:
+\begin{enumerate}
+    \item \textit{Raw measurements:} Time-series data \blue{from NYC Mesh wireless links, providing RSL measurements at 1-minute  time resolution} spanning the study period.
+    \item \textit{Metadata:} Table describing \blue{link physical attributes} including \blue{identifier,} location, carrier frequency, and link length.
+    \end{enumerate}
+
+Table ~\ref{table.datasets} summarizes the OpenMesh data characteristics that provide open-access RSL measurements for 103 sublinks \blue{across 75 hops, all sampled with 1~dBm quantization and vertical polarization. Among these hops, 24 contain 2 or more sublinks: 22 employ bidirectional link pairs for two-way communication between NYC Mesh nodes, and 6 use same direction dual-band configurations pairing two directional links to the same sites. This results in hops in the dataset that contain more than 2 sublinks, as they combine both dual-band and bidirectional configurations.}
+
+
+\textbf{\blue{Subnetwork Data Selection}}. 
+The OpenMesh dataset is a curated subset of the broader NYC Mesh network, \blue{encompassing} several hundred wireless links and \blue{continuously expanding}. Figure~\ref{fig.mesh_features} \blue{depicts} carrier frequencies and path lengths (transmitter–receiver distances), \blue{highlighting the published OpenMesh} sublinks within all active NYC Mesh wireless links. 
+The released dataset comprises links selected according to these criteria:
+(i) Data completeness and continuity: As a community-run, evolving network, NYC Mesh is dynamic, where links are added and reconfigured over time. We prioritized links with stable logging and fewer gaps across the study window, excluding data streams with substantial outages or irregular sampling.
+(ii) Representativeness and relevance: To preserve weather-sensing relevance, 
+we selected sublinks across multiple bands, prioritizing higher frequencies. 
+These include V-band links, covering both the oxygen resonance range 
+($\sim$60\,GHz band), typically avoided in commercial backhaul due to high 
+attenuation, and upper V-band frequencies (e.g., 69\,GHz). We also selected 
+for diversity in link lengths and included co-located dual-band pairs, offering 
+frequency-dependent comparisons along identical paths that are rarely available 
+in existing open microwave link datasets. Conversely, we de-prioritized very 
+short 5 GHz links, which represent a large fraction of the network but 
+contribute little atmospheric signal.
+
+\textbf{Data Specifications and Preprocessing.}
+Missing data appear as gaps caused by link outages, which can arise from hardware failures \blue{or due to strong weather attenuation}. \blue{All such intervals are encoded as NaN in the raw RSL series and aligned to a unified 1-minute sampling grid.} Two notable missing-data windows are present: (i) Late startup: about 30\% of sublinks began data collection on 7 November, leaving an initial gap of \blue{10 days} after the nominal start date; and (ii) Hardware outage: during the first week of March, the NYC Mesh data collection system \blue{experienced a hardware failure lasting one week}, resulting in missing or corrupted samples.
+NYC Mesh devices typically record RSL at 56\,s or 64\,s intervals, with occasional missing samples or transmission errors. To ensure consistency \blue{in the published data} with unified time stamps for all raw measurements:  (i) Time series were resampled to a fixed 1\,min interval to provide consistent temporal resolution across all data. Minor gaps (up to \blue{two minutes}) were linearly interpolated to maintain continuity due to irregular time sampling, while longer sampling gaps remained as missing data and were filled with \texttt{NaN}. 
+
+
+
+
+
+
+% the following preprocessing steps were applied:
+% \begin{itemize}
+%     \item \textbf{Time Alignment:} .
+%     \item \textbf{Outliers and Missing Data:} Physically implausible RSL values and transmission errors were replaced with \texttt{NaN}. Minor gaps (up to two consecutive samples) were linearly interpolated to maintain continuity, while longer gaps remained as missing data.
+% \end{itemize}
+
+\begin{figure}[!t] % Figure spanning two columns
+\centering
+    \includegraphics[width = 0.95 \linewidth]{figs/submission/features_essd.png}
+\captionsetup{width=0.9\linewidth} % Caption width 95% of line width
+\caption{Feature distributions of OpenMesh dataset: sublink lengths range in kilometers (km) and carrier frequencies (GHz). \blue{(a) Carrier-frequency histogram; (b) sublink-length histogram; (c) sublink length versus carrier frequency scatter.}}
+\label{fig.mesh_features}
+\end{figure}
+
+\subsection{Meteorological Data}\label{sec:weather-dataset}
+We \blue{use} meteorological data from \blue{ground-based sensors in} NYC, \blue{which includes data from official WS of NOAA and data from a dense network of PWS,} summarized in Table~\ref{table.datasets}.
+WS record meteorological variables in \blue{specific locations} using dedicated sensors such as thermometers (temperature), \blue{hygrometers (humidity),} barometers (pressure), anemometers (wind \blue{speed and direction}), and \blue{RGs} for precipitation. 
+Official WS often follow standardized protocols and guidelines from organizations like the World Meteorological Organization (WMO), ensuring consistency and comparability across \blue{different measurement systems}.
+As a result, they provide reliable\blue{, quality-controlled data for forecasting, climate analysis, and calibrating} other \blue{sensors}. \blue{In the United States, for example, the primary network of official stations is the ASOS, co-managed by National Oceanic and Atmospheric Administration (NOAA) and  National Weather Service (NWS) and other agencies, providing critical data for weather analysis and aviation safety.}
+However, dedicated official stations often have sparse spatial distributions, 
+making them insufficient to capture hyperlocal climate variability, especially in dense urban environments~\citep{schilling1991rainfall,cristiano2017spatial}. 
+This gap has motivated the use of opportunistic data sources such as 
+crowdsourced PWS to supplement official networks~\citep{hahn2022observations, 
+de2019quality}.
+
+
+
+\subsubsection{Personal Weather Stations}
+PWS, deployed by individuals or local organizations \blue{typically with low-cost instruments}, collect localized meteorological data. They fill observational gaps in \blue{urban areas} where official \blue{WS} coverage is limited\blue{, providing near real-time data critical for capturing rapidly changing conditions. Key applications include urban climate research, urban hydrology, and potentially weather prediction model improvement through data assimilation and model bias correction \citep{bardossy2020use,brousse2022bias,de2017potential}}.
+PWS have become increasingly popular for collecting precipitation data, \blue{with observations shared in real-time through online platforms such as WUnderground, Netatmo, WOW, and Weathercloud that provide access to dense international networks; however, commercial platform ownership creates third-party dependencies and uncertainties in data processing for scientific use \citep{fencl2023data}.} 
+\blue{The major drawback of PWS data is their reliability:} quality can vary greatly\blue{, with common} problems \blue{including} faulty zeros, missing data, and bias\blue{,} often stemming from \blue{non-standardized, user-operated installations and inadequate maintenance. Moreover, PWS typically use unheated tipping bucket rain gauges, which limits their utility to liquid precipitation and reduces accuracy during snow or frozen events compared to heated standard gauges.} 
+\blue{Therefore, automated Quality Control (QC) is a critical step to filter out erroneous measurements before the data is used. For precipitation, initial QC  methodologies focus on detecting errors like faulty zeros and outliers through spatial consistency checks with neighboring stations \citep{de2019quality, el2024guide, el2023overview}. This is often followed by a separate post-processing step, such as bias correction against reference gauge and radar products, to address the systematic errors. 
+While data quality varies, PWS networks provide complementary local observations\blue{, with recent open-source QC algorithms~\citep{cosmo2025apocs}} and ongoing standardization efforts expanding their usability.}
+
+\noindent \textbf{Weather Underground.}
+WUnderground \citep{wunderground} \blue{hosts} an extensive global PWS network, currently exceeding 250{,}000 stations, with more than 180{,}000 located in the United States. \blue{The online platform aggregates} real-time weather observations, forecasts, and historical records \blue{from these stations}, providing users with hyperlocal forecasts, data visualizations, and other tools through its website and mobile applications.
+This study uses \blue{WUnderground PWS data} to obtain \blue{temporally aligned} weather records \blue{with OpenMesh} network performance metrics, \blue{enabling examination} of how meteorological conditions influence wireless signals \blue{in the NYC area}.
+\blue{PWS in the WUnderground network typically use} a self-emptying tipping bucket design, \blue{often} capturing rainfall in increments of 0.25mm. Standard, unheated PWS devices often fail to differentiate precipitation types and may lead to delayed or underreported data for non-liquid forms (snow, hail). As a result, snow or frozen-precipitation measurements may be incomplete or imprecise. We highlight these constraints in our study and emphasize the need for data validation when analyzing \blue{precipitation-related processes}.
+Although precipitation is our primary focus, \blue{WUnderground PWS typically} measure additional variables including temperature, humidity, wind, pressure, and often solar radiation, \blue{with derived quantities such as dew point.} 
+
+
+% This study uses \blue{WUnderground data} to obtain time-stamped weather records aligned with network performance metrics, \blue{enabling examination} of how meteorological conditions influence wireless signals.
+% WUnderground integrates localized data with advanced forecasting models, enabling high-resolution analyses of microclimates, precipitation trends, and other atmospheric phenomena. 
+
+
+
+
+
+% \begin{figure}[t]
+% \centering
+% \includegraphics[width=0.8\linewidth]{figs/essd_map.png}
+% \captionsetup{width=0.8\linewidth}
+% \caption{(a) Availability histograms for sensors in the study area: OpenMesh sublinks (top) and WUnderground PWS (bottom). The x-axis shows the percentage of the total measurement period each sensor was active, and the y-axis indicates the number of sensors at each availability level. (b) Spatial distribution of OpenMesh sublinks, colored by operating frequency (5–70\,GHz), with nearby PWS.}
+
+% \label{fig.OpenMesh}
+% \end{figure}
+
+
+% \begin{figure}[!t]
+% \centering
+% \includegraphics[width=0.95\linewidth]{figs/rawdata/data_av.png}
+% \captionsetup{width=0.9\linewidth}
+% \caption{Histograms of data availability for NYC Mesh sublinks (top) and WUnderground PWS (bottom). The x-axis shows the percentage of the total measurement period each sensor was active, and the y-axis indicates the number of sensors in each availability bin.}
+% \label{fig.data_availability}
+% \end{figure}
+
+
+
+\renewcommand{\arraystretch}{0.95}
+\begin{table*}[!t]
+\centering
+\caption{Dataset Overview: NYC Mesh Sublinks by Frequency and Weather Stations}
+ \label{table.datasets}
+\begin{tabular}{|l|c|c|l|c|}
+\hline
+\textbf{Data Source} & \textbf{Count (Sublinks/Stations)} & \textbf{Temporal Resolution} & \textbf{Measured Variable} & \textbf{Resolution} \\
+\hline
+\shortstack[l]{\textbf{Wireless Links} \\ (NYC Mesh)} &
+\begin{tabular}[c]{@{}c@{}}
+\textbf{Total: 103}\textsuperscript{(a)} \\ \hline
+5\,GHz (5.0--6.0): 55 \\ \hline
+24\,GHz (24.0--24.5): 8 \\ \hline
+60\,GHz (58.0--66.0): 25 \\ \hline
+70\,GHz (68.0--69.5): 15 \\ 
+\end{tabular}
+& 1\,min & RSL & 1\,dBm \\
+\hline
+\multicolumn{5}{|l|}{
+\textit{\textsuperscript{(a)} Among these, \blue{22 employ bidirectional pairs, and} 5 use \blue{dual}-band (24/60/70\,GHz + 5\,GHz backup) to mitigate rain fade.}
+} \\
+\hline
+\multicolumn{5}{|c|}{\textbf{Weather Stations}} \\
+\hline
+\textbf{WUnderground PWS} & \blue{37} & $\sim$5--15\,min (irregular) & Precipitation & 0.25\,mm \\
+\hline
+\multirow{2}{*}{\textbf{ASOS Network}} & 
+\multirow{2}{*}{3} & 
+\blue{5\,min (NCEI)} & Precipitation & 0.25\,mm \\
+\hhline{~~---}
+& & Daily \blue{(GHCN)} & Precipitation \& snowfall & 0.25\,mm \\
+\hline
+\multicolumn{5}{|l|}{\textit{\textsuperscript{(b)}} Weather station data include additional meteorological variables such as temperature, humidity, wind speed and direction, air pressure.} \\
+
+\hline
+\end{tabular} 
+\end{table*}
+
+
+
+
+
+
+\subsubsection{Precipitation Measurements}
+This study primarily focuses on precipitation data, combining observations from standard WS and PWS across NYC. We leverage meteorological data from two main sources: WUnderground, offering a dense PWS network with broad spatial coverage and high sampling rates, and the NOAA, which provides officially QC measurements.
+We categorize two types of \blue{stations used in this study}:
+\begin{itemize}
+\item \textbf{PWS (WUnderground).}
+Data from a total of \blue{37} PWS distributed across Brooklyn and Manhattan provide detailed 
+meteorological variables, including precipitation measurements. 
+We sourced PWS data via the WUnderground API; stations generally report at 5-minute intervals, with observations available in near real time. Reporting times can be irregular and are not necessarily synchronized across stations, so timestamps may differ between PWS records. The WUnderground PWS network includes only basic automated quality checks, and measurements are not as rigorously controlled as those from professional stations.
+Nevertheless, their fine-grained temporal and spatial coverage enables analysis of urban meteorological processes at the micro-scale, supporting correlation with NYC Mesh link measurements and exploration of local weather impacts on communication links.
+
+\item  \blue{\textbf{ASOS Network Observations.}
+We utilize observations from three key ASOS stations in the NYC area: the FAA-owned sites at John F. Kennedy (KJFK) and LaGuardia (KLGA) airports, and the NWS-owned station in Central Park (KNYC). The ASOS network is operated jointly by NOAA's NWS, the FAA, and the Department of Defense (DoD). All three stations provide standardized, continuous data; the airport sites are positioned primarily to support aviation safety, while the Central Park station provides a climatological baseline from an urban park setting. }
+Data from the ASOS network is officially archived by NOAA's NCEI \citep{NOAA2005Asos5Min}, which processes the continuous observations into distinct datasets which were employed in this study:
+\begin{itemize}
+\item \emph{\blue{Minute-scale observations.}} 
+\blue{ASOS data at minute resolution, covering precipitation type, visibility, temperature, dew point, humidity, wind, and pressure, serve as our regional reference for the evolution of weather events.  ASOS/AWOS data were obtained via the NCEI Data Access Application, which ingests official NOAA/NCEI archives and provides data exports at multiple time aggregations.
+These operational records receive automated checks but are not subject to the comprehensive, dataset-wide quality assurance applied to daily climatological archives.}
+
+\item \emph{\blue{Daily Summaries (GHCN).}}
+Historical daily summaries from JFK, LGA, and Central Park are obtained through NOAA \blue{via the Global Historical Climatology Network (GHCN) database}. 
+These daily records provide separate values for total liquid-equivalent precipitation (which includes rainfall and melted frozen precipitation), new snowfall (the depth of what fell in the previous 24 hours), and the total snow depth on the ground.
+\blue{GHCN-Daily aggregates observations from ASOS and other station networks, applies comprehensive quality assurance, and produces QC’d daily totals that we use as our baseline for day-scale validation.}
+
+\end{itemize}
+
+\end{itemize}
+
+
+
+
+
+
+
+\section{Data Analysis}\label{sec:data_analysis}
+This section \blue{presents representative examples from the dataset, illustrating} its quality \blue{and applicability} for environmental monitoring. 
+\blue{We first outline the methods used in this analysis, then provide an overview of descriptive statistics for the OpenMesh dataset. We then present unique features, illustrated through weather-signal relationships and cases from the study period.}
+
+
+\subsection{\blue{Methods}}
+
+
+\noindent \textbf{Path-Averaged Attenuation.}
+Let \(L\) (km) denote the link length, i.e., the distance between the transmitter and receiver. The \emph{path-averaged attenuation} \(\Delta \overline{A}(t)\) is defined by normalizing the total measured attenuation above the baseline by \(L\):
+\begin{equation}
+\Delta \overline{A}(t) = \frac{\Delta A(t)}{L},
+\end{equation}
+where \(\Delta A(t)\) is the total measured attenuation at time \(t\). Specifically, the total attenuation \(A(t)\) along the path represents the cumulative effects experienced by the signal along its propagation path. Here, we simplify these accumulated effects by letting the effective link length \(L_\mathrm{eff}\) approximate the direct distance \(L\), thereby facilitating statistical comparisons among links by minimizing distance-dependent biases. 
+
+\noindent \textbf{Baseline Reduction.}
+Our dataset comprises RSL measurements, from which we derive attenuation metrics. To quantify the added attenuation beyond baseline conditions, we define $ \Delta A(t) = RSL_{\text{baseline}}(t) - RSL(t)$,
+where \(RSL(t)\) is the measured power at time \(t\) and \(RSL_{\text{baseline}}(t)\) denotes the nominal dry-weather signal level. We use a dynamic baseline approach \citep{ostrometzky2017dynamic} to determine the baseline level by using 12 hour windows of past measurements.
+
+% Wireless links typically experience stable, slow changing path loss under dry conditions. However, transient weather phenomena (e.g., precipitation) introduce additional attenuation. 
+\noindent \textbf{Pairing Link-PWS Data.}
+In our analysis, we paired signal measurements from sublinks with precipitation collected by nearby PWS. Each sublink is paired with spatially averaged PWS rainfall measurements from stations located within 3 km distance. 
+%This method gathers a wide range of nearby measurements, reducing possible errors from individual PWS, and still reflect the local patterns by considering data only from nearby stations  \citep{overeem2011measuring}.
+
+\noindent \textbf{Aggregated Statistics.}
+To capture both short-term fluctuations and longer-term rainfall trends, we aggregate meteorological and attenuation data over different time intervals. Instantaneous measurements at time \(t\) refer to the native sensor temporal scales (e.g., 1-min for signal measurements and 5-min for PWS data). We define \(\Delta A_{m}(t)\) as the attenuation averaged over an \(m\)-minute interval ending at \(t\). For example, we use 15-minute \(\Delta A_{15}(t)\) and 60-minute \(\Delta A_{60}(t)\) aggregations to reflect different insights into observed patterns.  Similarly, we define $\sigma_m(t)$ as the corresponding standard deviation (STD) of the signal within the $m$-minute window, which can be used to quantify signal variability and has been suggested for rainfall detection \citep{schleiss2010identification}.
+% Different temporal aggregation scales provide varied insights: shorter intervals, such as minutes-scale data, effectively capture rapid changes and rapid hydrological responses typical in urban environments but are influenced by the aggregation time itself \citep{berne2004temporal,lompi2022impacts}, whereas hourly aggregations provide broader precipitation and attenuation trends.
+\begin{figure}[!t]
+  \centering
+  % panel (a)
+  \includegraphics[width=0.85\linewidth]{figs/submission/nan_essd.png}
+\caption{ 
+Data availability \blue{distribution} for \blue{(a)} NYC Mesh sublinks \blue{and (b)} WUnderground PWS \blue{during the study period}.
+Histograms show the number of sensors at each availability percentage\blue{, calculated as valid measurements relative to total possible records}.}
+\label{fig.data_av}
+\end{figure}
+
+
+
+\subsection{\blue{Dataset Characteristics}}\label{sec:data_quality}
+
+\textbf{Data Quality and Assessment.}
+Figure~\ref{fig.data_av} provides a histogram of data availability after preprocessing, showing the percentage of valid records relative to the total possible measurements over the study period.
+Most published \blue{sublinks and PWS} achieved \blue{around $\sim$90\% or higher} availability, with mean availabilities of 88.9\% and 88.7\%. 
+\blue{Data availability accounts for all sources of missing data over the study period, marked by NaN values. For OpenMesh sublinks, \textbf{missing data is categorized} into three main categories:} \blue{(i) Known system events (detailed in Sect.~\ref{sec:study-region-dataset}): delayed startup and week-long outage in early March;} \blue{(ii) Operational issues: sporadic link outages from hardware failures or mid-period shutdowns;} (iii) Environmental causes: external signal blockages or weather-induced attenuation (the focus of this study), where RSL drops below detectable levels.
+ \blue{Despite these gaps, most OpenMesh sublinks maintain high availability, with 92 sublinks achieving above 80\% coverage (including 58 sublinks above 90\%).}
+\blue{For PWS, availability is computed for precipitation measurements at each station's sampling interval (5-min for 34 stations, 15-min for 3 stations). 
+The majority of PWS stations (28 of 37) achieve above 80\% availability, with 21 stations exceeding 90\% coverage.} 
+% \blue{These results represents the published and used dataset availability that was selected sensors from the study area, forming a subset of the broader NYC Mesh and WUnderground networks that continue to expand}.
+
+\textbf{RSL Statistics.}
+Figures~\ref{fig.rsl.dist} and~\ref{fig.baseline.dist} characterize RSL properties and baseline variability in the dataset. Figure~\ref{fig.rsl.dist}a shows the distribution of median RSL across sublinks, concentrated around $-60$~dBm and ranging from $-80$ to $-35$~dBm due to variations in transmitted power, path length, antenna configuration, and operating frequency. The median RSL represents the nominal dry-weather signal level for each sublink and serves as a simple static baseline for rain-induced attenuation estimation.
+Figure~\ref{fig.rsl.dist}b shows the distribution of all RSL measurements (logarithmic scale), ranging from $-20$~dBm to $-96$~dBm, with lower RSL values being more susceptible to outages that can occur during heavy rain events.
+Figure~\ref{fig.baseline.dist} assesses the dynamic baseline's stability, which is a prerequisite for accurate rain estimation. Figures ~\ref{fig.baseline.dist}a-b quantify this stability by showing the distributions of the baseline's STD and robust range (5–95 percentile), which are calculated using a 12-hour window. Most sublinks exhibit a STD of less than 3~dB and a robust range of less than 5~dB, indicating the baseline is stable in most cases.
+High STD values can indicate non-rain attenuation from factors like atmospheric absorption or other RSL drifts and changes. Figure~\ref{fig.baseline.dist}c exemplifies such an event, where the corresponding baseline (red) tracks a sudden $\sim$5~dB RSL drop around May 13 and remains low, distinguishing it from the normal, smaller-scale deviations during the series. These results are particularly relevant for the OpenMesh dataset, which contains 60~GHz links that may cause more significant dry-weather attenuation and that lack TSL values, implying that, more processing may be needed for reliable rainfall estimation.
+
+
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figs/submission/rsl_essd.png}
+  \caption{
+    RSL characteristics. (a) Distribution of median baseline RSL values. \blue{(b) Distribution of total RSL range in logarithmic scale.}
+    \label{fig.rsl.dist}
+  }
+\end{figure}
+
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.95\linewidth]{figs/submission/baseline_essd.png}
+\caption{\blue{Estimated dynamic baseline characteristics. (a) Distribution of STD across all sublinks. (b) Distribution of the range (5-95 percentile) across all sublinks. (c) Example showing baseline tracking the raw RSL (link id= 9) with a sudden baseline level shift.}}
+    \label{fig.baseline.dist}
+\end{figure}
+
+
+
+\blue{\textbf{Cumulative Rainfall Data.} Figure~\ref{fig.accumalation_plots} presents the cumulative rainfall from the PWS and ASOS networks over the study period. Figure~\ref{fig.accumalation_plots}a displays all PWS stations with available data, categorized by total accumulation. The lowest group ($<400$~mm) shows notable gaps and flat periods, which are due to missing data or equipment issues rather than a true absence of rain. Figure~\ref{fig.accumalation_plots}b compares the cumulative rainfall from the GHCN-Daily ASOS stations with the mean and median of the PWS network, omitting the low-availability group ($<400$~mm). This comparison shows that the PWS and ASOS networks capture similar overall trends and accumulation totals of 850 to 900 mm. Although individual PWS stations exhibit high variability and data gaps, the network’s high spatial density is a valuable asset that encourages the future application of QC methods to further refine these rainfall estimates.}
+% Moreover, the strong agreement between the ASOS data and the PWS mean/median strengthens our methodological approach of using spatialy averaged PWS statistics to evaluate weather-attenuation relationships.}
+
+
+
+
+
+
+
+
+
+% \begin{figure}[!t]
+%   \centering
+%   % panel (a)
+%   \includegraphics[width=0.8\linewidth]{figs/submission/accum_essd.png}
+% \caption{\blue{Cumulative precipitation over the study period: (a) individual WU PWS stations color-coded by total accumulation and (b) ASOS stations compared with PWS mean and median.}}
+%   \label{fig.accumalation_plots}
+% \end{figure}
+
+
+\begin{figure}[!t]
+  \centering
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{figs/ESSD_subfigs/accum_plot_a.png}
+    \caption{}
+    \label{fig.accumalation_plots_a}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.48\linewidth}
+    \includegraphics[width=\linewidth]{figs/ESSD_subfigs/accum_plot_b.png}
+    \caption{}
+    \label{fig.accumalation_plots_b}
+  \end{subfigure}
+  \caption{Cumulative precipitation over the study period: (a) individual WU PWS stations color-coded by total accumulation and (b) ASOS stations compared with PWS mean and median.}
+  \label{fig.accumalation_plots}
+\end{figure}
+
+
+
+% Fig.~\ref{fig.nyc_mesh}b provides a histogram of OS data availability after preprocessing steps, showing the percentage of valid records relative to the total possible measurements. Missing sensor values are marked with NaNs in our dataset. In practice, most published sublinks achieved around 90\,\% availability, ensuring robust coverage over the study period. 
+
+
+
+
+
+\begin{figure}[t] % Figure spanning two columns
+\centering
+    \includegraphics[width=0.9\linewidth]{figs/rawdata/RSL_Rain_Data_all.png}
+\captionsetup{width=0.9\linewidth} % 
+\caption{
+RSL measurements (dBm) of a 69.1 GHz NYC Mesh \blue{(link id = 22)} alongside the mean precipitation rate (mm\,h\textsuperscript{-1}) recorded by a nearby PWS throughout a five-month study period. 
+}
+\label{fig.raw_data}
+\end{figure}
+
+
+
+
+
+\subsection{Precipitation and Link Attenuation}
+\blue{A strong, inverse relationship exists between precipitation intensity and RSL, which is evident even in the OpenMesh dataset.} 
+
+\blue{As an example,} Figure~\ref{fig.raw_data} shows five months of data (10 Nov 2023–10 Apr 2024): RSL measurements (dBm) from a 69 GHz, 1.8 km sublink plotted against mean precipitation recorded by \blue{the nearby, corresponding PWS, paired to the link}. Peaks in precipitation rate (\blue{mm\,h$^{-1}$}) coincide with sharp RSL drops, confirming \blue{this} strong inverse relationship between precipitation intensity and signal strength. The shaded interval marks an NYC Mesh outage that produced a data gap (see \blue{Sect.}~\ref{sec:study-region-dataset}).
+
+\subsubsection{Attenuation Across Frequency Bands}
+Different frequency bands inherently experience varying attenuation characteristics, so we analyze multiple bands in the NYC Mesh sublinks to capture these differences. \blue{The OpenMesh dataset allows for this analysis, as it contains sublinks from four distinct frequency bands (5, 24, 60, and 70~GHz) co-located within the same urban environment.}
+
+\blue{Figure~\ref{fig:rain_class} details the trends between precipitation, carrier frequency, and attenuation. }
+For \blue{a fair} comparison we show \blue{attenuation} statistics for links of \blue{a similar length and normalized values}. 
+
+Figure~\ref{fig:rain_class}a provides an example for a ~1.5 km sublink, plotting the 15-minute attenuation ($\Delta A_{15}$) against WMO-defined precipitation categories \citep{wmo2018guide}, which \blue{are} determined by the mean of \blue{paired PWS data}. A clear \blue{and expected} trend emerges: attenuation increases significantly with both precipitation intensity and carrier frequency. \blue{Specifically,} the 60 and 70~GHz bands \blue{show} stronger attenuation during moderate to heavy rain compared to the 5 and 24~GHz bands.
+Figure~\ref{fig:rain_class}b shows the \blue{Complementary Cumulative Distribution Function (CCDF)} of hourly aggregated statistics (mean and median) of path-normalized attenuation \(\Delta \overline{A}_{60}(t)\). 
+\blue{The plot highlights} the \blue{percentage} of time each attenuation threshold is surpassed.
+Notably, the 5\,GHz mean attenuation appears \blue{to exceed} the 24\,GHz band, \blue{an artifact that can be attributed to normalization effects from short sublinks, which artificially increase the normalized attenuation.} \blue{Moreover, this band's large size (55 sublinks) provides broader temporal and spatial coverage.}
+
+
+\textbf{Dual-band Demonstration.}
+To compare different frequency bands under identical rain conditions, Figure~\ref{fig:harlem_multiband} shows a three-day interval (03/23--03/24) with a rain event measured by a local PWS and a \blue{dual}-band link running from the City College of New York to a northern endpoint in Harlem. This channel consists of two sublinks operating at a high frequency (69 GHz) and a low frequency (5.7 GHz), respectively, which follow similar paths and experience the same weather conditions yet display markedly different attenuation levels. During this period, heavy rainfall was recorded on March 23, corresponding to substantial attenuation in both sublinks. At the peak of the rain event, the 69 GHz sublink undergoes nearly 30 dB of additional path loss—enough to cause sublink \blue{outage}, while the 5.7 GHz sublink incurs only around 5 dB of loss. 
+
+
+
+ \begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\linewidth, height =50mm]{figs/submission/attfrq_essd.png}
+\caption{\blue{Attenuation patterns across frequencies over the study period}. (a) Attenuation for a ~1.5 km sublink per frequency band, grouped by precipitation intensity \citep{wmo2018guide}. (b) Exceedance probability plots. The x-axis shows the percentage of samples that exceed the y-axis value of hourly aggregated attenuation across all sublinks, grouped by carrier frequency.}
+    \label{fig:rain_class}
+\end{figure}
+
+
+
+
+
+
+ \begin{figure}[t]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figs/revision/dual_band_event.png}
+\caption{%
+\blue{Dual}-Band Link Demonstration: The sublink at 69\,GHz (blue) experiences larger attenuation 
+than the 5.7\,GHz (green) channel, as shown by the upper-right RSL plot. The lower-right plot displays average precipitation rates recorded by nearby PWS. © OpenStreetMap contributors 2025. Distributed under the Open Data Commons Open Database License (ODbL) v1.0.
+}
+    \label{fig:harlem_multiband}
+\end{figure}
+
+
+
+
+
+
+
+\subsection{Opportunistic Precipitation Sensing with OpenMesh}
+Here, we demonstrate the applicability of OpenMesh for opportunistic precipitation sensing, illustrating how wireless link measurements, cross-referenced with local PWS data, capture rainfall events and winter snowstorms across the study period. 
+
+\textbf{Link-Based Rain Detection.}\label{sec:rain-detection} We adopt the rolling \blue{(STD)} method \citep{schleiss2010identification}, applying a 30-minute window to flag significant RSL fluctuations indicative of rain-induced attenuation using a 70 \,GHz band NYC Mesh sublink spanning 6.9 \, km.
+Figure~\ref{fig:detection} shows a continuous record for June~2024, comparing sublink measurements with the average rainfall intensity from paired PWS stations. The top plot shows the RSL (black line); the middle plot displays its 30-minute rolling STD,$\sigma_{30}$, (purple line); and the bottom plot indicates PWS-derived rain-intensity \blue{categories (drizzle to heavy \citep{wmo2018guide}, shown in Fig.~\ref{fig:rain_class})}. 
+Red bars mark “wet” intervals based on the rolling-STD threshold. Overall, wet flags align well with periods of higher PWS rainfall intensities, especially during intense events. Still, some periods of inconsistencies arise, including false alarms and missed detection periods, suggesting that additional preprocessing and alignment are needed when using and comparing opportunistic sensors.
+
+\textbf{Snowfall Events.} We present NYC Mesh link responses during Winter 2024 snowstorms, cross-referenced with local PWS and ASOS observations.
+Table~\ref{table:snowfall_data} summarizes daily snowfall records for Winter 2024 at KJFK, KLGA, and KNYC. 
+The table shows snowfall depths from six specific days in early 2024. \blue{The January events were generally light, with most measurements at 5.08 cm or less. The February events were much heavier, with a significant snowfall of 8–11 cm recorded at all three stations on Feb 13, and a peak accumulation of 15.75 cm at KJFK on Feb 17.}
+Figure~\ref{fig:snow_plots} shows two of these events during Winter~2024: 16~January, with an average daily accumulation across stations of 3.9~cm, and 13~February, with heavier accumulations of 9.6~cm. The bottom panel displays 5-min ASOS precipitation records for each event. Above, RSL measurements from two sublinks per frequency band (5, 60, and 70~GHz) in the Brooklyn region are shown alongside mean and median precipitation and air temperature from the local WUnderground PWS network.
+\begin{figure}[!t]
+        \centering
+\includegraphics
+ [width=0.95\linewidth] {figs/applications/detection_red_50.png}    
+\caption{
+One-month sublink sample illustrating RSL (top), rolling STD (middle), and PWS-based rain intensity categories \citep{wmo2018guide} (bottom). Red intervals indicate wet detections where the STD exceeds the detection threshold.
+}
+    \label{fig:detection}
+\end{figure}
+
+All plots are color shaded by ASOS NOAA station category to reflect the reported condition at each interval: dry (white), wet (rain), wintry mix (freezing rain, freezing drizzle,  or sleet), and snow, using the majority category within each hourly window. 
+\blue{Figure~\ref{fig:snow_plots}a corresponds to the 16~January~2024 event, with ASOS stations recording snow conditions mainly in the early morning (up to 9:00 AM) with recorded precipitation.
+At the same time, no significant effect on the microwave signal was observed, and no precipitation was registered by the WUnderground PWS. These observations can be associated with the recorded subzero temperatures (–2 to –4 °C), which may suggest the presence of predominantly dry snow. Such conditions are typically transparent to microwave signals and are often not recorded by unheated PWS tipping-bucket gauges, which can be susceptible to freezing.}
+\blue{Around 09:00, as the air temperature rose toward 0 °C, ASOS station reports shifted from “snow” to “wintry mix,” indicating mixed-phase conditions. Concurrently, NYC Mesh wireless links exhibited marked attenuation, exceeding 10 dB at higher frequencies, while co-located PWS reported only low precipitation levels.}
+Figure~\ref{fig:snow_plots}b illustrates the 13~February event, characterized by heavier snowfall, averaging about 9~cm of snow depth across the three ASOS stations.
+\blue{In the morning hours, ASOS stations began recording precipitation with present weather codes indicating snow. At the same time, wireless links showed substantial attenuation across all frequency bands, including more than 20 dB on high-frequency (60–70 GHz) sublinks and some link outages. Concurrently, PWS also registered precipitation, but in low amounts, with a majority of stations reporting zero.}
+\begin{table}[h]
+\centering
+\caption{NOAA \blue{GHCN-}daily Snowfall Depth Measures. }
+
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Date}   & \textbf{KJFK (cm)} & \textbf{KLGA (cm)} & \textbf{KNYC (cm)} \\ \hline
+2024-01-06      & 0.25               & 0.76               & 0.51               \\ \hline
+2024-01-15      & 1.78               & 0.76               & 1.02               \\ \hline
+2024-01-16      & 3.30               & 5.08               & 3.30               \\ \hline
+2024-01-19      & 0.76               & 3.30               & 1.02               \\ \hline
+2024-02-13      & 10.67              & 8.38               & 8.13               \\ \hline
+2024-02-17      & 15.75              & 8.38               & 5.08               \\ \hline
+\end{tabular} \label{table:snowfall_data}
+\end{table} 
+
+\blue{After 13:00, wireless links showed signal recovery, returning to baseline attenuation levels that aligned with reported dry conditions. Simultaneously, the PWS network recorded spikes with high precipitation levels, even as official ASOS stations reported zero precipitation. This significant peaking lag in the PWS data, which is delayed relative to the earlier RSL attenuation and ASOS observations, may suggest it is not a new precipitation event. A possible reason for this behavior is a "melting lag," where the unheated PWS gauges may be measuring the previously uncaptured snowpack as it melted, long after the actual snowfall had ended.}
+Overall, wireless links exhibited frequency-dependent attenuation during snowy intervals, which offers potential to complement sparse official stations or serve as additional information for dry and wet snow, as suggested in \cite{oydvin2024combining}. 
+
+\begin{figure}[!t]
+    \centering
+    % \begin{subfigure}{0.47\linewidth}
+    \includegraphics[width=0.95\linewidth]{figs/submission/snow_essd.png}
+        \label{fig:snow_event_2}
+    % \end{subfigure}
+    \captionsetup{width=0.95\linewidth}
+\caption{
+RSL traces from two illustrative snowfall days per frequency band, \blue{shown} alongside \blue{PWS mean/median} precipitation (mm) and temperature (°C)\blue{,} \blue{and 5-minute ASOS precipitation}. Colored shading indicates the precipitation type \blue{from} airport stations: snowfall (cyan), mixed rain/snow (gray), rainfall (blue), and dry (white).}
+
+    \label{fig:snow_plots}
+\end{figure}
+% \blue{Overall, wireless links across all bands exhibit attenuation during reported snowy intervals that increases with frequency. Dense link deployments in multiband \blue{provide near real time urban coverage that complements sparse in city QC stations for urban winter monitoring}.
+% Subfreezing temperatures suggest that dry snow can be relatively transparent, supporting applications such as improved rainfall and dry snow classification when combining weather data with CML observations, as suggested in \citep{oydvin2024combining}. 
+% Non-liquid precipitation (e.g., snow, ice, or sleet) remains \blue{a} challenging task in hydrology \blue{— especially} for WS lacking dedicated snow sensors or unheated gauges such as PWS\blue{; even weather radars can struggle to discriminate phases and quantify snowfall}. In some cases, \blue{microwave links mf{ay offer advantage, such as dry-snow classification to differentiate between precipitation types \citep{oydvin2024combining}, but studies remain limited}. Nevertheless, broader evaluations are needed to quantify performance, refine phase aware calibration, and operationalize these effects.}
+
+
+
+
+
+
+
+
+
+
+\section{Discussion}\label{sec:discussion}
+WCNs serve as valuable sources of atmospheric and hydrological data \citep{messer2006environmental,chwala2019commercial,fencl2025new}. While most current studies have focused on CMLs traditionally employed for cellular network backhauling, new wireless data sources are emerging with increased urban deployments at higher millimeter-wave frequency bands (e.g., $\sim$60 and $\sim$70~GHz). Here, we present OpenMesh, a new OS dataset from a community-operated WCN deployed across multiple frequency bands in NYC, representing a network type not previously covered in the CML literature.
+We analyzed attenuation--weather relationships in NYC by pairing OpenMesh RSL measurements from four frequency bands (5, 24, 60, and 70~GHz) with PWS and ASOS records, demonstrating the utility of this frequency diversity for opportunistic precipitation sensing.
+Key challenges include data availability, with high responsiveness at 70~GHz leading to outages during severe rain, along with baseline instability and variable reliability of PWS references. 
+At the same time, the opportunistic approach, leveraging the growing number of distributed sensors including dense link deployments across multiple frequency bands (Fig.~\ref{fig.nyc_mesh_top_b}) and PWS stations, can mitigate these limitations, making OpenMesh a practical testbed for urban precipitation sensing.
+For example, the OpenMesh dataset features several dual-band links (Fig.~\ref{fig:harlem_multiband}), pairing high-frequency bands with a 5~GHz link along the same line of sight, which not only supports connectivity but also enables direct comparison of frequency-dependent atmospheric effects over the same channel.
+Beyond rainfall, the snow events (Fig.~\ref{fig:snow_plots}) illustrate that 
+urban wireless links, particularly at higher frequency bands, can sense snowfall 
+often missed by unheated PWS gauges. Link responses vary between dry and wet snow 
+depending on weather conditions such as temperature, supporting earlier studies 
+on WCNs for snow applications \citep{oydvin2023classification,oydvin2024combining} 
+and encouraging further exploration of non-rain phenomena.
+
+The OpenMesh dataset aligns with recent efforts to standardize and openly share 
+OS datasets for hydrology applications, including both wireless link and PWS 
+observations \citep{fencl2025new,fencl2023data}. We encourage further exploration, 
+including advanced processing of OS datasets and trade-off analysis between sensor 
+density and reliability for hydrological applications. Such efforts could involve 
+applying QC and noise filtering methods to OpenMesh measurements and integrating 
+with regional weather monitoring tools such as the NEXRAD KOKX S-band Doppler 
+radar (Upton, NY) serving the NYC area and MRMS reanalysis gridded products, 
+to leverage OS measurement diversity for environmental monitoring and specifically 
+urban weather sensing.
+
+
+% This potential can be examined with additional weather radar datasets to complement sparse station locations, support calibration, and aid the classification of dry versus wet snow, as demonstrated by \citep{oydvin2024combining}.
+
+
+
+
+
+
+% We found that the 70\,GHz band exhibits strong weather sensitivity with less baseline variability, enabling clearer distinctions between wet and dry periods. In contrast, the 60\,GHz band presents a significant challenge for hydrological sensing; strong oxygen absorption (Fig.~\ref{fig.mesh_intro}b) introduces baseline noise that complicates the precise estimation of rain-induced attenuation.
+
+
+
+
+
+
+
+
+
+% These observations motivate the use of \blue{dual}-band links in certain scenarios: the 5 GHz band can serve as a backup during high-attenuation events, while the increased sensitivity of higher-frequency links can be leveraged to more precisely detect weather phenomena such as precipitation.
+
+
+% \subsection{Dataset Characteristics}
+% The OS dataset merges attenuation measurements from OpenMesh sublinks with meteorological observations from nearby PWSs, enabling real-time, high-resolution spatio-temporal analysis and alignment from both sources.
+%  For the present study we focus on this representative subset.
+
+% To prepare these heterogeneous sources for analysis over the study period, we applied a series of preprocessing steps including time alignment, outlier handling, and unit standardization.
+
+% \noindent\textbf{Data Preprocessing}\label{sec:data-preprocessing}
+% Raw datasets required minimal yet essential processing to form a consistent, easy-to-use resource. In particular, PWS are user‑maintained and may not be calibrated to standardized protocols, and each sensor logs data on different schedules: NYC Mesh devices record at 56\,s or 64\,s intervals (with occasional missing samples or errors), while WUnderground PWS provide readings every 5–15 min. Because these measurements were not inherently synchronized, we applied the following steps to ensure alignment and standardization for analysis:
+
+% \begin{itemize}
+%     \item \textbf{Time Alignment:} Each source was resampled to a fixed interval—1 min for Mesh sublinks, 5 min for WUnderground PWS, and 30 min for airport data—to provide a consistent temporal resolution across all measurements.
+%     \item \textbf{Outliers and NaN Handling:} Physically implausible outliers and missing measurements were replaced with \texttt{NaN}. Minor gaps (up to two consecutive samples) were interpolated to maintain continuity, while longer gaps remained as missing data.
+
+% \end{itemize}
+
+
+
+% \begin{table}[t]
+% \centering
+% \footnotesize
+% \setlength{\tabcolsep}{3pt}
+% \caption{15-min window statistics (in $\mathrm{dB\,km}^{-1}$) under Dry vs.\ Wet intervals.}
+% \begin{tabular}{c
+%                 |cc|cc
+%                 |cc|cc}
+% \hline
+% \multirow{2}{*}{Freq Band}
+%   & \multicolumn{4}{c|}{Window Mean $\Delta \overline{A}_{15}$}
+%   & \multicolumn{4}{c}{Window Std $\overline{\sigma}_{15}$} \\
+%   & Dry mean & Dry med. & Wet mean & Wet med.
+%   & Dry mean & Dry med. & Wet mean & Wet med. \\
+% \hline
+% 5\,GHz   & 0.07 & 0.00 & 0.78 & 0.31 & 0.61 & 0.56 & 0.64 & 0.59 \\
+% 23\,GHz  & 0.02 & 0.00 & 0.58 & 0.38 & 0.27 & 0.35 & 0.38 & 0.46 \\
+% 60\,GHz  & \textbf{0.14} & 0.00 & 1.26 & 0.69 & \textbf{1.00} & \textbf{0.92} & \textbf{1.05} & \textbf{0.98} \\
+% 70\,GHz  & 0.06 & 0.00 & \textbf{2.28} & \textbf{0.91} & 0.34 & 0.38 & 0.90 & 0.64 \\
+% \hline
+% \end{tabular}
+% \label{table.wet_dry}
+% \end{table}
+
+% For \blue{a fair} comparison \blue{that avoids link-length normalization}, we show \blue{total attenuation} statistics for links of \blue{a similar} length. In Fig.~\ref{fig:rain_class}a, we present \blue{the mean 15-minute attenuation ($\Delta A_{15}$)} for a representative \blue{$\sim1.5$~km} sublink from each band \blue{over the study period}. \blue{The attenuation is binned by} rainfall categories, which are determined by averaging the paired PWS data.
+
+ % The results indicate that higher-frequency bands exhibit greater attenuation across all rainfall categories\blue{, reflecting} clear \blue{and expected} trends\blue{:} attenuation increases with precipitation intensity for all bands, and is significantly stronger at higher frequencies.
+% For a more direct comparison of frequency bands and to reduce the effect of normalization, we show the total attenuation statistics for links of the same length. In Fig.~\ref{fig:rain_class}a, we present mean attenuation across all frequency bands using one representative sublink per band (\(\sim1.5\) km). The results indicate that higher-frequency bands exhibit greater attenuation across all rainfall categories, reflecting (i) elevated attenuation patterns under higher intensities for every band and (ii) stronger rain-induced attenuation at higher frequencies. Rainfall categories for each sublink are determined by averaging the nearest PWS data at 15-minute intervals to ensure consistent time windows.
+
+
+
+% The plotted attenuation values represent increments above a baseline, and most samples (99\%) remain below 3 dB, indicating stable link performance under predominantly dry conditions. These dry conditions are evident in over 90\% of the measurements—about 90\% register zero precipitation, and approximately 98\% fall under drizzle or light intensities (< 2.5 $\mathrm{dB}\,\mathrm{km}^{-1}$).  
+% This diversity is illustrated in Fig.~\ref{fig:CCDF_plots}, which shows exceedance probability curves for precipitation (from WUnderground) and sublink attenuation (from NYC Mesh), based on the observed values. These plots depict the fraction of measurements exceeding various thresholds for 15-minute aggregation, highlighting the proportion of low to extreme conditions in each dataset, and thereby presenting the sample complementary cumulative distribution function (CCDF) of the dataset.
+% Fig.~\ref{fig:CCDF_plots}a represents the sample CCDF for both raw datasets presenting the actual recorded values, with no additional processing or adjustments, thus reflecting the full range of measured values yet not accounting for missing data gaps. Precipitation intensities are categorized into discrete ranges following \citep{wmo2018guide}.
+
+
+
+% Around 0.5\% of attenuation values exceed 5 dB, typically driven by weather-related events. Moderate precipitation intensities (2.5–10 $\mathrm{dB}\,\mathrm{km}^{-1}$) comprise roughly 0.5–2\% of PWS measurements, while higher intensities (10–50 $\mathrm{dB}\,\mathrm{km}^{-1}$) occur in only about 0.01–0.1\%. 
+% The more extreme values (>50\,$\mathrm{dB}\,\mathrm{km}^{-1}$), often associated violent, localized showers that PWS capture thanks to their dense coverage, may also arise from measurement inaccuracies (e.g., sensor overestimation).
+% Observed attenuation occasionally reaches about 30 dB in rare cases. 
+% However, extreme rainfall often leads to link collapses, resulting in missing or NaN measurements rather than high recorded values. These collapses depend on various factors—such as device hardware, link frequency, and link length—and typically occurs at higher attenuation values associated with extreme or heavy rainfall.
+
+
+% \noindent \textbf{Wet vs. Dry Periods.} 
+% Fig.~\ref{fig:hist_plots} displays histograms of the path-averaged attenuation, \(\Delta \overline{A}_{15}\), computed from all 15-minute measurement windows across NYC Mesh sublinks. These histograms highlight differences between dry and wet periods for the 5, 60, and 70 GHz bands. Table~\ref{table.wet_dry} summarizes the mean and median \(\Delta \overline{A}_{15}\) values and the path-averaged standard deviation (std), \(\overline{\sigma}_{15}\), which quantifies the 15-minute window variability across all frequency bands in wet versus dry intervals (with wet periods determined from local PWS data). 
+% The derived path-averaged standard deviation, \(\overline{\sigma}_W\), quantifies the signal's variability within each time window \(W\), with low variability in dry periods and higher fluctuations during rainy periods that enable rain detection \cite{schleiss2010identification}.
+
+
+
+% Under dry conditions, all frequency bands exhibit symmetrical distributions centered around zero, indicating that the measured values cluster around the corresponding sublink baseline level (Equation~\ref{eq.baseline}). In contrast, wet-period distributions are right-skewed with positive attenuation values, highlighting an additional attenuation component due to rainfall.
+% Specifically, the 70 GHz band shows the clearest separation between wet and dry periods, with noticeably higher attenuation in wet conditions. The 5 GHz band, however, demonstrates overlap between wet and dry distributions, making it more difficult to differentiate solely by attenuation. Meanwhile, the 60 GHz band not only exhibits high attenuation during wet periods but also relatively high values in dry periods, underscoring its susceptibility to non-rain influences (see Fig.~\ref{fig.mesh_intro}b). It also experiences the highest std values, showing notably high fluctuations in dry conditions, indicative of inherently noisier signal behavior.
+
+
+
+% While Fig.~\ref{fig:CCDF_plots}b suggests that the 60 GHz band can experiences less weather-induced attenuation than the 5 GHz and 24 GHz bands, path attenuation is heavily influenced by link length: most 24 GHz sublinks exceed 1 km (up to 4 km), whereas most 60 GHz sublinks are shorter in our dataset.
+
+
+% As expected, higher frequencies suffer greater weather-induced attenuation under freezing conditions. 
+% During the lighter 16~January snowfall, the 5\,GHz and 24\,GHz links dropped only 3--4\,dB, while the 60\,GHz and 70\,GHz links lost up to 15\,dB. 
+% In the heavier 13~February event, even lower-frequency sublinks (e.g., 11 and 30) dipped by about 10\,dB, whereas the highest-frequency sublinks (e.g., 8 and 47) collapsed entirely, underscoring the extreme vulnerability of mmWave bands.
+ 
+%  \noindent \textbf{Freezing Conditions Misaligments.} During the 16~January event, local PWS did not register precipitation until after 11:00, even though airport stations indicated snow earlier and NOAA data reported a total of 39\,mm. This discrepancy suggests that WUnderground PWS—primarily geared toward liquid precipitation—either failed to record or significantly under-measured the snow event. For instance, while WUnderground stations collectively reported under 1\,mm of total precipitation, NOAA recorded 38.9\,mm of snowfall depth and 9\,mm of precipitation. In contrast, high-frequency sublinks registered pronounced attenuation by 9:00, despite negligible PWS readings, underscoring the links’ heightened sensitivity to non-rain conditions. A similar delay occurred in the February snowfall event: the strongest sublink attenuations aligned with reported snowy intervals, whereas PWS measurements remained low or indicated “dry” until after 13:00, even as airport stations and stable link-attenuation levels indicated ongoing snow. This misalignment likely stems from rising temperatures melting snowfall or ice on the gauges, leading to underestimation during snow and overestimation during the melting phase. Meanwhile, sublinks stayed consistent with airport snow indicators, further revealing the limitations of PWS in freezing conditions.
+ 
+% \noindent \textbf{Snow-Types Impact.}
+% Near-surface precipitation classification from the WMO codes \citep{wmo2018guide, Fierz2009} ranges from damp or rime-covered surfaces to slush, dry snow, or compacted ice, each with distinct liquid-water content. Among these, “dry” vs.\ “wet” snow can dramatically alter microwave attenuation due to partial melting \citep{matzler1987applications}. Because meteorological factors such as temperature, humidity, and air pressure strongly shape snow microstructure, a more detailed analysis is needed to interpret link attenuation under these varying conditions. 
+
+% In our observations, subfreezing temperatures (below \(-2^\circ\mathrm{C}\)) during the January event yielded minimal sublink attenuation during snowfall, suggesting that dry snow is effectively transparent to microwave signals. In contrast, the warmer (0--2\,\(^\circ\mathrm{C}\)) February storm produced significantly higher signal losses—sometimes causing full link collapses—implying “wet” snow, where partial melting leads to greater attenuation. 
+
+%  \noindent \textbf{Wet/Frozen Antenna Effects.}
+% Wet and frozen antenna surfaces can introduce additional attenuation in microwave link signals, sometimes dominating overall measurement errors \citep{schleiss2013quantification,ostrometzky2017wet,kozak2021patch}. 
+% This effect often manifests as prolonged signal reductions even after precipitation stops, especially under freezing conditions where moisture or ice remains on antenna surfaces. For instance, sublinks~41, 8, 47, and 18 in our January event did not promptly return to baseline RSL levels 
+% despite colder, drier weather—indicating that residual moisture or ice on antennas delayed full signal recovery.
+
+% These examples demonstrate that wireless links detect both liquid and frozen precipitation effectively, particularly under snowy or mixed conditions—though certain low-temperature snow types appear relatively transparent. Meanwhile, wet or freezing antennas can distort signal levels and require further analysis to distinguish ice buildup from actual precipitation. Despite these challenges, wireless links remain a promising solution for bridging measurement gaps and enhancing real-time snow detection.
+
+
+
+
+
+
+% \section{Applications}\label{sec:applications}
+
+
+% These results demonstrate the feasibility of using 69 GHz sublinks for reliable rainfall sensing under warm, liquid-precipitation conditions. Extension to snow or hail would require additional model adaptations and encourages further research.
+
+
+% \begin{figure}[t]
+%   \centering
+%   \includegraphics[height=65mm,width=0.8\linewidth,keepaspectratio]{figs/applications/rain_example_event.png}
+% \caption{Comparison of ITU-R–based rainfall estimates from a 69 GHz microwave sublink with PWS measurements over a two-day precipitation event, highlighting their close agreement and demonstrating the feasibility of using sublinks for rainfall sensing.}
+%   \label{fig:rain_estimation_event}
+% \end{figure}
+% \subsection{Rain Estimation}\label{sec:rain-estimation}
+% We employ the ITU-R model to relate specific attenuation to rainfall rate via a power-law relationship (Eq.~\eqref{eq.PL}), where wireless links capture signal attenuation caused by rain and convert it into rainfall intensity estimates using predetermined parameters \citep{ITU}. Concretely, the model maps the observed sublink attenuation, \(\Delta A(t)\) (in dB), to the mean precipitation \(\mathrm{(mm\,h^{-1})}\) measured by nearby PWS.
+% Fig. \ref{fig:rain_estimation_event} shows a two-day precipitation event, comparing the sublink-derived rainfall intensity (orange) to the mean PWS measurements (blue). ITU-R parameters translate rain-induced path attenuation (with wet-antenna correction following \citep{schleiss2013quantification}) into rainfall estimates. To avoid false positives during dry periods, we apply a rolling standard-deviation threshold for rain detection and assign zero rainfall whenever no wet flag is raised.
+
+% Overall, the sublink closely tracks the timing and magnitude of the PWS measurements, with minor underestimation at lower intensities. We quantify accuracy via the normalized RMSE (NRMSE)—the ratio of the RMSE between estimated and observed rainfall to the total observed rainfall over the interval—which confirms strong agreement. 
+
+
+
+
+% \section{Discussion}\label{sec:discussion}
+% We introduced the OpenMesh dataset to demonstrate the feasibility of opportunistic sensing for high-resolution, urban-scale weather monitoring using NYC Mesh’s multi-band links.  
+% The observed attenuation patterns across frequencies generally align with established theoretical models, showing pronounced rainfall sensitivity over various bands and even detecting frozen precipitation that can be missed by unheated PWS.  
+% Our snow-event analyses further highlight how “wet” versus “dry” snow can drastically alter signal attenuation, while frozen antenna surfaces emphasize the importance of non-rain processes on link performance.
+
+% \noindent \textbf{5\,GHz Sublinks.}  
+% Lower-frequency, 5\,GHz links in NYC Mesh are widely used for everyday internet backhaul. Most are relatively short, but those spanning greater distances still exhibit noticeable attenuation during moderate-to-heavy rainfall.  
+% Owing to their extensive deployment in NYC, these links can complement higher-frequency sublinks, for instance in establishing baseline calibrations or detecting broader weather patterns.
+
+% \noindent \textbf{60\,GHz Sublinks.}  
+% The 60\,GHz band is largely unlicensed—which simplifies deployment and enables high-throughput, mainly with short-range links thanks to the wide bandwidth available at these frequencies. 
+%  However, strong oxygen absorption (see Fig.~\ref{fig.mesh_intro}b) severely limits communication range and introduces additional attenuation factors, a critical consideration for hydrological sensing. Our analysis (Figs.~\ref{fig:CCDF_plots}b, \ref{fig:hist_plots}; Table~\ref{table.wet_dry}) shows that—even in dry conditions—60\,GHz links exhibit baseline noise likely tied to atmospheric effects, complicating precise estimation of rain-induced attenuation. Therefore, Additional filtering and more advanced analysis are required to assess the 60GHz band’s usability for urban sensing.
+
+% \noindent \textbf{70\,GHz Sublinks.}  
+% Among the NYC Mesh links, the 70\,GHz band exhibits particularly strong weather sensitivity but less baseline variability than 60\,GHz, enabling clearer distinctions between wet and dry periods.  
+% This heightened responsiveness aids in detecting both mild and intense rainfall (including wet snow), but also risks link collapses during severe downpours, resulting in missing data.  
+% NYC Mesh often pairs these high-capacity mmWave links with lower-frequency backups (e.g., 5\,GHz) at critical connection points—an operational redundancy that enhances communication reliability and opens opportunities for multi-band meteorological sensing (Fig.~\ref{fig:harlem_multiband}).  
+% We demonstrated rain-detection and rainfall-intensity algorithms using 70\,GHz links, illustrating how they can effectively sense precipitation, although localized rainfall or underreporting of frozen conditions may lead to discrepancies with PWS data.
+
+% \noindent \textbf{PWS Dataset.}  
+% Our study also incorporates extensive WUnderground PWS coverage, offering near–real-time data across dense urban neighborhoods.  
+% Though these unheated tipping-bucket gauges may under-report or lag in detecting freezing precipitation, they remain a cost-effective baseline for rainfall studies and a valuable cross-check for opportunistic sensors.  
+% Further research on quality control and filtering \citep{de2019quality} could strengthen the reliability of PWS in weather sensing facilitate integration of OS observations.
+
+% Altogether, these findings underscore the importance of merging OS datasets (e.g., NYC Mesh) with official sources (e.g., airport stations, NOAA) for improved calibration and robust, high-resolution precipitation monitoring.  
+% Looking ahead, the growing deployment of 5G/6G networks and  principles will likely increase the spatial density and spectral diversity of wireless infrastructure, promising richer, real-time urban weather sensing and broader applications.
+
+
+% %%%%%%%%%%%%%%%%%%%%%%
+
+\section{Data availability}\label{sec:data_availability}
+The OpenMesh dataset comprising NYC Mesh wireless link measurements is publicly available on Zenodo \blue{\citep{Jacoby2025OpenMesh}} under the Creative Commons Attribution 4.0 License (CC BY 4.0).
+The measurements are provided in NetCDF format compliant with the OpenSense CML specifications v1.1 (standardized naming, units, and metadata conventions) and accompany a white paper on standards and conventions for opportunistic rainfall‑sensor data \citep{fencl2023data}. \blue{We also include a two-week sample of PWS data from January, provided as a NetCDF group, which aligns with conventions for handling irregular time steps with PWS OpenSense standards \citep{fencl2023data}}. Meteorological \blue{raw} observations for the entire period (\blue{including ASOS 5-minute and daily}, and WUnderground PWS) are accessible through their respective online platforms and API \blue{access}. The \blue{attached repository contains the relevant scripts} \blue{used} to derive raw and meta dataset from both sources.
+
+
+\section{Code availability}\label{sec:code_availability}
+Scripts and notebooks are available on GitHub, archived at Zenodo \citep{jacoby2025code}. The repository includes examples of data reading and analysis\blue{, data fetching modules for NOAA and Weather Underground observations,} and is actively being expanded with additional processing scripts and results. The NetCDF dataset aligns with the OpenSense specification and interoperates with the opportunistic-hydrology codebase \blue{\citep{opensense_github}}. Community contributions are welcome.
+
+\section{Concluding remarks}\label{sec:conclusion} 
+As in-city wireless deployments grow denser and adopt higher frequency bands, emerging opportunities such as smart cities and community-driven infrastructures, like NYC Mesh, offer a path to capture high-resolution urban precipitation mapping at minimal additional cost. These networks provide high temporal sampling and dense spatial coverage that can support existing and future monitoring systems.
+Growing initiatives to openly share OS datasets for weather monitoring reflect a broader shift toward leveraging diverse sensor networks alongside traditional tools. OpenMesh exemplifies this through collaboration between a community-operated network and researchers, offering a replicable model for open, low-cost urban environmental sensing.
+Challenges remain, including data availability gaps, link outages during intense rain, and variability in data quality. Nevertheless, the public release of OpenMesh contributes to the growing body of openly available OS datasets, supporting further research into wireless networks as urban weather monitoring platforms.
+
+% \blue{This study highlights the potential of innovative in city wireless datasets and underscores the need for sustained collaboration among researchers, wireless operators, municipal agencies, and hydrometeorological institutions to effectively integrate these data into existing systems.}.
+
+
+% Throughout this study, we have highlighted both the potential and the challenges in repurposing such link measurements for urban weather sensing; while further refinement is needed, the widespread deployment of short, high-frequency links already underway suggests that a move from demonstration to operational implementation is achievable. 
+
+% We also cross-referenced these community-collected signals with PWS data, primarily sourced from WUnderground, demonstrating both close alignment in certain precipitation events and notable misalignments (e.g., during snowfall), underscoring the importance of careful calibration and open-data collaboration.
+
+
+
+
+
+\appendixfigures  %% needs to be added in front of appendix figures
+
+\appendixtables   %% needs to be added in front of appendix tables
+
+
+
+
+\authorcontribution{
+DJ conceived the overall dataset framework, led software development, performed
+data preprocessing, conducted formal analysis and visualization, and wrote the
+original manuscript draft.  
+SY contributed to software development, data curation, and reviewed and edited
+the manuscript.  
+QH contributed to data collection, analysis, and implementation.  
+ZH contributed to software development and data collection.  
+RJ provided access to network resources, contributed to data validation, and
+reviewed the manuscript.  
+JO, IK, GZ, and HM supervised the research, contributed to methodology, and
+critically reviewed and edited the manuscript.
+}
+\competinginterests
+{
+The authors declare that they have no conflict of interest.
+} 
+
+\begin{acknowledgements}
+This research was supported by the NSF Center for Smart Streetscapes (CS3) under Grant EEC-2133516; the Next Generation Internet (NGI) initiative through the NGI Enrichers program (EU-funded project No.\ 101070125); the BSF Prof.\ Rahamimoff Grant T-2025115; and NSF grants AST-2132700, AST-2232455, CNS-2433807, CNS-2450567.
+
+We thank the NYC Mesh community for providing their network data and invaluable support, which made this research possible, with a special thanks to Olivier Morf for his continuous collaboration and technical assistance. We also appreciate the support of the OpenSense community (COST Action CA20136), whose collaborative framework and data conventions helped shape both this dataset and the resulting study.
+\end{acknowledgements}
+
+
+
+%% The reference list is compiled as follows:
+\bibliographystyle{copernicus}
+\bibliography{bibs/ref, bibs/essd}
+
+\end{document}
+
+
+%  \begin{figure}[!t]
+%     \centering
+%     \includegraphics[width=0.65\linewidth]{figs/CCDF/rain_class.png}
+% \caption{Attenuation for \(\sim1.5\)  km sublinks for various frequency band, grouped by precipitation intensity.}
+%     \label{fig:rain_class}
+% \end{figure}
+
+
+% \begin{figure}[!t]
+%   \centering
+%   % panel (a)
+%   \includegraphics[width=0.85\linewidth]{figs/revision/att_frq_plots.png}
+%   \caption{Data availability histograms for NYC Mesh sublinks (top) and
+%   WUnderground PWS (bottom). The x-axis shows the percentage of the total
+%   measurement period each sensor was active, and the y-axis the number of sensors in each availability bin.}
+%   \label{fig.nyc_mesh}
+% \end{figure}
+
+% \begin{figure}[t]
+%   \centering
+%   % panel (a)
+%   \includegraphics[width=0.48\linewidth ]{figs/subfigs/CCDF_a.png}
+%   \hfill               
+%   \includegraphics[width=0.48\linewidth]{figs/subfigs/CCDF_b.png}
+%   \caption{(a) OpenMesh sublinks in Brooklyn area coloured by operating frequency (5–70 GHz), with
+%   nearby PWS locations. (b) Data-availability histograms for NYC Mesh sublinks (top) and
+%   WUnderground PWS (bottom). The x-axis shows the percentage of the total
+%   measurement period each sensor was active, and the y-axis the number of sensors in each availability bin.}
+%   \label{fig.nyc_mesh}
+% \end{figure}
+
+
+% \begin{figure}[!t]
+%     \centering
+%     \includegraphics[width=0.32\linewidth]{figs/subfigs/5g_wet.png}\label{fig:5g_hist}%
+%     \includegraphics[width=0.32\linewidth]{figs/subfigs/60g_wet.png}\label{fig:60g_hist}%
+%     \includegraphics[width=0.32\linewidth]{figs/subfigs/70_wet.png}\label{fig:70g_hist}
+%     \captionsetup{width=0.97\linewidth}
+% \caption{%
+%   Path-averaged attenuation distributions for wet (blue) and dry (orange) periods across frequency bands. Each plot shows the density of hourly path-averaged attenuation ($\mathrm{dB}\,\mathrm{km}^{-1}$).
+% }
+%     \label{fig:hist_plots}
+% \end{figure}
+
+% \begin{table}[t]
+% \centering
+% \footnotesize
+% \setlength{\tabcolsep}{3pt}
+% \caption{15-min window statistics (in $\mathrm{dB\,km}^{-1}$) under Dry vs.\ Wet intervals.}
+% \begin{tabular}{c
+%                 |cc|cc
+%                 |cc|cc}
+% \hline
+% \multirow{2}{*}{Freq Band}
+%   & \multicolumn{4}{c|}{Window Mean $\Delta \overline{A}_{15}$}
+%   & \multicolumn{4}{c}{Window Std $\overline{\sigma}_{15}$} \\
+%   & Dry mean & Dry med. & Wet mean & Wet med.
+%   & Dry mean & Dry med. & Wet mean & Wet med. \\
+% \hline
+% 5\,GHz   & 0.07 & 0.00 & 0.78 & 0.31 & 0.61 & 0.56 & 0.64 & 0.59 \\
+% 23\,GHz  & 0.02 & 0.00 & 0.58 & 0.38 & 0.27 & 0.35 & 0.38 & 0.46 \\
+% 60\,GHz  & \textbf{0.14} & 0.00 & 1.26 & 0.69 & \textbf{1.00} & \textbf{0.92} & \textbf{1.05} & \textbf{0.98} \\
+% 70\,GHz  & 0.06 & 0.00 & \textbf{2.28} & \textbf{0.91} & 0.34 & 0.38 & 0.90 & 0.64 \\
+% \hline
+% \end{tabular}
+% \label{table.wet_dry}
+% \end{table}
+
+
+
+%  \begin{figure}[!t]
+%     \centering
+%     \includegraphics[width=0.65\linewidth]{figs/rawdata/RSL_hist.png}
+% \captionsetup{width=0.9\linewidth}
+%     \caption{ RSL distribution (dBm) across sublinks  }
+%     \label{fig:rsl_comparison}
+% \end{figure}
+
+% \begin{figure}[!t]
+% \centering
+% \includegraphics[width=0.45\linewidth]{figs/CCDF/rain_ccdf.png}
+% % \hfill
+% \includegraphics[width=0.45\linewidth]{figs/CDF_plots/rain_WS_CCDF.png} 
+
+% \includegraphics[width=0.45\linewidth]{figs/CDF_plots/att_CDF_frq.png}\hfill
+% \includegraphics[width=0.45\linewidth]{figs/CDF_plots/frq_CDF.png}
+% \caption{Exceedance probability plots. The x-axis shows the fraction of samples exceeding the y-axis magnitude. Panels (a,b) depict precipitation intensities (WUnderground), while (c,d) show attenuation measures (NYC Mesh) grouped by carrier frequency. In (a,c), raw records are used; in (b,d), hourly aggregated values for the overall mean and median across sensors.}
+% \label{fig:CCDF_plots}
+% \end{figure}
