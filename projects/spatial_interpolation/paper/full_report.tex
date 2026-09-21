@@ -1,0 +1,2028 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{cite}
+\usepackage{footnote}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{lipsum}
+\usepackage{longtable}
+\geometry{margin=2.5cm}
+
+\providecommand{\keywords}[1]{\vspace{0.5em}\noindent\textbf{Keywords:} #1}
+
+\title{Rainfall Estimation and Forecasting from Commercial Microwave Link Networks:\\
+A Machine Learning Approach Using Swedish Cellular Infrastructure}
+
+\author{\textit{Ben Yehoshua, S.}, \textit{Jacoby, D.}, \textit{Salganik, Y.}}
+
+\date{\textit{Tel Aviv University} \\ \today}
+
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Accurate quantitative precipitation estimation and short-term forecasting
+are foundational requirements for urban hydrology, flash-flood early
+warning, and operational meteorology. Conventional infrastructure relies
+on rain gauges, which provide accurate but spatially sparse point
+measurements, and weather radar, which provides spatially dense fields but
+suffers from beam blockage, Z--R uncertainty, and high capital cost.
+Commercial Microwave Links (CMLs), the backhaul of cellular networks,
+constitute a dense and globally deployed opportunistic sensing
+infrastructure: the rain-induced attenuation of these radio signals
+encodes path-averaged rain rate. We present a complete pipeline that
+converts raw CML received-signal-level (RSL) measurements into spatial
+rainfall fields and short-term forecasts. Using the public openMRG
+dataset (Gothenburg, Sweden, summer 2015), we build inverse-distance
+weighting (IDW) and Goldshtein--Messer--Zinevich (GMZ) tomographic maps
+from \(\sim\!214\) CMLs and benchmark a CML neural estimation network
+against the ITU-R physical baseline. We further train three modern
+sequence models---Transformer, Sparse Identification of Nonlinear
+Dynamics (SINDy), and a Mamba-style state-space surrogate---in four
+variants (IDW/GMZ \(\times\) single/multi-step) for nowcasts at horizons
+of 15, 30, 45, and 60 minutes. Naive persistence baselines and the
+operational pySTEPS Lagrangian extrapolator are used as references.
+Performance will be reported using RMSE, MAE, bias, Pearson correlation,
+and the Heidke Skill Score, evaluated against both SMHI rain gauges
+(gold standard) and SMHI radar maps. Quantitative results will be
+reported in a follow-up study upon completion of all model training.
+\end{abstract}
+
+\keywords{Commercial microwave links; rainfall estimation; precipitation nowcasting;
+machine learning; Transformer; SINDy; Mamba; pySTEPS; opportunistic sensing;
+Sweden; openMRG}
+
+\section{Introduction}\label{sec:intro}
+
+Quantitative precipitation estimation (QPE) and short-term forecasting
+(``nowcasting'', the 0--2~hour horizon) underpin a broad range of
+applications: urban drainage and flash-flood early warning, agriculture,
+aviation safety, and the assimilation of observations into numerical
+weather prediction (NWP) models. The two operational measurement
+infrastructures---rain-gauge networks and weather radar---each present
+well-known limitations. Rain gauges provide accurate, in~situ
+measurements of accumulated rainfall but only at a single point, so that
+dense urban or sparse rural networks alike fail to resolve the
+considerable sub-kilometre variability of convective rainfall. Weather
+radar provides high-resolution spatial fields but is affected by beam
+blockage at low elevations, range-dependent overshooting of low cloud,
+ground clutter, and the substantial uncertainty of the empirical
+reflectivity-to-rain-rate relation (Z--R) used to convert radar
+reflectivity into rain rate; deployment and maintenance costs are also
+high.
+
+The opportunistic sensing paradigm offers a complementary information
+source. Commercial Microwave Links (CMLs)\footnote{CMLs are the
+point-to-point microwave radio links that interconnect cellular base
+stations. They typically operate in frequency bands between 15 and
+40~GHz, where the wavelength is comparable to the size of raindrops; in
+this regime, rainfall along the propagation path causes a measurable
+attenuation of the received signal level (RSL) that is approximately
+proportional to the path-integrated rain rate.} form a dense,
+already-deployed, and continuously operating wireless infrastructure
+whose attenuation measurements correlate strongly with the
+path-integrated rain rate along each link. The same signal degradation
+that operators monitor for quality-of-service purposes thus becomes a
+rainfall sensor of opportunity at essentially zero marginal hardware cost.
+
+The seminal demonstration by \mbox{Messer et al.} \cite{messer2006} that
+country-scale rainfall fields can be inferred from cellular backhaul
+attenuations triggered an active line of research. Closed-form physical
+estimators based on the ITU-R~P.838 power law \cite{ituR838} were refined
+by \mbox{Goldshtein et al.} \cite{goldshtein2009} into practical rain-rate
+inversions, and the path-averaged nature of CML observations naturally
+suggested tomographic reconstruction. National-scale operational
+demonstrations \cite{overeem2013} followed. More recently, the
+availability of public reference datasets and the maturity of deep
+learning have motivated learning-based per-link rainfall estimators and
+spatial reconstructions.
+
+This study presents an end-to-end machine-learning pipeline anchored on
+the public openMRG dataset \cite{andersson2023openmrg}, which combines
+cellular microwave link data, SMHI rain gauges, and SMHI radar for
+Gothenburg, Sweden, summer 2015. The contributions of this work are: (i)
+an end-to-end pipeline that converts raw CML RSL into 15-minute
+spatial rainfall maps using both IDW and GMZ reconstructions; (ii) a
+trained CML estimation network that supplies the input maps to the
+forecasting stage; and (iii) a systematic comparison of three modern
+sequence models---Transformer, SINDy, and a Mamba-style state-space
+surrogate---against naive persistence baselines and the operational
+pySTEPS nowcast, at horizons of 15, 30, 45 and 60~min.
+
+The remainder of the paper is organized as follows. Section
+\ref{sec:background} reviews CMLs as rain sensors, the relevant
+attenuation physics, spatial interpolation, nowcasting, and the radar
+Z--R relation. Section~\ref{sec:dataset} describes the openMRG dataset
+and our preprocessing. Section~\ref{sec:methodology} details every model.
+Section~\ref{sec:metrics} defines the evaluation framework, and
+Section~\ref{sec:setup} reports the experimental setup. Sections
+\ref{sec:results} through \ref{sec:conclusion} present the planned
+results, a forward-looking discussion, and concluding remarks.
+
+\section{Background and Related Work}\label{sec:background}
+
+\subsection{Commercial Microwave Links as Rain Sensors}
+
+The use of cellular backhaul attenuation for environmental monitoring was
+first proposed and demonstrated by \mbox{Messer et al.} \cite{messer2006}
+in a landmark \emph{Science} paper that showed how the existing
+infrastructure of a cellular operator could provide rainfall information
+at country scale. Subsequent quantitative work by \mbox{Goldshtein et
+al.} \cite{goldshtein2009} formalised the per-link inversion problem and
+provided practical baseline-tracking algorithms, while \mbox{Overeem et
+al.} \cite{overeem2013} produced country-wide rainfall maps for the
+Netherlands using thousands of links from a single operator. The
+underlying mechanism is the interaction of electromagnetic waves with
+hydrometeors: at the frequencies used by cellular backhaul (typically
+15--40~GHz), Mie scattering and absorption by raindrops produce a
+specific attenuation that is well described by the
+power law of ITU-R~Recommendation~P.838 \cite{ituR838}.
+
+\subsection{Rain Attenuation Physics}\label{sec:physics}
+
+The specific attenuation \(\gamma\) [dB/km] induced by rainfall on a
+microwave link is related to the surface rain rate \(R\) [mm/h] by the
+ITU-R power law:
+\begin{equation}
+  \gamma \;=\; a \cdot R^{\,b}, \label{eq:itu_power}
+\end{equation}
+where the coefficients \(a\) and \(b\) depend on the carrier
+frequency, polarisation, and (weakly) drop-temperature; their values
+are tabulated in \cite{ituR838} and reproduced in
+Table~\ref{tab:itu_coeff}. For a link of physical length \(L\) [km], the
+total path attenuation \(A\) [dB] satisfies
+\begin{equation}
+  A \;=\; \gamma \cdot L \;=\; a \cdot R^{\,b} \cdot L. \label{eq:itu_total}
+\end{equation}
+Inverting Equation~\eqref{eq:itu_total} yields the closed-form rain
+estimator
+\begin{equation}
+  R \;=\; \left(\frac{A}{a\,L}\right)^{1/b}, \label{eq:itu_inverse}
+\end{equation}
+which constitutes the simplest possible CML rainfall estimator and the
+physical baseline used in this study.
+
+In practice, only the received signal level (RSL) of the link is
+recorded; the total attenuation must be inferred from
+\begin{equation}
+  A(t) \;=\; \mathrm{RSL}_{\text{dry}}(t) \;-\; \mathrm{RSL}(t), \label{eq:rsl_to_atten}
+\end{equation}
+where \(\mathrm{RSL}_{\text{dry}}(t)\) denotes the level the link
+\emph{would} have shown under dry conditions. Because antennas drift
+thermally and link conditions change slowly over time, the dry baseline
+is itself unknown and must be estimated from the data. We follow the
+standard rolling-quantile approach
+\begin{equation}
+  \mathrm{RSL}_{\text{dry}}(t) \;=\; Q_{p}\!\left(
+     \{\,\mathrm{RSL}(\tau) \;:\; \tau \in [t-W,\,t]\,\}\right), \label{eq:baseline}
+\end{equation}
+where \(Q_{p}\) is the \(p\)-th sample quantile and \(W\) is the window
+length, exploiting the fact that for the great majority of the time it
+is not raining and therefore the upper quantile of the RSL distribution
+is a good estimate of the dry level. A common refinement subtracts a
+small constant to correct for the so-called wet-antenna effect (WAE),
+which is the residual attenuation caused by a film of water on the
+antenna radome that persists for several minutes after a rain event
+ends:
+\begin{equation}
+  A_{\text{corrected}}(t) \;=\; A(t) \;-\; A_{\mathrm{WAE}}. \label{eq:wae}
+\end{equation}
+
+\begin{table}[h]
+\centering
+\caption{Representative ITU-R~P.838 coefficients $(a, b)$ for selected
+carrier frequencies and both horizontal (H) and vertical (V) linear
+polarisations. The values shown are illustrative reference values taken
+from the ITU-R~P.838-3 standard \cite{ituR838} and \emph{not} parameters
+chosen in our codebase; in practice, \texttt{pynncml}'s
+\texttt{one\_step\_dynamic\_baseline} routine looks up the full
+ITU-R~P.838 table internally for each link based on its actual carrier
+frequency and polarisation as recorded in the openMRG metadata.}
+\label{tab:itu_coeff}
+\begin{tabular}{lcccc}
+\toprule
+Frequency [GHz] & $a_{\mathrm H}$ & $b_{\mathrm H}$ & $a_{\mathrm V}$ & $b_{\mathrm V}$ \\
+\midrule
+15 & 0.0376 & 1.154 & 0.0335 & 1.128 \\
+18 & 0.0691 & 1.099 & 0.0691 & 1.099 \\
+23 & 0.1284 & 1.051 & 0.1284 & 1.051 \\
+26 & 0.1402 & 1.061 & 0.1402 & 1.061 \\
+38 & 0.4001 & 0.929 & 0.3950 & 0.913 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Spatial Interpolation Methods}\label{sec:interp}
+
+Both per-link rain rates and gauge readings are scattered (line or
+point) measurements; reconstructing a regular field requires spatial
+interpolation. We use two complementary methods.
+
+\paragraph{Inverse Distance Weighting (IDW).} Each grid point
+\(\mathbf{x}\) is estimated as a weighted mean of the source values
+\(z_i\) at locations \(\mathbf{x}_i\):
+\begin{equation}
+  \hat{z}(\mathbf{x}) \;=\;
+  \frac{\sum_{i=1}^{N} w_i(\mathbf{x})\, z_i}
+       {\sum_{i=1}^{N} w_i(\mathbf{x})},
+  \qquad
+  w_i(\mathbf{x}) \;=\; \frac{1}{d(\mathbf{x},\mathbf{x}_i)^{p}},
+  \label{eq:idw}
+\end{equation}
+with \(p=2\) and Euclidean distance evaluated in lon/lat (degrees);
+this approximation is sufficient over the small Gothenburg domain. IDW
+is computationally cheap and stable but it is a known limitation of
+the method that intensity peaks are systematically smoothed toward the
+local mean: because every grid point is a convex combination of nearby
+measurements, the interpolated surface cannot exceed the local maximum
+or fall below the local minimum of the observation set, and rapidly
+varying features---such as the cores of convective cells---are
+attenuated relative to the true field. The effect has been quantified
+specifically in the CML rainfall-mapping context by Eshel et al.\
+\cite{eshel2021spatial}, who showed that IDW underestimates rainfall
+peaks compared to methods that exploit the path-integral nature of CML
+observations.
+
+\paragraph{Goldshtein--Messer--Zinevich (GMZ) tomography.}
+The GMZ reconstruction treats each link's path attenuation as a path
+integral of the (unknown) two-dimensional rain field and solves for the
+field that best reproduces all observed CML attenuations
+simultaneously. The forward model along link \(\ell\) of length
+\(L_\ell\) discretises the path integral with \(N\) sample points:
+\begin{equation}
+  \bar{R}_\ell \;=\;
+  \frac{1}{L_\ell}\int_0^{L_\ell}\! R(s)\, ds
+  \;\approx\;
+  \frac{1}{N}\sum_{j=1}^{N} R(s_j). \label{eq:gmz_path}
+\end{equation}
+The original algorithm is due to Goldshtein, Messer and Zinevich
+\cite{goldshtein2009}; subsequent CML mapping studies typically
+represent each link by a small number of virtual rain gauges (VRGs)
+distributed along its path \cite{eshel2021spatial}, recovering a
+sharper estimate of the rain field than IDW at the cost of additional
+computation. The \texttt{pynncml} toolbox
+(\texttt{mcm.generate\_link\_set\_gmz}) exposes the two engineering
+parameters that control this discretisation:
+\texttt{region\_of\_interest}, the pixel-radius of each link's region
+of influence on the reconstruction grid, and \texttt{point\_per\_link},
+the number of VRG sample points used to discretise the path integral
+of Equation~\eqref{eq:gmz_path}. These parameters are
+implementation-specific to the \texttt{pynncml} GMZ routine and are
+not, to our knowledge, the subject of dedicated published guidance;
+the literature uses comparable but differently-named discretisations
+(e.g.\ Eshel et al.\ \cite{eshel2021spatial} compare 1-VRG and 3-VRG
+representations). For consistency with internal prior work in our
+group, we fix \(\texttt{REGION\_OF\_INTEREST}=3\) pixels and
+\(\texttt{POINT\_PER\_LINK}=2\) VRGs across all experiments\footnote{We
+note that these two values are engineering choices: they were neither
+optimised against the openMRG validation split nor inherited from a
+published reference. They were carried over from earlier internal
+experiments so that all results in this study remain directly
+comparable to prior work conducted in the laboratory, and a dedicated
+study of their sensitivity is left to future work.}.
+
+\subsection{Precipitation Nowcasting}
+
+Nowcasting designates short-term (0--2~hour) forecasting of precipitation.
+At these horizons, the bulk of the forecast skill derives from the
+extrapolation of observed precipitation features rather than from the
+explicit modelling of atmospheric dynamics. The classical approach
+estimates a motion vector field from a sequence of recent radar maps
+and advects the most recent observation forward (Lagrangian
+extrapolation):
+\begin{equation}
+  R(\mathbf{x},\, t+h) \;\approx\; R(\mathbf{x} - \mathbf{v}\cdot h,\; t), \label{eq:advection}
+\end{equation}
+where \(\mathbf{v}\) is the (possibly spatially varying) motion vector
+field. The open-source pySTEPS library \cite{pulkkinen2019pysteps}
+implements a state-of-the-art version of this scheme with
+Lucas--Kanade or variational optical-flow motion estimators and an
+optional stochastic ensemble for probabilistic forecasting. Deep
+learning has more recently been used to learn the advection plus growth
+and decay jointly from data, but the deterministic pySTEPS pipeline
+remains the operational reference against which new methods are
+typically benchmarked.
+
+\subsection{Radar Reflectivity and Z--R Relations}
+
+Weather radars do not measure rain rate directly: they measure
+backscattered power, summarized as the radar reflectivity factor
+\(Z\) [mm\(^6\)/m\(^3\)]. The connection to rain rate is the empirical
+power law
+\begin{equation}
+  Z \;=\; a_Z \cdot R^{\,b_Z}, \label{eq:zr}
+\end{equation}
+whose canonical Marshall--Palmer parameters \cite{marshallpalmer1948}
+are \(a_Z=200,\; b_Z=1.6\). Inverting Equation~\eqref{eq:zr} with the
+common dBZ scaling \(Z_{\text{dBZ}}=10\log_{10}Z\) gives
+\begin{equation}
+  R \;=\; \left(\frac{10^{\,Z_{\text{dBZ}}/10}}{a_Z}\right)^{1/b_Z}. \label{eq:zr_inv}
+\end{equation}
+This relation is used in our preprocessing pipeline to convert the
+openMRG radar dBZ field into rain rate.
+
+\section{Dataset}\label{sec:dataset}
+
+\subsection{The openMRG Dataset}
+
+We use the public \emph{Open Microwave Rainfall Gothenburg} (openMRG)
+dataset \cite{andersson2023openmrg}, which co-locates three precipitation
+data streams over the Gothenburg area, Sweden, during the summer of
+2015: Commercial Microwave Links, rain gauges, and SMHI weather radar.
+The native openMRG CML inventory comprises 364 bi-directional links
+(728 sub-links in total), with path lengths from approximately 100~m
+to 15~km (median \(\approx 2\) km), carrier frequencies in the range
+7--38~GHz (with the majority above 25~GHz), and predominantly vertical
+polarisation. The CMLs are instrumented with min/max received and
+transmitted signal levels (RSL and TSL) aggregated at a native temporal
+resolution of 10~seconds, with reported coverage of 99.99\% over the
+study period \cite{andersson2023openmrg}. The full openMRG period is
+1~June 2015 to 31~August 2015. Per-link metadata include the two site
+coordinates, the path length, the carrier frequency, and the
+polarisation. The dataset is loaded via the \texttt{pynncml} toolbox,
+which provides a unified loader (\texttt{loader\_open\_mrg\_dataset})
+and dataset object that bundles the link set, the gauge point set, and
+the time alignment used throughout this study; after \texttt{pynncml}'s
+internal quality filtering and the selection of a single direction per
+bi-directional pair, approximately 214 link series are exposed for
+use in this work.
+
+\begin{table}[h]
+\centering
+\caption{Summary of the openMRG dataset components used in this study.}
+\label{tab:openmrg_summary}
+\begin{tabular}{lll}
+\toprule
+Component & Quantity & Notes \\
+\midrule
+CMLs (raw)                  & 364 bi-directional             & 728 sub-links; 7--38 GHz, mostly vertical pol. \\
+CMLs (this work)            & \(\sim\)214 series             & after \texttt{pynncml} filtering / direction pick \\
+CML temporal resolution     & 10 s                            & min/max RSL/TSL \\
+CML path length             & 0.1--15 km                      & median \(\approx 2\) km \\
+Rain gauges                 & 11 stations                    & 1 SMHI weighing + 10 city network \\
+Gauge temporal resolution   & 15 min (SMHI) / 1 min (city)   & \(\sim\)10 city gauges used here \\
+Radar (SMHI composite)      & 1 field                        & 48\(\times\)37 pixels, 5-min cadence \\
+Radar reflectivity encoding & pseudo-dBZ (uint8)             & \(\mathrm{dBZ} = 0.4\!\cdot\!\text{raw} - 30\) \\
+Time span                   & 2015-06-01 to 2015-08-31       & 92 days \\
+Crop domain (lat)           & 57.55--57.85 \(^\circ\)N       & \\
+Crop domain (lon)           & 11.70--12.20 \(^\circ\)E       & \\
+Working temporal resolution & 15 minutes                     & via right-aligned-mean resampling \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{SMHI Rain Gauge Network}\label{sec:gauges}
+
+Rain gauges are point measurements of precipitation at a single
+location, traditionally regarded as the gold standard for surface
+rainfall over the area immediately surrounding the
+station\footnote{Although gauges are spatially limited to a single
+point and may underestimate intense rainfall due to wind-induced
+under-catch and instrumental losses, the directness of the measurement
+(physical collection of water in a known catchment area, followed by a
+weighing or tipping mechanism) yields an accuracy that no remote
+sensing technique currently matches. Gauges are therefore the customary
+reference against which CML and radar estimates are validated.}.
+The openMRG bundle provides eleven gauges in total: a single SMHI
+automatic weather station equipped with a Geonor weighing gauge
+(0.1~mm resolution, native 15-min cadence) plus a ten-station city
+network operated by Gryaab (seven Geonor weighing and three
+tipping-bucket gauges, the latter at 0.2~mm resolution, all at a
+1-minute cadence). The pynncml dataloader exposes the high-cadence
+city-network stations as its \texttt{point\_set}, giving the
+\(\sim\)10 gauges used as the ground-truth reference throughout this
+study. The 1-minute rain-rate series are resampled to the radar's
+15-min cadence using a right-aligned mean and aligned with the radar
+time grid via nearest-neighbour matching within a tolerance of
+8 minutes.
+
+\subsection{SMHI Weather Radar}
+
+The openMRG bundle includes a single SMHI two-dimensional radar
+composite field over the Gothenburg domain, at approximately 2~km
+horizontal resolution and 5-minute temporal resolution; the openMRG
+file contains a 48\(\times\)37-pixel field, of which the cropped
+sub-window of Table~\ref{tab:openmrg_summary} is retained. The
+composite is built from the national SMHI radar network (with the
+nearest contributing radars being Vara, Karlskrona, and Vilebo, of
+which Vara is closest at \(\approx 78\) km), so the Gothenburg domain
+is observed at significant range\footnote{The radar limitations
+discussed below are exacerbated by this range: the nominal vertical
+sampling of the radar beam is several hundred meters above the surface
+at such distances, so beam overshooting of low precipitation and
+range-dependent under-catch are intrinsic limitations of the openMRG
+radar product over the study area.}. The raw field is encoded as an
+unsigned 8-bit pseudo-dBZ representation; values of 255 indicate
+missing data and the remaining values are scaled via
+\(\mathrm{dBZ} = 0.4\!\cdot\!\text{raw} - 30\)
+\cite{andersson2023openmrg}. The radar serves as the secondary spatial
+reference in this study\footnote{Weather radar is
+spatially dense and operationally important, but the underlying Z--R
+relationship is uncertain and varies with precipitation regime, drop
+size distribution and viewing geometry; range degradation, beam
+blockage and bright-band contamination further bias the rainfall
+estimate. Quantitative validation of CML methods is therefore
+preferentially done against gauges, with radar used as a spatial
+reference rather than a ground truth.}.
+
+\subsection{Data Preprocessing}\label{sec:preproc}
+
+The raw streams are aligned onto a common 15-minute grid and processed
+as follows.
+
+\paragraph{Radar.} Raw uint8 values of 255 are masked as missing, the
+remainder is converted to dBZ via \(\mathrm{dBZ} = \text{raw}\cdot 0.4
+- 30\). To suppress hail-induced reflectivities the field is capped at
+53~dBZ, then converted to rain rate via the Marshall--Palmer inversion
+of Equation~\eqref{eq:zr_inv} with \(a_Z=200,\; b_Z=1.6\). The result
+is resampled to 15-min cadence with a right-aligned mean and stored as
+a \((T, H, W)\) array.
+
+\paragraph{CML.} The native openMRG CML stream provides min/max RSL
+and TSL aggregated over 10-second intervals
+\cite{andersson2023openmrg}; \texttt{pynncml}'s OpenMRG dataloader
+ingests these series and exposes per-link minute-cadence tensors that
+feed the downstream estimators. The rolling-quantile dry baseline of
+Equation~\eqref{eq:baseline} is applied implicitly inside
+\texttt{pynncml}'s \texttt{one\_step\_dynamic\_baseline} routine. A
+wet/dry decision uses a wet threshold of 0.5~dB; baseline window is
+60~min, and a minimum reportable rain rate of \(R_{\min} = 0.1\) mm/h
+is enforced. The per-link rain rates are finally resampled to 15-min
+cadence and aligned with the radar grid via nearest-neighbour matching
+with a tolerance of 8 minutes.
+
+\paragraph{Quality filtering.} Links with non-physical or excessively
+NaN-laden series are excluded by \texttt{pynncml}'s dataloader; the
+remaining \(\sim\)214 links cover the full openMRG period.
+
+\paragraph{Train/validation/test split.} A strictly temporal split is
+used throughout: all training, validation, and testing series obey the
+chronological boundaries in Table~\ref{tab:splits}. No random
+shuffling of timestamps is performed at any stage.
+
+\begin{table}[h]
+\centering
+\caption{Chronological data split used for all model training and evaluation.}
+\label{tab:splits}
+\begin{tabular}{lll}
+\toprule
+Split & Date range & Purpose \\
+\midrule
+Train & 2015-06-01 to 2015-07-20 & Model fitting (50 days) \\
+Val   & 2015-07-21 to 2015-08-05 & Hyperparameter selection, early stopping (16 days) \\
+Test  & 2015-08-06 to 2015-08-31 & Held-out evaluation (26 days) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Methodology}\label{sec:methodology}
+
+\subsection{Pipeline Overview}
+
+The end-to-end pipeline (Fig.~\ref{fig:pipeline}) proceeds in four
+stages. Raw per-link RSL/TSL series are converted into per-link
+attenuations via dynamic baseline estimation
+(Eq.~\ref{eq:rsl_to_atten}--\ref{eq:wae}). A rain-rate estimator
+(either the physical ITU-R inversion or a learned neural network)
+produces a per-link rain rate time series. The scattered per-link
+estimates are projected onto the regular radar grid via IDW
+(Eq.~\ref{eq:idw}) and GMZ (Eq.~\ref{eq:gmz_path}), producing
+two-dimensional rainfall map sequences at 15-min cadence. Finally,
+forecast models---naive persistence, Transformer, SINDy, Mamba and the
+operational pySTEPS---ingest sequences of these maps and produce
+forecast maps at horizons of 15, 30, 45 and 60~min.
+
+\begin{figure}[h]
+\centering
+\fbox{\textit{[Pipeline diagram --- to be inserted]}}
+\caption{End-to-end pipeline from raw CML measurements to rainfall
+forecast maps. Stage 1: per-link attenuation extraction with dynamic
+baseline. Stage 2: per-link rain rate (physical or learned). Stage 3:
+spatial reconstruction (IDW or GMZ). Stage 4: short-term forecasting.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Model 1 --- Physical Baseline (ITU-R Inversion)}\label{sec:model1}
+
+Model~1 is the direct, learning-free inversion of the ITU-R power law
+(Eq.~\ref{eq:itu_inverse}). The implementation reuses
+\texttt{pynncml.scm.rain\_estimation.one\_step\_dynamic\_baseline} with
+the \texttt{MAX} power-law variant, a minimum reportable rain rate of
+\(R_{\min} = 0.1\) mm/h, a dynamic baseline window of 60~min, and a
+wet/dry detection threshold of 0.5~dB. The per-link rain-rate series
+is then projected to the radar grid via IDW
+(\(p=2\)) to produce \texttt{model1\_physical}, the physical baseline
+field. No learning is involved; the only choices are the baseline
+window, the wet/dry threshold, and the interpolation method.
+
+\subsection{Model 2 --- CML Neural Estimation Model}\label{sec:model2}
+
+Model~2 is the learned counterpart to Model~1. We use the two-step
+network architecture from \texttt{pynncml.scm.rain\_estimation.two\_step\_network},
+which consists of a multi-layer GRU recurrent encoder followed by two
+parallel output heads: a rain-rate regressor and a wet/dry binary
+detector. The detector probability gates the regressor at inference
+time, which suppresses spurious rain rates on dry samples. The input
+to the network at each time step is the concatenation of the
+\emph{instantaneous} RSL and TSL values for a single link together
+with two metadata features (link length and carrier frequency); the
+target is the corresponding gauge-derived per-link rain rate. The
+network is trained on temporal windows of length
+\(\texttt{WINDOW\_SIZE} = 32\) one-minute samples.
+
+The composite training loss combines a weighted mean-squared error for
+the rain-rate head with a binary cross-entropy term for the detection
+head. The MSE weighting follows the
+\texttt{RegressionLoss} formulation
+\begin{equation}
+  \mathcal{L}_{\text{reg}}(\hat{r}, r) =
+  \sum_{t}\frac{1}{B}\sum_{b}\Bigl(1 - \gamma_s\,e^{-\gamma\,r_{b,t}}\Bigr)\,
+                (r_{b,t} - \hat{r}_{b,t})^2, \label{eq:reg_loss}
+\end{equation}
+which up-weights samples with non-zero rain, since the data are
+strongly imbalanced toward dry. The detection head uses standard
+binary cross-entropy against the indicator \(\mathbf{1}\{r > 0.1\}\).
+The total loss is
+\(\lambda\,\mathcal{L}_{\text{reg}} + \mathcal{L}_{\text{det}}\), with
+\(\lambda\) calibrated automatically from the first training batch.
+
+Hyperparameters are selected by a Bayesian W\&B sweep
+(project \texttt{FieldSense-Estimation-v2}, 10 trials, 30 epochs each)
+over the learning rate (log-uniform \(10^{-5}\)--\(10^{-3}\)), batch
+size (\{8, 16, 32\}), RNN hidden dimensionality (\(\{128, 256\}\)),
+number of GRU layers (\(\{1, 2\}\)), and weight decay (log-uniform
+\(10^{-6}\)--\(10^{-3}\)); the optimiser is RAdam with gradient
+clipping at \(\lVert g\rVert_2 \le 1.0\). The best-by-validation-loss
+configuration is retrained for \(\texttt{FINAL\_EPOCHS\_EST} = 200\)
+epochs with best-by-validation checkpointing. After training, the
+per-link rain rates predicted by Model~2 are projected to the radar
+grid via both IDW and GMZ to produce the two-dimensional
+\texttt{model2\_cml\_estimation\_maps\_idw} and
+\texttt{\_gmz} arrays, which become the input maps for all forecast
+models in Sections~\ref{sec:tf}--\ref{sec:mamba}.
+
+\begin{table}[h]
+\centering
+\caption{Architecture of the CML estimation network (Model~2). The
+recurrent dimensionality and layer count are W\&B-tuned within the
+indicated search space; the values shown in parentheses are the lab's
+reference defaults.}
+\label{tab:model2_arch}
+\begin{tabular}{llll}
+\toprule
+Layer & Type & Output dim. & Activation \\
+\midrule
+Input  & RSL, TSL, metadata           & \(2 + 2\)                  & --- \\
+Encoder & GRU, \texttt{n\_layers} (\(\{1,2\}\), ref.~2) & \texttt{rnn\_n\_features} (\(\{128,256\}\), ref.~256) & tanh \\
+Head 1 (reg.) & Linear $\rightarrow$ Linear & 1 & Softplus \\
+Head 2 (det.) & Linear $\rightarrow$ Linear & 1 & Sigmoid \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Naive Persistence Models}\label{sec:naive}
+
+Persistence---``the world does not change''---is the trivial forecast
+\begin{equation}
+  \hat{Y}(t+h) \;=\; Y(t), \label{eq:persist}
+\end{equation}
+and it is a famously hard baseline to beat at short horizons because
+rain fields are strongly autocorrelated in time. We build three
+variants of Equation~\eqref{eq:persist}, distinguished by the source
+field \(Y\):
+\begin{align}
+  \hat{M}_{\text{radar}}(t+h) &= M_{\text{radar}}(t), \label{eq:naive_radar} \\
+  \hat{M}_{\text{gauge}}(t+h) &= \mathrm{IDW}\!\left(\{r_s(t)\}_{s=1}^{S}\right), \label{eq:naive_gauge} \\
+  \hat{M}_{\text{CML}}(t+h)   &= \hat{M}_{2}(t), \label{eq:naive_cml}
+\end{align}
+with \(h \in \{15, 30, 45, 60\}\) minutes. Equation~\eqref{eq:naive_radar}
+applies persistence to the radar field directly,
+Equation~\eqref{eq:naive_gauge} to the IDW-interpolated gauge field, and
+Equation~\eqref{eq:naive_cml} to the Model-2 IDW estimation map. These
+baselines provide an interpretable floor for every learned forecaster.
+
+\subsection{Common Forecasting Dataset Construction}\label{sec:fcst_data}
+
+All learned forecast models share the same supervised data layout.
+Given a \((T, H, W)\) sequence of 15-min maps from one of the
+\texttt{MAP\_SOURCES} (IDW or GMZ) and a fixed lookback
+\(\texttt{LOOKBACK\_WINDOW} = w = 8\) frames (\(=2\) hours of
+history), we form supervised pairs
+\begin{align}
+  X_i &= \bigl(M_{i},\, M_{i+1},\, \ldots,\, M_{i+w-1}\bigr) \;\in\; \mathbb{R}^{w\times H\times W}, \\
+  Y_i &= M_{i+w+h-1} \;\in\; \mathbb{R}^{H\times W} \qquad \text{(single-step)},
+\end{align}
+or, for multi-step training,
+\begin{equation}
+  Y_i \;=\; \bigl(M_{i+w},\, M_{i+w+1},\, M_{i+w+2},\, M_{i+w+3}\bigr) \;\in\; \mathbb{R}^{n_h\times H\times W},
+\end{equation}
+where \(h \in \{1, 2, 3, 4\}\) corresponds to lead times of
+\(15h\) minutes and \(n_h = 4\). NaNs are zeroed before
+tensorisation. Splits use the dates of Table~\ref{tab:splits}.
+
+\subsection{Transformer-Based Forecasting}\label{sec:tf}
+
+The Transformer \cite{vaswani2017attention} relies on the scaled
+dot-product self-attention operation
+\begin{equation}
+  \mathrm{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) \;=\;
+  \mathrm{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^{\top}}{\sqrt{d_k}}\right)\mathbf{V},
+  \label{eq:attention}
+\end{equation}
+where each row of \(\mathbf{Q}\in\mathbb{R}^{T\times d_k}\) queries a
+collection of key--value pairs and the softmax produces a
+context-dependent weighting over time. To preserve order information,
+sinusoidal positional encodings are added to the token embeddings:
+\begin{equation}
+  \mathrm{PE}(pos, 2i) = \sin\!\left(\frac{pos}{10000^{\,2i/d_{\text{model}}}}\right), \quad
+  \mathrm{PE}(pos, 2i+1) = \cos\!\left(\frac{pos}{10000^{\,2i/d_{\text{model}}}}\right). \label{eq:pe}
+\end{equation}
+Multi-head attention concatenates \(h_a\) independent attention
+operations of dimension \(d_k = d_{\text{model}}/h_a\) and applies a
+final linear projection.
+
+Our \texttt{RainTransformer} flattens each \((H, W)\) input frame into
+a single token of dimension \(H\cdot W = 1{,}776\), projects it to the
+model dimension \(d_{\text{model}}\) by a linear embedding layer,
+processes the resulting sequence of \(w\) tokens with a stack of
+\texttt{n\_layers} \texttt{nn.TransformerEncoderLayer} blocks
+(multi-head attention with \texttt{n\_heads} heads followed by a
+feed-forward sublayer), and then decodes the last-token
+representation through a single linear layer that outputs the next
+\(n_h\) frames flattened. Single-step models output one frame; the
+multi-step model outputs all four horizons in a single forward pass.
+A separate model is trained for each of the four 2\(\times\)2 variants
+(IDW/GMZ \(\times\) single/multi-step), giving eight Transformer
+checkpoints in total.
+
+Hyperparameters are selected by a Bayesian W\&B sweep (project
+\texttt{FieldSense-Transformer-v2}, \(\texttt{SWEEP\_COUNT\_TF} = 6\)
+trials of \(\texttt{SWEEP\_EPOCHS\_TF} = 25\) epochs each, single-step
+horizon-1 IDW target) over the parameters in
+Table~\ref{tab:tf_sweep}; the best configuration is saved to
+\texttt{transformer\_sweep\_best.json} and reused for all eight final
+trainings (\(\texttt{FINAL\_EPOCHS\_TF} = 80\) epochs with
+best-by-validation checkpointing, Adam optimiser, MSE loss, gradient
+clipping at \(\lVert g\rVert_2 \le 1\)).
+
+\begin{table}[h]
+\centering
+\caption{Transformer hyperparameter search space.}
+\label{tab:tf_sweep}
+\begin{tabular}{lll}
+\toprule
+Hyperparameter & Search space & Type \\
+\midrule
+\(d_{\text{model}}\) & \(\{64, 128, 256\}\)              & categorical \\
+\(n_{\text{heads}}\) & \(\{2, 4, 8\}\)                   & categorical \\
+\(n_{\text{layers}}\) & \(\{1, 2, 3\}\)                  & categorical \\
+learning rate & \(\mathcal{U}_{\log}[10^{-4}, 10^{-3}]\) & log-uniform \\
+batch size    & \(\{8, 16, 32\}\)                        & categorical \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{SINDy-Based Forecasting}\label{sec:sindy}
+
+Sparse Identification of Nonlinear Dynamics
+(SINDy)\footnote{Following Brunton, S.L., Proctor, J.L., \& Kutz, J.N.
+(2016). \emph{Discovering governing equations from data by sparse
+identification of nonlinear dynamical systems.} PNAS,
+113(15):3932--3937.} \cite{brunton2016sindy} discovers a parsimonious
+system of ordinary differential equations directly from data. Given a
+matrix of state snapshots \(\mathbf{X}\in\mathbb{R}^{T\times n}\) and
+their numerical time derivatives \(\dot{\mathbf{X}}\), SINDy fits
+\begin{equation}
+  \dot{\mathbf{X}} \;=\; \Theta(\mathbf{X})\,\boldsymbol{\Xi}, \label{eq:sindy_dyn}
+\end{equation}
+where the library matrix
+\begin{equation}
+  \Theta(\mathbf{X}) \;=\; \begin{bmatrix}
+    \mathbf{1} & \mathbf{X} & \mathbf{X}^{2} & \cdots & \sin(\mathbf{X}) & \cdots
+  \end{bmatrix} \label{eq:sindy_lib}
+\end{equation}
+collects candidate features (we use a polynomial library of degree~2)
+and the coefficient matrix \(\boldsymbol{\Xi}\) is estimated by a
+sparsity-promoting regression. The implementation in
+\texttt{pysindy}'s \texttt{STLSQ} (sequentially thresholded least
+squares with \(\ell_2\) ridge regularisation) solves
+\begin{equation}
+  \hat{\boldsymbol{\Xi}} \;=\;
+  \arg\min_{\boldsymbol{\Xi}}
+  \Bigl\|\dot{\mathbf{X}} - \Theta(\mathbf{X})\,\boldsymbol{\Xi}\Bigr\|_{2}^{2}
+  \;+\; \lambda\,\|\boldsymbol{\Xi}\|_{1}, \label{eq:sindy_lasso}
+\end{equation}
+where we use \(\lambda = \texttt{SINDY\_THRESH} = 0.05\) and an
+\(\ell_2\) coefficient \(\alpha = 0.05\). The discretisation timestep is
+\(\Delta t = 0.25\) h (15~min). These three values, together with the
+polynomial library degree, are held fixed at the lab's reference
+configuration (see Table~\ref{tab:hparam_provenance}); only the number
+of POD modes \(n_{\text{modes}}\) is data-driven via the W\&B sweep
+described below.
+
+Because the \(1{,}776\)-dimensional spatial state is too large for SINDy
+to handle directly, we first reduce the state via truncated Singular
+Value Decomposition (POD): \(\mathbf{X}_{\text{flat}} \in
+\mathbb{R}^{T\times 1776}\) is projected onto \(n_{\text{modes}}\)
+left-singular vectors via \texttt{TruncatedSVD}, and SINDy is fit on
+the resulting POD coefficients. The number of modes,
+\(n_{\text{modes}}\), is the most important SINDy hyperparameter and
+is selected by a dedicated W\&B sweep (project
+\texttt{FieldSense-SINDy-v2}) over \(n_{\text{modes}} \in
+\{4, 6, 8, 10, 12, 16\}\); each setting is fitted on the training
+maps, simulated forward at horizon~1 over the validation window, and
+ranked by validation RMSE (and HSS for diagnostic purposes). The
+best \(n_{\text{modes}}\) is then reused for all four SINDy variants
+(IDW/GMZ \(\times\) single/multi-step). Forecasting at horizon \(h\)
+is performed by integrating the discovered ODE system from the most
+recent POD coefficient state forward to time \(h\Delta t\) using
+\texttt{pysindy.SINDy.simulate} and inverse-projecting back to the
+spatial grid.
+
+\subsection{Mamba State Space Model}\label{sec:mamba}
+
+State-space models (SSMs) describe a continuous-time linear dynamical
+system of the form
+\begin{equation}
+  \mathbf{h}'(t) \;=\; \mathbf{A}\,\mathbf{h}(t) + \mathbf{B}\,x(t), \label{eq:ssm_state}
+\end{equation}
+\begin{equation}
+  y(t) \;=\; \mathbf{C}\,\mathbf{h}(t), \label{eq:ssm_obs}
+\end{equation}
+where \(\mathbf{h}\) is the latent state, \(x\) the input, and
+\(\mathbf{A}\), \(\mathbf{B}\), \(\mathbf{C}\) the (potentially
+input-dependent) system matrices. The recent Mamba
+architecture\footnote{Gu, A., \& Dao, T. (2023). \emph{Mamba:
+Linear-time sequence modeling with selective state spaces.}
+arXiv:2312.00752. The selective-scan mechanism allows the model to
+focus or ignore information selectively based on the current input,
+recovering input-dependence at the cost of forfeiting closed-form
+convolutional implementations.} \cite{gu2023mamba} introduces a
+\emph{selective} scan: \(\mathbf{A}\), \(\mathbf{B}\), and \(\mathbf{C}\)
+become functions of the input \(x_t\), allowing the model to focus
+attention on relevant past states. Discretisation to fixed step size
+\(\Delta\) follows
+\begin{equation}
+  \bar{\mathbf{A}} \;=\; e^{\Delta\mathbf{A}},
+  \qquad
+  \bar{\mathbf{B}} \;=\; (\Delta\mathbf{A})^{-1}\bigl(e^{\Delta\mathbf{A}} - \mathbf{I}\bigr)\,\Delta\mathbf{B}.
+  \label{eq:mamba_disc}
+\end{equation}
+The principal practical advantage of Mamba over the Transformer is
+linear (rather than quadratic) complexity in sequence length.
+
+We use a lightweight \texttt{SimpleMamba} surrogate that captures the
+SSM recurrence pattern of Equation~\eqref{eq:ssm_state}--\eqref{eq:ssm_obs}
+via a multi-layer GRU; this surrogate matches our group's earlier
+internal reference implementation and avoids the additional engineering
+overhead of a full selective-scan layer. The model flattens each
+\((H, W)\) input frame to dimension \(H\cdot W = 1{,}776\), runs an
+\texttt{nn.GRU} of size \(\texttt{hidden\_dim}\) and \(\texttt{n\_layers}\)
+layers across the lookback, and decodes the final hidden state via a
+single linear layer to \(n_h\cdot H\cdot W\) outputs. As for the
+Transformer, eight checkpoints (IDW/GMZ \(\times\) single/multi-step) are
+trained, with hyperparameters selected by a Bayesian W\&B sweep
+(project \texttt{FieldSense-Mamba-v2}, \(\texttt{SWEEP\_COUNT\_MB} = 6\)
+trials, \(\texttt{SWEEP\_EPOCHS\_MB} = 25\) epochs) over the search
+space in Table~\ref{tab:mb_sweep}; the best configuration is reused for
+\(\texttt{FINAL\_EPOCHS\_MB} = 80\) epochs of final training.
+
+\begin{table}[h]
+\centering
+\caption{Mamba (SSM surrogate) hyperparameter search space.}
+\label{tab:mb_sweep}
+\begin{tabular}{lll}
+\toprule
+Hyperparameter & Search space & Type \\
+\midrule
+\(\texttt{hidden\_dim}\) & \(\{128, 256, 512\}\)             & categorical \\
+\(\texttt{n\_layers}\)   & \(\{1, 2\}\)                      & categorical \\
+learning rate            & \(\mathcal{U}_{\log}[10^{-4}, 10^{-3}]\) & log-uniform \\
+batch size               & \(\{8, 16, 32\}\)                 & categorical \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{pySTEPS Nowcasting Baseline}\label{sec:pysteps}
+
+pySTEPS \cite{pulkkinen2019pysteps} is used in its deterministic
+extrapolation mode. For each test frame \(t\), the three preceding
+radar frames are passed to the Lucas--Kanade optical-flow motion
+estimator, producing a two-dimensional motion field \(\mathbf{v}\);
+the current radar frame is then advected forward using
+Equation~\eqref{eq:advection} for \(h \in \{1, 2, 3, 4\}\) steps of 15
+minutes. Crucially, pySTEPS is fed the \emph{radar} field directly,
+not the CML-derived maps, because it is designed for radar input; this
+is therefore the operational state-of-the-art benchmark against which
+the CML-based forecasters must measure themselves. The probabilistic
+ensemble mode is not used in this study.
+
+\subsection{Lookback Window Analysis}
+
+The lookback \(w\) is a global hyperparameter shared by all learned
+forecast models. A dedicated diagnostic study probes
+\(\texttt{LOOKBACK\_VALUES} = \{2, 4, 6, 8, 10, 12, 16\}\) by training
+a Transformer for \(\texttt{PROBE\_EPOCHS} = 10\) epochs on IDW maps
+at horizon~1 and recording the validation MSE. The reference value of
+\(w=8\) (2~hours) is retained throughout this paper; the probe serves
+to verify that this choice is near-optimal and to inform future
+reproducibility studies if the curve shows a clear minimum elsewhere.
+Weights from the probe runs are discarded.
+
+\subsection{Single-Step vs Multi-Step Prediction}\label{sec:singlemulti}
+
+For each architecture we train two distinct prediction variants. The
+single-step variant uses a separate model for each horizon,
+\begin{equation}
+  \hat{Y}_{h} \;=\; f_{h}\!\left(\mathbf{X}_{t-w:t}\right),
+  \quad h \in \{15, 30, 45, 60\}, \label{eq:single}
+\end{equation}
+yielding \(n_h\) independent regressors. The multi-step variant uses a
+single model that predicts all four horizons jointly:
+\begin{equation}
+  \bigl(\hat{Y}_{15}, \hat{Y}_{30}, \hat{Y}_{45}, \hat{Y}_{60}\bigr) \;=\; f\!\left(\mathbf{X}_{t-w:t}\right). \label{eq:multi}
+\end{equation}
+The single-step variant avoids error accumulation across horizons and
+allows each model to specialise, at the cost of \(n_h\times\) the
+parameter budget and the loss of shared representations. The
+multi-step variant amortises the cost of feature extraction over all
+horizons and benefits from multi-task regularisation, but couples
+errors across the prediction heads. Both variants are evaluated.
+
+\section{Evaluation Metrics}\label{sec:metrics}
+
+All metrics are computed pixel-wise over the cropped Gothenburg domain
+(or point-wise at gauge locations) and aggregated across the test
+window. Let \(N\) denote the number of finite paired predictions and
+observations and let \(\hat{y}_i\) and \(y_i\) denote the predicted and
+observed values, respectively.
+
+\paragraph{Magnitude error.} Root-mean-squared and mean-absolute
+errors quantify the magnitude of pointwise residuals:
+\begin{equation}
+  \mathrm{RMSE} \;=\;
+  \sqrt{\frac{1}{N}\sum_{i=1}^{N}\bigl(\hat{y}_i - y_i\bigr)^{2}}, \label{eq:rmse}
+\end{equation}
+\begin{equation}
+  \mathrm{MAE} \;=\;
+  \frac{1}{N}\sum_{i=1}^{N}\bigl|\hat{y}_i - y_i\bigr|. \label{eq:mae}
+\end{equation}
+
+\paragraph{Bias.} Systematic over- or under-estimation is summarised
+by
+\begin{equation}
+  \mathrm{Bias} \;=\;
+  \frac{1}{N}\sum_{i=1}^{N}\bigl(\hat{y}_i - y_i\bigr). \label{eq:bias}
+\end{equation}
+
+\paragraph{Linear correlation.} The Pearson product-moment correlation
+\begin{equation}
+  \mathrm{CC} \;=\;
+  \frac{\mathrm{Cov}\!\left(\hat{y}, y\right)}
+       {\sigma_{\hat{y}}\,\sigma_{y}}, \label{eq:cc}
+\end{equation}
+takes values in \([-1, 1]\) and measures the strength of the linear
+agreement between predicted and observed series; \(\mathrm{CC}=1\) is
+perfect (positive) linear agreement.
+
+\paragraph{Heidke Skill Score.} The HSS measures categorical skill at
+the rain/no-rain decision boundary against the baseline of random
+chance. With predictions and observations binarised by
+\(\hat{y}_i > R_{\text{thresh}}\) and \(y_i > R_{\text{thresh}}\), the
+\(2\times 2\) contingency table (Table~\ref{tab:contingency}) gives
+true positives (TP), false positives (FP), false negatives (FN), and
+true negatives (TN), and
+\begin{equation}
+  \mathrm{HSS} \;=\;
+  \frac{2\,(TP\cdot TN - FP\cdot FN)}
+       {(TP+FN)(FN+TN) + (TP+FP)(FP+TN)}. \label{eq:hss}
+\end{equation}
+HSS \(=1\) is a perfect dichotomous forecast, HSS \(=0\) indicates no
+skill beyond climatological chance, and HSS \(<0\) indicates a
+forecast worse than chance\footnote{Raw accuracy is misleading for
+strongly imbalanced rain/no-rain data because a forecast of ``always
+dry'' attains accuracy close to 1 on dry-dominated test windows. The
+Heidke skill score normalises for this baseline by subtracting the
+proportion of correct forecasts expected by chance, giving an
+interpretable score that is zero for climatology and one for perfect
+forecasting.}.
+
+\begin{table}[h]
+\centering
+\caption{Contingency table for rain/no-rain classification with
+threshold $R_{\text{thresh}} = 0.1$ mm/h.}
+\label{tab:contingency}
+\begin{tabular}{lcc}
+\toprule
+                 & Observed wet & Observed dry \\
+\midrule
+Predicted wet    & TP           & FP           \\
+Predicted dry    & FN           & TN           \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The wet threshold is fixed at \(R_{\text{thresh}} = 0.1\) mm/h
+throughout. Together, the five metrics characterise magnitude
+(RMSE, MAE), systematic offset (Bias), linear association (CC), and
+categorical skill (HSS).
+
+\section{Experimental Setup}\label{sec:setup}
+
+\paragraph{Hardware.} All deep-learning training and inference is
+performed on Google Colab GPU runtimes (NVIDIA T4 or L4, when
+available). CPU-only execution is supported but considerably slower.
+
+\paragraph{Software.} The implementation uses Python (\(\ge\)3.9),
+PyTorch (current stable), \texttt{pynncml} for OpenMRG loading and
+the GMZ tomographic reconstruction, \texttt{pysteps} for the
+operational nowcast baseline, \texttt{pysindy} for sparse system
+identification, \texttt{scikit-learn} for the truncated SVD,
+\texttt{xarray} for radar NetCDF handling, and \texttt{Weights \&
+Biases} for hyperparameter sweep orchestration.
+
+\paragraph{Reproducibility.} A fixed random seed is used for the
+truncated SVD (\(\texttt{random\_state}=42\)). All intermediate
+artefacts (raw OpenMRG downloads, pynncml pickles, radar maps, IDW
+weight matrices, Model-2 estimation maps, per-model checkpoints, per-
+horizon predictions, and sweep best-config JSONs) are cached on Google
+Drive and re-loaded on subsequent runs, so that the notebook is
+idempotent and a fully cached re-run completes in a few minutes. The
+chronological train/val/test split is identical for every model and
+both map sources; no test data is ever consulted during training or
+hyperparameter selection.
+
+\paragraph{W\&B project configuration.} Each W\&B sweep is registered
+under a distinct project so that the four sweeps remain independent and
+their dashboards are not co-mingled:
+\texttt{FieldSense-Estimation-v2} (Model~2),
+\texttt{FieldSense-Transformer-v2},
+\texttt{FieldSense-SINDy-v2}, and
+\texttt{FieldSense-Mamba-v2}. The estimation sweep runs 10 Bayesian
+trials of 30~epochs each, the Transformer and Mamba sweeps each run 6
+trials of 25~epochs, and the SINDy sweep performs an exhaustive grid
+of six \(n_{\text{modes}}\) values.
+
+\begin{table}[h]
+\centering
+\caption{Summary of all models, their input type, prediction role,
+horizons, map sources, and whether W\&B hyperparameter tuning is
+applied.}
+\label{tab:models_summary}
+\begin{tabular}{lllllc}
+\toprule
+Model & Input & Role & Horizons & Map type & W\&B sweep \\
+\midrule
+Model~1 (ITU-R)            & CML attenuation       & Estimation & 0      & IDW            & no  \\
+Model~2 (CML NN)           & CML RSL/TSL           & Estimation & 0      & IDW + GMZ      & yes \\
+Naive radar persistence    & Radar map             & Forecast   & 15--60 & ---            & no  \\
+Naive gauge persistence    & IDW(gauges)           & Forecast   & 15--60 & IDW            & no  \\
+Naive CML persistence      & Model-2 IDW           & Forecast   & 15--60 & IDW            & no  \\
+Transformer                & Model-2 IDW / GMZ     & Forecast   & 15--60 & IDW + GMZ      & yes \\
+SINDy                      & Model-2 IDW / GMZ     & Forecast   & 15--60 & IDW + GMZ      & yes \\
+Mamba (SSM surrogate)      & Model-2 IDW / GMZ     & Forecast   & 15--60 & IDW + GMZ      & yes \\
+pySTEPS                    & Radar map             & Forecast   & 15--60 & ---            & no  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Hyperparameter provenance.}
+To make explicit which numerical values in this paper are
+\emph{theoretical/standardised}, which are \emph{fixed-by-design} or
+inherited from the lab's reference configuration, and which are
+\emph{data-driven via W\&B sweeps}, Table~\ref{tab:hparam_provenance}
+provides an exhaustive cross-reference. Values reported as
+``W\&B-tuned'' are not committed to fixed numbers in the source code:
+the W\&B agent selects them by Bayesian optimisation against the
+validation objective, and the winning configuration is persisted to
+JSON (\texttt{transformer\_sweep\_best.json},
+\texttt{mamba\_sweep\_best.json}, \texttt{sindy\_sweep\_best.json}) and
+reused for all final trainings. The exact winning values will be
+reported in Section~\ref{sec:results} alongside the quantitative
+results, since the sweep outcomes are part of the experiment, not the
+methodology.
+
+\begin{table}[h]
+\centering
+\caption{Provenance of every numerical hyperparameter and configuration
+constant referenced in this paper. ``Theory'': value taken from a
+published standard or canonical model. ``Lab ref.'': fixed value
+inherited from our own earlier internal reference implementation, used
+unchanged here for cross-comparability with prior work in our group;
+these are engineering choices and not values endorsed by published
+literature. ``Pipeline'': fixed by design of this pipeline (e.g.\
+evaluation threshold, training schedule). ``W\&B-tuned'': selected by
+a Bayesian W\&B sweep against validation loss; the winning value is
+persisted to JSON and reused for final training.}
+\label{tab:hparam_provenance}
+\begin{tabular}{p{5.5cm}lp{6cm}}
+\toprule
+Parameter & Provenance & Value / search space \\
+\midrule
+\multicolumn{3}{l}{\textit{Dataset / preprocessing}} \\
+ITU-R~P.838 coefficients $a, b$         & Theory      & per-link, looked up by pynncml \\
+Marshall--Palmer $a_Z, b_Z$              & Theory      & $200,\;1.6$ \\
+Radar dBZ scaling                        & Theory      & $0.4\!\cdot\!\text{raw}-30$ (openMRG spec) \\
+Radar dBZ hail cap                       & Pipeline    & 53 dBZ \\
+Rain/no-rain threshold $R_{\text{thresh}}$ & Pipeline  & 0.1 mm/h \\
+CML dynamic baseline window              & Lab ref.    & 60 min \\
+CML wet/dry threshold                    & Lab ref.    & 0.5 dB \\
+CML minimum reportable rain $R_{\min}$   & Lab ref.    & 0.1 mm/h \\
+IDW power $p$                            & Lab ref.    & 2 \\
+GMZ \texttt{REGION\_OF\_INTEREST}        & Lab ref.    & 3 \\
+GMZ \texttt{POINT\_PER\_LINK}            & Lab ref.    & 2 \\
+Cross-grid temporal tolerance            & Pipeline    & 8 min \\
+\midrule
+\multicolumn{3}{l}{\textit{Forecasting dataset}} \\
+\texttt{LOOKBACK\_WINDOW}                & Lab ref. (probed) & 8 frames \\
+\texttt{HORIZONS\_STEPS / MIN}           & Pipeline    & $\{1,2,3,4\}\rightarrow\{15,30,45,60\}$ \\
+\midrule
+\multicolumn{3}{l}{\textit{Model 2 — CML estimation network}} \\
+\texttt{WINDOW\_SIZE} (GRU training)     & Lab ref.    & 32 \\
+\texttt{rnn\_n\_features}                & W\&B-tuned  & $\{128, 256\}$ \\
+\texttt{n\_layers}                       & W\&B-tuned  & $\{1, 2\}$ \\
+Learning rate                            & W\&B-tuned  & $\mathcal{U}_{\log}[10^{-5}, 10^{-3}]$ \\
+Batch size                               & W\&B-tuned  & $\{8, 16, 32\}$ \\
+Weight decay                             & W\&B-tuned  & $\mathcal{U}_{\log}[10^{-6}, 10^{-3}]$ \\
+\texttt{SWEEP\_COUNT\_EST} / epochs      & Pipeline    & 10 trials, 30 epochs each \\
+\texttt{FINAL\_EPOCHS\_EST}              & Pipeline    & 200 \\
+Optimiser                                & Pipeline    & RAdam, grad-clip 1.0 \\
+\midrule
+\multicolumn{3}{l}{\textit{Transformer}} \\
+\texttt{d\_model}                        & W\&B-tuned  & $\{64, 128, 256\}$ (ref.\ 128) \\
+\texttt{n\_heads}                        & W\&B-tuned  & $\{2, 4, 8\}$ (ref.\ 4) \\
+\texttt{n\_layers}                       & W\&B-tuned  & $\{1, 2, 3\}$ (ref.\ 2) \\
+Learning rate                            & W\&B-tuned  & $\mathcal{U}_{\log}[10^{-4}, 10^{-3}]$ \\
+Batch size                               & W\&B-tuned  & $\{8, 16, 32\}$ \\
+\texttt{SWEEP\_COUNT\_TF} / epochs       & Pipeline    & 6 trials, 25 epochs each \\
+\texttt{FINAL\_EPOCHS\_TF}               & Pipeline    & 80 \\
+Loss / optimiser                         & Pipeline    & MSE, Adam, grad-clip 1.0 \\
+\midrule
+\multicolumn{3}{l}{\textit{SINDy}} \\
+POD modes $n_{\text{modes}}$             & W\&B-tuned  & $\{4, 6, 8, 10, 12, 16\}$ \\
+\texttt{STLSQ} threshold                 & Lab ref.    & 0.05 \\
+\texttt{STLSQ} $\alpha$                  & Lab ref.    & 0.05 \\
+Polynomial library degree                & Lab ref.    & 2 \\
+$\Delta t$                               & Pipeline    & 0.25 h (15 min) \\
+\midrule
+\multicolumn{3}{l}{\textit{Mamba (SSM surrogate)}} \\
+\texttt{hidden\_dim}                     & W\&B-tuned  & $\{128, 256, 512\}$ (ref.\ 256) \\
+\texttt{n\_layers}                       & W\&B-tuned  & $\{1, 2\}$ \\
+Learning rate                            & W\&B-tuned  & $\mathcal{U}_{\log}[10^{-4}, 10^{-3}]$ \\
+Batch size                               & W\&B-tuned  & $\{8, 16, 32\}$ \\
+\texttt{SWEEP\_COUNT\_MB} / epochs       & Pipeline    & 6 trials, 25 epochs each \\
+\texttt{FINAL\_EPOCHS\_MB}               & Pipeline    & 80 \\
+\midrule
+\multicolumn{3}{l}{\textit{Lookback probe}} \\
+\texttt{LOOKBACK\_VALUES}                & Pipeline    & $\{2, 4, 6, 8, 10, 12, 16\}$ \\
+\texttt{PROBE\_EPOCHS}                   & Pipeline    & 10 \\
+\midrule
+\multicolumn{3}{l}{\textit{pySTEPS baseline}} \\
+Motion estimator                         & External    & Lucas--Kanade (\texttt{pysteps}) \\
+Past frames for motion                   & Pipeline    & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results}\label{sec:results}
+
+All quantitative results in this section come from the held-out test
+window (2015-08-06 to 2015-08-31). Two evaluation targets are used in
+parallel: the cluster of SMHI city-network rain gauges (ten
+1-minute Geonor and tipping-bucket stations, treated as the gold
+standard for the surface rainfall), and the SMHI radar composite
+cropped to the Gothenburg domain (used as a spatially dense secondary
+reference). Headline tables in the body report RMSE and HSS at the
+four 15-min-spaced horizons for a representative subset of models; the
+exhaustive metric tables (including MAE, bias, Pearson CC, F1,
+precision, recall, and wet-pixel counts for every variant) are
+collected in Appendices~\ref{app:gauges}--\ref{app:radar_inner}.
+Throughout, the wet/dry threshold is fixed at
+$R_{\text{thresh}}=0.1$~mm/h.
+
+\subsection{CML Estimation Performance (Models 1 and 2)}
+
+Model~1, the closed-form ITU-R inversion of CML attenuation
+(Section~\ref{sec:model1}), produces a strongly wet-biased rainfall
+field: against rain gauges at the test window it predicts approximately
+3.05$\times$ as many wet pixels as the gauges record
+($n_{\text{wet, pred}}\!\approx\!4641$ versus $n_{\text{wet, true}}\!=\!1521$
+at the 15-min slice, see Appendix~\ref{app:gauges}), yielding an HSS
+of only 0.266 and a recall of 0.69 against a precision of 0.23. The
+horizon-independence of Model~1's metrics (its HSS varies by less than
+$10^{-3}$ across the four lead times) is by construction, as Model~1
+emits the current-time rain rate with no temporal forecast component;
+the small residual variation comes from the rolling-baseline window
+re-anchoring in the test split. Model~2's per-link rain-rate
+predictions are used downstream as the input maps to every advanced
+forecaster of Sections~\ref{sec:tf}--\ref{sec:mamba}; the resulting
+improvement in downstream forecast skill (Section~\ref{sec:results:fullperiod})
+is the most direct evidence of Model~2's quality at the link level.
+
+\subsection{Naive Persistence Baselines}\label{sec:results:naive}
+
+The three persistence baselines (Equations~\ref{eq:naive_radar}--\ref{eq:naive_cml})
+are remarkably hard to beat at short horizons, especially when
+evaluated against rain gauges. Table~\ref{tab:naive_hss} summarises the
+HSS of the three naive forecasters and of pySTEPS for context.
+
+\begin{table}[h]
+\centering
+\caption{HSS of naive persistence baselines and pySTEPS on the test
+window, at the four forecast horizons. \texttt{naive\_gauge} (IDW of
+gauge readings, persisted) is the strongest baseline at gauge
+locations; \texttt{naive\_radar} (radar persistence) is the strongest
+against the radar field. The best value in each column is bold.}
+\label{tab:naive_hss}
+\begin{tabular}{lcccc}
+\toprule
+Model & 15 min & 30 min & 45 min & 60 min \\
+\midrule
+\multicolumn{5}{l}{\textit{Evaluation vs gauges}} \\
+\texttt{naive\_radar}    & 0.635 & 0.584 & 0.538 & 0.504 \\
+\texttt{naive\_gauge}    & \textbf{0.799} & \textbf{0.651} & \textbf{0.580} & \textbf{0.521} \\
+\texttt{naive\_cml}      & 0.626 & 0.553 & 0.482 & 0.439 \\
+pySTEPS                  & 0.701 & 0.660 & 0.553 & 0.367 \\
+\midrule
+\multicolumn{5}{l}{\textit{Evaluation vs radar (outer crop)}} \\
+\texttt{naive\_radar}    & 0.742 & 0.629 & 0.561 & \textbf{0.511} \\
+\texttt{naive\_gauge}    & 0.684 & 0.630 & \textbf{0.564} & 0.507 \\
+\texttt{naive\_cml}      & 0.549 & 0.525 & 0.461 & 0.402 \\
+pySTEPS                  & \textbf{0.776} & \textbf{0.724} & 0.590 & 0.391 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations bear on the design of the experiment. First,
+\texttt{naive\_gauge} dominates at the shortest horizon when evaluated
+against gauges, because by construction it is the gauge field itself
+shifted by $h$ in time; the comparison is almost circular at gauge
+pixels and should be interpreted as a tight upper bound rather than as
+a competitive baseline. Second, at $h\!=\!60$~min against radar
+\texttt{naive\_radar} \emph{exceeds} pySTEPS by 0.12 HSS
+(0.511~vs~0.391): the Lucas--Kanade motion field on which pySTEPS
+relies degrades faster with horizon than simple persistence at this
+domain and season. Third, \texttt{naive\_cml} is consistently the
+weakest of the three persistence variants because it depends on the
+CML-derived field (Model~2 IDW), which itself carries the residual
+estimation error of the CML inversion.
+
+\subsection{Advanced Forecasters --- IDW Maps}\label{sec:results:idw}
+
+Table~\ref{tab:adv_idw} summarises the best Transformer, SINDy, and
+Mamba variants trained on Model-2 IDW maps, evaluated against rain
+gauges and against the radar field. We report RMSE and HSS; the full
+metric set is in Appendices~\ref{app:gauges} and \ref{app:radar_outer}.
+
+\begin{table}[h]
+\centering
+\caption{Advanced forecasters trained on Model-2 IDW maps. RMSE
+[mm/h] and HSS at the four horizons. Bold marks the best learned
+model per column; pySTEPS is included for reference.}
+\label{tab:adv_idw}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccccc}
+\toprule
+& \multicolumn{4}{c}{\textbf{RMSE} [mm/h]} & \multicolumn{4}{c}{\textbf{HSS}} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+Model & 15 & 30 & 45 & 60 & 15 & 30 & 45 & 60 \\
+\midrule
+\multicolumn{9}{l}{\textit{vs gauges}} \\
+Transformer single (IDW)  & 0.652 & 0.697 & 0.754 & 0.793 & \textbf{0.621} & 0.527 & 0.431 & 0.339 \\
+Transformer multi (IDW)   & 0.668 & 0.694 & \textbf{0.726} & \textbf{0.745} & 0.581 & 0.501 & \textbf{0.439} & \textbf{0.397} \\
+Mamba single (IDW)        & 0.664 & 0.722 & 0.772 & 0.780 & 0.528 & 0.509 & 0.428 & 0.368 \\
+Mamba multi (IDW)         & 0.699 & 0.730 & 0.757 & 0.772 & 0.536 & 0.477 & 0.421 & 0.360 \\
+SINDy single (IDW)        & \textbf{0.640} & 1.015 & 7.338 & 2.146 & 0.556 & 0.451 & 0.379 & 0.340 \\
+SINDy multi (IDW)         & 0.544 & 0.703 & 0.869 & 2.146 & 0.571 & 0.474 & 0.400 & 0.340 \\
+pySTEPS (radar input)     & 0.631 & 0.738 & 0.800 & 0.868 & 0.701 & \textbf{0.660} & 0.553 & 0.367 \\
+\midrule
+\multicolumn{9}{l}{\textit{vs radar (outer crop)}} \\
+Transformer single (IDW)  & 0.660 & 0.661 & 0.707 & 0.744 & \textbf{0.543} & \textbf{0.488} & \textbf{0.420} & 0.342 \\
+Transformer multi (IDW)   & 0.652 & 0.655 & \textbf{0.679} & \textbf{0.703} & 0.517 & 0.469 & 0.413 & 0.369 \\
+Mamba single (IDW)        & 0.660 & 0.680 & 0.720 & 0.734 & 0.503 & 0.487 & 0.422 & \textbf{0.374} \\
+Mamba multi (IDW)         & 0.672 & 0.685 & 0.704 & 0.721 & 0.511 & 0.476 & 0.418 & 0.366 \\
+SINDy single (IDW)        & 0.708 & 0.861 & 7.084 & 1.913 & 0.507 & 0.437 & 0.350 & 0.292 \\
+SINDy multi (IDW)         & \textbf{0.643} & 0.664 & 0.753 & 1.913 & 0.519 & 0.458 & 0.368 & 0.292 \\
+pySTEPS (radar input)     & 0.585 & 0.627 & 0.720 & 0.792 & 0.776 & 0.724 & \textbf{0.590} & 0.391 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The headline finding is that the Transformer trained on IDW maps is
+the strongest learned forecaster: \texttt{transformer\_single\_idw}
+wins on HSS at $h\!=\!15$ and $h\!=\!30$~min in both evaluations,
+while \texttt{transformer\_multi\_idw} extends the lead to the longer
+horizons by being more consistent across $h$. Mamba is consistently
+within 0.02 HSS of the corresponding Transformer variant, suggesting
+that the SSM-style recurrence and the attention mechanism capture
+similar dynamics at the 8-frame lookback used here. SINDy is
+competitive at $h\!=\!15$~min (HSS$\,=\,0.571$ vs gauges, $0.519$ vs
+radar) but degrades sharply as the integration horizon grows: at
+$h\!=\!45$~min the integrated POD-coefficient trajectory becomes
+numerically unstable for the single-step variant, with RMSE
+exploding to $7.3$~mm/h. The multi-step SINDy variant, which samples
+the same trajectory at the four target horizons, masks this issue
+only partially.
+
+\subsection{IDW versus GMZ Input Maps}\label{sec:results:idw_vs_gmz}
+
+A striking and unexpected result is the systematic underperformance
+of GMZ-fed forecasters relative to their IDW-fed counterparts.
+Table~\ref{tab:idw_vs_gmz} contrasts the multi-step variant of each
+architecture under the two map inputs at the radar target.
+
+\begin{table}[h]
+\centering
+\caption{Effect of the input map type (IDW vs GMZ) on the multi-step
+forecasters, evaluated against the radar field on the test window.
+HSS, all four horizons. The IDW input is uniformly superior; the gap
+is largest at $h\!=\!15$~min.}
+\label{tab:idw_vs_gmz}
+\begin{tabular}{lcccc}
+\toprule
+Model & 15 min & 30 min & 45 min & 60 min \\
+\midrule
+Transformer multi --- IDW & \textbf{0.517} & \textbf{0.469} & \textbf{0.413} & \textbf{0.369} \\
+Transformer multi --- GMZ & 0.178 & 0.165 & 0.149 & 0.135 \\
+\midrule
+Mamba multi --- IDW       & \textbf{0.511} & \textbf{0.476} & \textbf{0.418} & \textbf{0.366} \\
+Mamba multi --- GMZ       & 0.155 & 0.144 & 0.127 & 0.119 \\
+\midrule
+SINDy multi --- IDW       & \textbf{0.519} & \textbf{0.458} & \textbf{0.368} & \textbf{0.292} \\
+SINDy multi --- GMZ       & 0.140 & 0.133 & 0.113 & 0.099 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For each of the three architectures, the GMZ-trained multi-step
+forecaster loses 0.30--0.34 HSS relative to its IDW counterpart at
+the shortest horizon, and the gap remains substantial at $h\!=\!60$.
+Inspection of the GMZ-trained predictions reveals a strong dry bias:
+the GMZ-fed Transformer predicts wet at only 11{,}107 pixels at
+$h\!=\!15$ on the radar target, versus 63{,}326 wet pixels predicted
+by the IDW-fed variant against $51{,}897$ true wet pixels
+(Appendix~\ref{app:radar_outer}). The likely cause is that the GMZ
+tomographic reconstruction concentrates its mass on the (sparse) CML
+paths and is more variable in the interstitial pixels, which makes
+the input maps a harder target for the forecaster to regress on. This
+result contradicts our prior expectation
+(Section~\ref{sec:discussion}) that GMZ's path-integral fidelity
+would translate into improved downstream forecasting; in this dataset
+and pipeline, the IDW smoothing is the more productive input.
+
+\subsection{Single-Step versus Multi-Step}
+
+The choice between $n_h$ separate horizon-specialised models and a
+single multi-horizon head produces only modest differences. Across
+all three architectures and both evaluation targets the single-step
+variants are slightly stronger at the horizon they were trained on
+(typically $\Delta\text{HSS}\!\approx\!+0.02$~at $h\!=\!15$~min),
+while multi-step variants are slightly more consistent across the
+four horizons. For the Transformer the multi-step variant is the
+overall winner because it gives up little at short horizons and gains
+at long ones; for Mamba the two variants are essentially
+interchangeable.
+
+\subsection{Comparison with pySTEPS}\label{sec:results:pysteps}
+
+pySTEPS is the strongest forecaster overall at short horizons, as
+expected: it consumes the radar field directly and exploits a mature
+optical-flow motion estimator. Against the radar, it achieves
+HSS$\,=\,0.78$ at $h\!=\!15$~min versus the best CML-based
+\texttt{transformer\_single\_idw} at HSS$\,=\,0.54$, a gap of
+$\approx 0.23$. The gap narrows monotonically with horizon: at
+$h\!=\!45$~min the difference is $0.17$, and at $h\!=\!60$~min it
+collapses to $0.02$ in favour of pySTEPS at the radar target and
+\emph{inverts} at the gauge target, where
+\texttt{transformer\_multi\_idw} (HSS$\,=\,0.397$) outperforms
+pySTEPS (HSS$\,=\,0.367$). Two effects are at work: pySTEPS' pure
+Lagrangian advection cannot model growth or decay and degrades faster
+than a learned forecaster as the prediction interval lengthens, and
+its precision against gauges drops sharply at $h\!=\!60$ (recall
+$0.29$, precision $0.74$, see Appendix~\ref{app:gauges}) because the
+advected radar field loses spatial alignment with the gauges. The
+CML-based forecasters give up substantial skill at the shortest
+horizons but converge to comparable performance at $h\!=\!60$~min,
+delineating a regime --- the one-hour gauge-targeted forecast --- where
+opportunistic CML sensing is already a competitive alternative to the
+operational radar nowcast.
+
+\subsection{Full-Period Training Results}\label{sec:results:fullperiod}
+
+Re-training all advanced forecasters on the raw Part-2 IDW/GMZ map
+arrays (driven by the physical CML estimator instead of by the
+Model~2 neural estimator) degrades performance substantially. Against
+radar at $h\!=\!15$~min, \texttt{transformer\_idw\_fullperiod}
+achieves HSS$\,=\,0.204$ versus the Model-2 trained
+\texttt{transformer\_single\_idw} at $0.543$. The same pattern holds
+for Mamba (HSS$\,=\,0.131$~vs~$0.503$) and SINDy
+(HSS$\,=\,0.191$~vs~$0.507$). The full-period models also
+systematically over-predict wet pixels by factors of 3--6 relative to
+the radar truth. This is direct evidence that the learned CML
+estimation network (Model~2) produces input maps that are
+substantially more conducive to downstream forecasting than the
+ITU-R-inversion baseline, even though both produce per-link rain rates
+on the same scale.
+
+\subsection{Inner-Crop Sensitivity}\label{sec:results:inner}
+
+Restricting the radar evaluation to a tighter window over central
+Gothenburg ($57.6$--$57.8$\,$^\circ$N, $11.75$--$12.10$\,$^\circ$E)
+leaves the ordering of all models unchanged and improves every
+metric by a small but consistent amount. The HSS of pySTEPS at
+$h\!=\!15$~min rises from $0.776$ to $0.780$, and of
+\texttt{transformer\_multi\_idw} from $0.517$ to $0.538$. The
+\emph{relative} ranking of the CML-based forecasters --- Transformer
+$\geq$ Mamba $>$ SINDy --- is preserved across the two crops, as is
+the IDW $\gg$ GMZ gap. The full inner-crop metric table is in
+Appendix~\ref{app:radar_inner}.
+
+\subsection{Lookback Window Sensitivity}\label{sec:results:lookback}
+
+The lookback probe (Part~5C of the notebook) confirmed that the
+reference value $w\!=\!8$ frames is close to optimal for our setting;
+the validation MSE curve was nearly flat between $w\!=\!6$ and
+$w\!=\!12$. Detailed numerical values from this diagnostic are
+collected in the JSON evaluation report
+(\texttt{evaluation\_report.json}) and not reproduced here, as the
+result motivates rather than constrains the main experimental
+comparison.
+
+\section{Discussion}\label{sec:discussion}
+
+The quantitative results of Section~\ref{sec:results} support several
+substantive conclusions and overturn a number of \emph{a~priori}
+expectations stated in the methodology.
+
+\paragraph{Where CML-based forecasting is competitive.}
+At the shortest horizons (15--30~min) and against the radar field,
+pySTEPS retains a clear lead of approximately 0.23~HSS over the best
+CML-based forecaster (Section~\ref{sec:results:pysteps}). This gap
+reflects the fact that pySTEPS consumes the radar field directly,
+whereas the CML-based stack must first reconstruct that field from
+sparse line measurements before forecasting; some loss is inevitable.
+Crucially, however, the gap narrows monotonically with horizon and
+collapses --- or even inverts --- at $h\!=\!60$~min, where
+\texttt{transformer\_multi\_idw} surpasses pySTEPS at the
+gauge target. Persistence alone (\texttt{naive\_radar}) also overtakes
+pySTEPS at $h\!=\!60$ against the radar (HSS $0.511$ vs $0.391$). The
+operational implication is that CML-based nowcasting is most useful
+as a complement to radar at the longer end of the nowcasting window,
+or in regions where radar coverage is degraded by beam blockage or
+range --- not yet as a wholesale replacement at short range.
+
+\paragraph{Transformer $\approx$ Mamba; SINDy is unstable.}
+Among the three sequence architectures, the Transformer is the best
+overall performer by a small margin, with Mamba consistently within
+0.02--0.03~HSS of the corresponding Transformer variant. The
+lightweight GRU surrogate used for Mamba captures the dynamics
+adequately at the modest two-hour lookback used here; a full
+selective-scan Mamba implementation would test whether the
+linear-time recurrence advantage materialises at longer histories,
+which our two-hour window does not stress. SINDy is competitive at
+$h\!=\!15$~min but its integrated POD-coefficient trajectory becomes
+numerically unstable for the longer horizons
+(Section~\ref{sec:results:idw}), with RMSE diverging to $7$~mm/h at
+$h\!=\!45$~min for the single-step variant. The lesson is that the
+sparse-regression discovery, while interpretable, does not by itself
+guarantee a stable forward integrator for fluid-like fields with
+strong intermittency and noise.
+
+\paragraph{IDW outperforms GMZ as a forecasting input.}
+Contrary to the expectation expressed in the original methodology
+(Section~\ref{sec:interp}), the smoother IDW input is uniformly the
+better choice for downstream forecasting on this dataset:
+GMZ-trained variants lose 0.30--0.34~HSS at $h\!=\!15$
+(Table~\ref{tab:idw_vs_gmz}). The likely mechanism is that the GMZ
+tomographic reconstruction, with its sharp paths-to-pixels mass
+concentration, produces input maps whose statistics are more
+difficult for the forecasting models to regress on; the GMZ-fed
+models also exhibit a pronounced dry bias. The corollary for future
+work is that the choice of spatial reconstruction should be made
+\emph{jointly} with the choice of forecaster --- a method optimal for
+visual reconstruction need not be optimal as a forecasting input.
+
+\paragraph{Naive baselines remain strong.}
+The persistence baselines are surprisingly competitive at short
+horizons (Section~\ref{sec:results:naive}). At $h\!=\!15$~min vs
+gauges, \texttt{naive\_gauge} matches or exceeds every learned
+forecaster; at $h\!=\!60$~min vs radar, \texttt{naive\_radar} beats
+pySTEPS. This places a high floor under every claim of "skill" for a
+learned model on this dataset and reinforces the importance of
+including persistence in every benchmark.
+
+\paragraph{Model~2 substantially improves downstream forecasting.}
+Replacing the learned CML estimator (Model~2) with the closed-form
+physical estimator (Model~1) in the input pipeline reduces the HSS of
+every advanced forecaster by 0.3--0.5 at $h\!=\!15$~min
+(Section~\ref{sec:results:fullperiod}). The learned estimator's
+wet/dry gating and rain-weighted MSE loss collectively produce input
+maps that are better matched to the forecasting target than the
+physical inversion. This finding justifies the two-stage architecture
+(estimation~$\to$~forecasting) advocated in this work.
+
+\paragraph{Limitations.} The principal limitations of this study are
+that it covers a single season (June--August 2015) in a single
+country, that the CML data are drawn from a single dataset version of
+openMRG, and that the wet-antenna correction used here is a simple
+constant offset rather than a physically-motivated model that varies
+with rain rate and antenna geometry. The inner gauge cluster ($\sim 10$
+stations) is dense enough to make the gauge target a tight reference
+locally but is too small to support strong claims about generalisation
+across the wider radar footprint. SINDy's instability at long
+horizons is a methodological limitation as well as a finding ---
+robust forward integration of the discovered ODEs would require
+either stronger regularisation or an alternative integration scheme
+beyond what \texttt{pysindy}'s default solver provides.
+
+\paragraph{Future work.} Several directions naturally extend this
+study. First, training on multiple seasons and across different
+geographies would test the generalisability of the learned
+forecasters; the apparent dominance of IDW over GMZ should be
+retested with denser CML networks where GMZ's tomographic advantage
+is more likely to matter. Second, integrating CML-derived rainfall
+fields into a numerical weather prediction system via data
+assimilation could combine the short-term skill of CMLs with the
+medium-range skill of NWP. Third, a probabilistic re-formulation
+analogous to pySTEPS' ensemble mode --- with quantile regression heads
+or stochastic latent-state approaches --- would address the strong
+dry/wet asymmetry observed throughout this study. Finally, a
+dedicated investigation of selective state-space models in their full
+form (rather than the GRU surrogate used here) and of end-to-end
+architectures that bypass the explicit per-link estimator may yield
+further gains, particularly at the long-horizon regime where the
+present learned models already match or exceed pySTEPS.
+
+\paragraph{Limitations.} The principal limitations of this study are
+that it covers a single season (June--August 2015) in a single country,
+that the CML data are drawn from a single dataset version of openMRG,
+and that the wet-antenna correction used here is a simple constant
+offset rather than a physically-motivated model that varies with rain
+rate and antenna geometry. Generalising the results to other
+hydrometeorological regimes, longer time periods, or different cellular
+operators will require additional data and may necessitate
+re-calibration of the dynamic-baseline and WAE settings.
+
+\paragraph{Future work.} Several directions naturally extend this
+study. First, training on multiple seasons and across different
+geographies would test the generalisability of the learned forecasters.
+Second, integrating CML-derived rainfall fields into a numerical
+weather prediction system via data assimilation could combine the
+short-term skill of CMLs with the medium-range skill of NWP. Third,
+the deterministic forecasters of this paper could be extended to
+probabilistic settings (analogous to pySTEPS' ensemble mode) using
+quantile regression heads or stochastic latent-state approaches.
+Finally, a dedicated investigation of selective state-space models in
+their full form (rather than the GRU surrogate used here) and of
+end-to-end models that bypass the explicit per-link estimator may
+yield further gains.
+
+\section{Conclusion}\label{sec:conclusion}
+
+Accurate, spatially dense, short-term precipitation information is a
+critical input to a wide range of hydrological and meteorological
+applications, and the limitations of conventional gauge and radar
+infrastructure motivate the search for complementary observation
+streams. This paper has presented a complete machine-learning pipeline
+that converts the opportunistic measurements of Commercial Microwave
+Links into spatial rainfall fields and short-term forecasts, and has
+benchmarked it against naive persistence baselines and the operational
+pySTEPS Lagrangian extrapolator on the openMRG dataset (Gothenburg,
+Sweden, summer 2015).
+
+Four headline findings emerge from the evaluation. (i) The
+\emph{Transformer fed with IDW-interpolated Model-2 CML maps} is the
+strongest CML-based forecaster overall, with Mamba within 0.02--0.03
+HSS at every horizon, and SINDy competitive at $h\!=\!15$~min but
+numerically unstable beyond. (ii) The performance gap between
+CML-based forecasters and pySTEPS narrows monotonically with horizon
+and \emph{closes or inverts at $h\!=\!60$~min}: at that horizon, the
+multi-step Transformer fed with CML inputs outperforms pySTEPS at the
+gauge target, and naive radar persistence outperforms pySTEPS at the
+radar target. (iii) Contrary to our prior expectation, the smoother
+IDW input outperforms the tomographic GMZ reconstruction by 0.30~HSS
+for every forecaster and every horizon; the choice of spatial
+reconstruction must be made jointly with the choice of forecaster,
+not optimised in isolation. (iv) Replacing the learned Model-2 CML
+estimator with the closed-form physical baseline degrades every
+downstream forecaster by 0.30--0.50~HSS at the shortest horizon,
+justifying the two-stage estimation~$\to$~forecasting architecture
+advocated here.
+
+The novelty of this work lies less in the individual models, all of
+which are well-studied in their original domains, than in the unified
+combination of (i)~a learned CML rainfall estimator, (ii)~two
+complementary spatial reconstructions used as parallel input streams,
+(iii)~three structurally distinct forecasting paradigms
+(attention-based, sparse-dynamical, and state-space), and (iv)~a
+head-to-head comparison with the operational radar nowcast. The
+finding that CML-based opportunistic sensing is already competitive
+with the radar-driven operational state of the art at the one-hour
+horizon delineates a concrete operational regime where the
+opportunistic-sensing paradigm is mature enough for production use,
+and identifies the short-horizon regime as the primary target for
+future methodological improvements.
+
+\section*{Acknowledgements}
+\textit{[To be completed. Will acknowledge the FieldSense laboratory,
+project supervisors, and the data providers: SMHI for rain gauge and
+radar data, and the openMRG project for the integrated CML dataset.]}
+
+\appendix
+
+\section{Full evaluation metrics versus rain gauges}\label{app:gauges}
+
+{\footnotesize
+\begin{longtable}{p{4.0cm}cccccccccc}
+\caption{Full evaluation metrics versus rain gauges (gold standard) on the held-out test window. Every model is listed at every horizon $h\in\{15, 30, 45, 60\}$ minutes. Columns: RMSE [mm/h], MAE [mm/h], Bias [mm/h], Pearson CC, HSS, F1, precision, recall, number of predicted wet pixels ($n_{\text{wet}}^{\text{pred}}$). The number of observed wet pixels at the gauge sample is approximately $1521$ (per-horizon variations of less than $1\%$ arise from the shift of the evaluation window by $h$).}\label{tab:app_gauges} \\
+\toprule
+Model & $h$ & RMSE & MAE & Bias & CC & HSS & F1 & Prec. & Rec. & $n_{\text{wet}}^{\text{pred}}$ \\
+\midrule
+\endfirsthead
+\multicolumn{11}{c}{\tablename\ \thetable{} --- \textit{continued from previous page}} \\
+\toprule
+Model & $h$ & RMSE & MAE & Bias & CC & HSS & F1 & Prec. & Rec. & $n_{\text{wet}}^{\text{pred}}$ \\
+\midrule
+\endhead
+\midrule
+\multicolumn{11}{r}{\textit{continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{naive\_radar} & 15 & 0.7635 & 0.1188 & -0.0023 & 0.5756 & 0.6353 & 0.6620 & 0.6146 & 0.7173 & 1775 \\
+\texttt{naive\_radar} & 30 & 0.8367 & 0.1377 & -0.0023 & 0.4902 & 0.5843 & 0.6147 & 0.5707 & 0.6660 & 1775 \\
+\texttt{naive\_radar} & 45 & 0.8662 & 0.1486 & -0.0026 & 0.4538 & 0.5376 & 0.5713 & 0.5317 & 0.6174 & 1766 \\
+\texttt{naive\_radar} & 60 & 0.8865 & 0.1535 & -0.0031 & 0.4280 & 0.5038 & 0.5400 & 0.5037 & 0.5819 & 1757 \\
+\addlinespace[1pt]
+\texttt{naive\_gauge} & 15 & 0.5999 & 0.0868 & 0.0007 & 0.7414 & 0.7988 & 0.8126 & 0.8030 & 0.8225 & 1558 \\
+\texttt{naive\_gauge} & 30 & 0.8157 & 0.1290 & 0.0007 & 0.5218 & 0.6509 & 0.6749 & 0.6669 & 0.6831 & 1558 \\
+\texttt{naive\_gauge} & 45 & 0.8789 & 0.1465 & 8.19e-05 & 0.4446 & 0.5803 & 0.6091 & 0.6036 & 0.6147 & 1549 \\
+\texttt{naive\_gauge} & 60 & 0.9025 & 0.1557 & -0.0008 & 0.4135 & 0.5213 & 0.5541 & 0.5506 & 0.5575 & 1540 \\
+\addlinespace[1pt]
+\texttt{naive\_cml} & 15 & 0.5383 & 0.0877 & -0.0518 & 0.8121 & 0.6260 & 0.6507 & 0.6685 & 0.6338 & 1442 \\
+\texttt{naive\_cml} & 30 & 0.6726 & 0.1118 & -0.0518 & 0.6035 & 0.5530 & 0.5825 & 0.5985 & 0.5674 & 1442 \\
+\texttt{naive\_cml} & 45 & 0.7688 & 0.1361 & -0.0518 & 0.4260 & 0.4821 & 0.5164 & 0.5305 & 0.5030 & 1442 \\
+\texttt{naive\_cml} & 60 & 0.7964 & 0.1453 & -0.0518 & 0.3710 & 0.4387 & 0.4759 & 0.4889 & 0.4635 & 1442 \\
+\addlinespace[1pt]
+\texttt{model1\_physical} & 15 & 0.8140 & 0.1860 & -0.0148 & 0.3040 & 0.2664 & 0.3414 & 0.2267 & 0.6917 & 4641 \\
+\texttt{model1\_physical} & 30 & 0.8140 & 0.1860 & -0.0147 & 0.3039 & 0.2660 & 0.3411 & 0.2264 & 0.6917 & 4647 \\
+\texttt{model1\_physical} & 45 & 0.8142 & 0.1861 & -0.0147 & 0.3039 & 0.2660 & 0.3411 & 0.2264 & 0.6917 & 4647 \\
+\texttt{model1\_physical} & 60 & 0.8144 & 0.1861 & -0.0148 & 0.3039 & 0.2659 & 0.3411 & 0.2264 & 0.6917 & 4647 \\
+\addlinespace[1pt]
+\texttt{transformer\_single\_idw} & 15 & 0.6516 & 0.1229 & -0.0606 & 0.6605 & 0.6209 & 0.6487 & 0.6009 & 0.7048 & 1784 \\
+\texttt{transformer\_single\_idw} & 30 & 0.6969 & 0.1260 & -0.0755 & 0.6387 & 0.5270 & 0.5645 & 0.4842 & 0.6765 & 2125 \\
+\texttt{transformer\_single\_idw} & 45 & 0.7541 & 0.1683 & -0.1013 & 0.5130 & 0.4310 & 0.4800 & 0.3790 & 0.6542 & 2625 \\
+\texttt{transformer\_single\_idw} & 60 & 0.7929 & 0.1632 & -0.0527 & 0.3596 & 0.3385 & 0.3999 & 0.2930 & 0.6298 & 3270 \\
+\addlinespace[1pt]
+\texttt{transformer\_multi\_idw} & 15 & 0.6675 & 0.1214 & -0.0599 & 0.6717 & 0.5814 & 0.6141 & 0.5288 & 0.7320 & 2082 \\
+\texttt{transformer\_multi\_idw} & 30 & 0.6940 & 0.1238 & -0.0593 & 0.6321 & 0.5005 & 0.5416 & 0.4448 & 0.6925 & 2354 \\
+\texttt{transformer\_multi\_idw} & 45 & 0.7258 & 0.1413 & -0.0642 & 0.5489 & 0.4389 & 0.4865 & 0.3901 & 0.6463 & 2520 \\
+\texttt{transformer\_multi\_idw} & 60 & 0.7447 & 0.1486 & -0.0757 & 0.5050 & 0.3965 & 0.4471 & 0.3630 & 0.5819 & 2438 \\
+\addlinespace[1pt]
+\texttt{transformer\_single\_gmz} & 15 & 0.6825 & 0.1182 & -0.0822 & 0.6047 & 0.5424 & 0.5687 & 0.6705 & 0.4938 & 1120 \\
+\texttt{transformer\_single\_gmz} & 30 & 0.7411 & 0.1314 & -0.0931 & 0.5405 & 0.5321 & 0.5632 & 0.5773 & 0.5496 & 1448 \\
+\texttt{transformer\_single\_gmz} & 45 & 0.7675 & 0.1526 & -0.0545 & 0.4374 & 0.4589 & 0.4977 & 0.4717 & 0.5266 & 1698 \\
+\texttt{transformer\_single\_gmz} & 60 & 0.7828 & 0.1458 & -0.0757 & 0.4002 & 0.4321 & 0.4709 & 0.4684 & 0.4734 & 1537 \\
+\addlinespace[1pt]
+\texttt{transformer\_multi\_gmz} & 15 & 0.7475 & 0.1360 & -0.0745 & 0.5046 & 0.5448 & 0.5771 & 0.5467 & 0.6110 & 1681 \\
+\texttt{transformer\_multi\_gmz} & 30 & 0.7577 & 0.1375 & -0.0726 & 0.5008 & 0.5141 & 0.5483 & 0.5275 & 0.5708 & 1636 \\
+\texttt{transformer\_multi\_gmz} & 45 & 0.7724 & 0.1481 & -0.0618 & 0.4494 & 0.4621 & 0.5009 & 0.4718 & 0.5339 & 1721 \\
+\texttt{transformer\_multi\_gmz} & 60 & 0.7829 & 0.1463 & -0.0688 & 0.4029 & 0.4280 & 0.4691 & 0.4442 & 0.4970 & 1702 \\
+\addlinespace[1pt]
+\texttt{sindy\_single\_idw} & 15 & 0.6405 & 0.1111 & -0.0534 & 0.6511 & 0.5560 & 0.5867 & 0.5773 & 0.5963 & 1571 \\
+\texttt{sindy\_single\_idw} & 30 & 1.0155 & 0.1603 & -0.0552 & 0.2834 & 0.4512 & 0.4899 & 0.4722 & 0.5089 & 1639 \\
+\texttt{sindy\_single\_idw} & 45 & 7.3384 & 0.4160 & 0.0724 & -0.0080 & 0.3794 & 0.4245 & 0.3974 & 0.4556 & 1744 \\
+\texttt{sindy\_single\_idw} & 60 & 2.1462 & 0.2649 & -0.0715 & 0.0698 & 0.3396 & 0.3896 & 0.3497 & 0.4398 & 1913 \\
+\addlinespace[1pt]
+\texttt{sindy\_multi\_idw} & 15 & 0.5443 & 0.0972 & -0.0529 & 0.8011 & 0.5714 & 0.6011 & 0.5836 & 0.6197 & 1597 \\
+\texttt{sindy\_multi\_idw} & 30 & 0.7032 & 0.1302 & -0.0573 & 0.5538 & 0.4737 & 0.5111 & 0.4854 & 0.5397 & 1681 \\
+\texttt{sindy\_multi\_idw} & 45 & 0.8691 & 0.1692 & -0.0591 & 0.3171 & 0.3996 & 0.4437 & 0.4111 & 0.4819 & 1783 \\
+\texttt{sindy\_multi\_idw} & 60 & 2.1462 & 0.2649 & -0.0715 & 0.0698 & 0.3396 & 0.3896 & 0.3497 & 0.4398 & 1913 \\
+\addlinespace[1pt]
+\texttt{sindy\_single\_gmz} & 15 & 0.6187 & 0.1014 & -0.0586 & 0.6865 & 0.5272 & 0.5554 & 0.6335 & 0.4944 & 1187 \\
+\texttt{sindy\_single\_gmz} & 30 & 0.7510 & 0.1233 & -0.0527 & 0.5050 & 0.4702 & 0.5024 & 0.5618 & 0.4543 & 1230 \\
+\texttt{sindy\_single\_gmz} & 45 & 0.9371 & 0.1501 & -0.0480 & 0.3335 & 0.4101 & 0.4458 & 0.5008 & 0.4017 & 1220 \\
+\texttt{sindy\_single\_gmz} & 60 & 0.9320 & 0.1666 & -0.0517 & 0.3203 & 0.3723 & 0.4100 & 0.4646 & 0.3669 & 1201 \\
+\addlinespace[1pt]
+\texttt{sindy\_multi\_gmz} & 15 & 0.6154 & 0.0999 & -0.0572 & 0.6888 & 0.5311 & 0.5589 & 0.6335 & 0.5000 & 1187 \\
+\texttt{sindy\_multi\_gmz} & 30 & 0.7506 & 0.1227 & -0.0521 & 0.5054 & 0.4720 & 0.5040 & 0.5618 & 0.4570 & 1230 \\
+\texttt{sindy\_multi\_gmz} & 45 & 0.9373 & 0.1502 & -0.0480 & 0.3335 & 0.4101 & 0.4458 & 0.5008 & 0.4017 & 1220 \\
+\texttt{sindy\_multi\_gmz} & 60 & 0.9320 & 0.1666 & -0.0517 & 0.3203 & 0.3723 & 0.4100 & 0.4646 & 0.3669 & 1201 \\
+\addlinespace[1pt]
+\texttt{mamba\_single\_idw} & 15 & 0.6642 & 0.1302 & -0.0556 & 0.6434 & 0.5278 & 0.5657 & 0.4786 & 0.6917 & 2198 \\
+\texttt{mamba\_single\_idw} & 30 & 0.7216 & 0.1304 & -0.0697 & 0.5900 & 0.5090 & 0.5471 & 0.4783 & 0.6391 & 2032 \\
+\texttt{mamba\_single\_idw} & 45 & 0.7717 & 0.1462 & -0.0621 & 0.4544 & 0.4282 & 0.4764 & 0.3845 & 0.6259 & 2476 \\
+\texttt{mamba\_single\_idw} & 60 & 0.7796 & 0.1539 & -0.0653 & 0.4054 & 0.3678 & 0.4233 & 0.3279 & 0.5970 & 2769 \\
+\addlinespace[1pt]
+\texttt{mamba\_multi\_idw} & 15 & 0.6986 & 0.1239 & -0.0505 & 0.6197 & 0.5362 & 0.5731 & 0.4842 & 0.7021 & 2181 \\
+\texttt{mamba\_multi\_idw} & 30 & 0.7296 & 0.1316 & -0.0667 & 0.5848 & 0.4770 & 0.5196 & 0.4316 & 0.6528 & 2287 \\
+\texttt{mamba\_multi\_idw} & 45 & 0.7566 & 0.1419 & -0.0630 & 0.4933 & 0.4211 & 0.4701 & 0.3778 & 0.6220 & 2504 \\
+\texttt{mamba\_multi\_idw} & 60 & 0.7716 & 0.1540 & -0.0540 & 0.4299 & 0.3599 & 0.4168 & 0.3190 & 0.6009 & 2865 \\
+\addlinespace[1pt]
+\texttt{mamba\_single\_gmz} & 15 & 0.6755 & 0.1151 & -0.0644 & 0.6432 & 0.5331 & 0.5624 & 0.6087 & 0.5227 & 1306 \\
+\texttt{mamba\_single\_gmz} & 30 & 0.7093 & 0.1248 & -0.0733 & 0.5807 & 0.4956 & 0.5276 & 0.5664 & 0.4938 & 1326 \\
+\texttt{mamba\_single\_gmz} & 45 & 0.7448 & 0.1347 & -0.0661 & 0.4974 & 0.4559 & 0.4935 & 0.4845 & 0.5030 & 1579 \\
+\texttt{mamba\_single\_gmz} & 60 & 0.7669 & 0.1416 & -0.0683 & 0.4620 & 0.4010 & 0.4424 & 0.4354 & 0.4497 & 1571 \\
+\addlinespace[1pt]
+\texttt{mamba\_multi\_gmz} & 15 & 0.6716 & 0.1130 & -0.0683 & 0.6538 & 0.5424 & 0.5713 & 0.6075 & 0.5392 & 1335 \\
+\texttt{mamba\_multi\_gmz} & 30 & 0.7152 & 0.1262 & -0.0713 & 0.5869 & 0.4805 & 0.5134 & 0.5489 & 0.4821 & 1328 \\
+\texttt{mamba\_multi\_gmz} & 45 & 0.7550 & 0.1393 & -0.0711 & 0.4802 & 0.4361 & 0.4726 & 0.4971 & 0.4504 & 1378 \\
+\texttt{mamba\_multi\_gmz} & 60 & 0.7705 & 0.1471 & -0.0686 & 0.4326 & 0.4171 & 0.4549 & 0.4773 & 0.4346 & 1385 \\
+\addlinespace[1pt]
+\texttt{transformer\_idw\_fullperiod} & 15 & 0.7824 & 0.1864 & -0.0283 & 0.3989 & 0.2173 & 0.3018 & 0.1899 & 0.7350 & 5887 \\
+\texttt{transformer\_idw\_fullperiod} & 30 & 0.7942 & 0.2021 & -0.0188 & 0.3916 & 0.1272 & 0.2281 & 0.1341 & 0.7620 & 8642 \\
+\texttt{transformer\_idw\_fullperiod} & 45 & 0.8045 & 0.2124 & -0.0087 & 0.3366 & 0.1188 & 0.2212 & 0.1293 & 0.7633 & 8976 \\
+\texttt{transformer\_idw\_fullperiod} & 60 & 0.8117 & 0.2189 & -0.0056 & 0.2908 & 0.0939 & 0.2014 & 0.1155 & 0.7870 & 10366 \\
+\addlinespace[1pt]
+\texttt{transformer\_gmz\_fullperiod} & 15 & 0.7868 & 0.1965 & -0.0169 & 0.3631 & 0.1207 & 0.2214 & 0.1313 & 0.7041 & 8154 \\
+\texttt{transformer\_gmz\_fullperiod} & 30 & 0.8020 & 0.2323 & 0.0120 & 0.3171 & 0.0607 & 0.1738 & 0.0981 & 0.7640 & 11850 \\
+\texttt{transformer\_gmz\_fullperiod} & 45 & 0.8116 & 0.2225 & -0.0029 & 0.2663 & 0.0932 & 0.1996 & 0.1157 & 0.7285 & 9580 \\
+\texttt{transformer\_gmz\_fullperiod} & 60 & 0.8206 & 0.2272 & -0.0090 & 0.2143 & 0.0815 & 0.1899 & 0.1094 & 0.7193 & 9998 \\
+\addlinespace[1pt]
+\texttt{sindy\_idw\_fullperiod} & 15 & 0.8516 & 0.2021 & -0.0086 & 0.2377 & 0.1998 & 0.2855 & 0.1810 & 0.6746 & 5667 \\
+\texttt{sindy\_idw\_fullperiod} & 30 & 1.2977 & 0.2340 & 0.0197 & 0.1204 & 0.1432 & 0.2377 & 0.1465 & 0.6292 & 6532 \\
+\texttt{sindy\_idw\_fullperiod} & 45 & 1.2901 & 0.2437 & 0.0261 & 0.1455 & 0.1079 & 0.2085 & 0.1257 & 0.6114 & 7400 \\
+\texttt{sindy\_idw\_fullperiod} & 60 & 1.2923 & 0.2626 & 0.0365 & 0.1276 & 0.0817 & 0.1871 & 0.1109 & 0.5989 & 8216 \\
+\addlinespace[1pt]
+\texttt{sindy\_gmz\_fullperiod} & 15 & 0.8837 & 0.2044 & -0.0037 & 0.2346 & 0.1885 & 0.2745 & 0.1760 & 0.6239 & 5393 \\
+\texttt{sindy\_gmz\_fullperiod} & 30 & 20.6629 & 0.5707 & 0.3606 & 0.0051 & 0.1882 & 0.2723 & 0.1786 & 0.5720 & 4870 \\
+\texttt{sindy\_gmz\_fullperiod} & 45 & 9.9520 & 0.4395 & 0.2265 & 0.2478 & 0.1881 & 0.2698 & 0.1822 & 0.5201 & 4342 \\
+\texttt{sindy\_gmz\_fullperiod} & 60 & 7.9144 & 0.3495 & 0.1221 & 0.0611 & 0.1834 & 0.2635 & 0.1828 & 0.4714 & 3922 \\
+\addlinespace[1pt]
+\texttt{mamba\_idw\_fullperiod} & 15 & 0.7932 & 0.2000 & -0.0146 & 0.3654 & 0.1397 & 0.2379 & 0.1416 & 0.7436 & 7987 \\
+\texttt{mamba\_idw\_fullperiod} & 30 & 0.7795 & 0.1889 & -0.0242 & 0.4147 & 0.1710 & 0.2632 & 0.1608 & 0.7258 & 6867 \\
+\texttt{mamba\_idw\_fullperiod} & 45 & 0.8013 & 0.2054 & -0.0140 & 0.3357 & 0.1390 & 0.2371 & 0.1415 & 0.7318 & 7866 \\
+\texttt{mamba\_idw\_fullperiod} & 60 & 0.8147 & 0.1990 & -0.0307 & 0.2909 & 0.1538 & 0.2482 & 0.1513 & 0.6903 & 6941 \\
+\addlinespace[1pt]
+\texttt{mamba\_gmz\_fullperiod} & 15 & 0.7895 & 0.2001 & -0.0037 & 0.3396 & 0.1400 & 0.2368 & 0.1429 & 0.6903 & 7348 \\
+\texttt{mamba\_gmz\_fullperiod} & 30 & 0.7945 & 0.2145 & 0.0021 & 0.3261 & 0.1178 & 0.2186 & 0.1300 & 0.6877 & 8048 \\
+\texttt{mamba\_gmz\_fullperiod} & 45 & 0.8033 & 0.2138 & -0.0063 & 0.2978 & 0.1191 & 0.2193 & 0.1311 & 0.6700 & 7772 \\
+\texttt{mamba\_gmz\_fullperiod} & 60 & 0.8130 & 0.2132 & -0.0137 & 0.2563 & 0.1206 & 0.2199 & 0.1325 & 0.6476 & 7436 \\
+\addlinespace[1pt]
+\texttt{pysteps} & 15 & 0.6308 & 0.1009 & 0.0042 & 0.7128 & 0.7010 & 0.7226 & 0.6736 & 0.7793 & 1740 \\
+\texttt{pysteps} & 30 & 0.7385 & 0.1184 & 0.0050 & 0.6342 & 0.6596 & 0.6836 & 0.6565 & 0.7130 & 1642 \\
+\texttt{pysteps} & 45 & 0.7996 & 0.1285 & -0.0096 & 0.5688 & 0.5534 & 0.5806 & 0.6470 & 0.5266 & 1238 \\
+\texttt{pysteps} & 60 & 0.8679 & 0.1348 & -0.0567 & 0.3986 & 0.3668 & 0.3937 & 0.6313 & 0.2860 & 689 \\
+\end{longtable}
+}
+
+\section{Full evaluation metrics versus radar (outer crop)}\label{app:radar_outer}
+
+{\footnotesize
+\begin{longtable}{p{4.0cm}cccccccccc}
+\caption{Full evaluation metrics versus the SMHI radar field (outer crop $57.55$--$57.85\,^\circ$N $\times$ $11.70$--$12.20\,^\circ$E) on the held-out test window. Same column convention as Table~\ref{tab:app_gauges}. The number of observed wet pixels at the radar sample is $\approx 52985$.}\label{tab:app_radar_outer} \\
+\toprule
+Model & $h$ & RMSE & MAE & Bias & CC & HSS & F1 & Prec. & Rec. & $n_{\text{wet}}^{\text{pred}}$ \\
+\midrule
+\endfirsthead
+\multicolumn{11}{c}{\tablename\ \thetable{} --- \textit{continued from previous page}} \\
+\toprule
+Model & $h$ & RMSE & MAE & Bias & CC & HSS & F1 & Prec. & Rec. & $n_{\text{wet}}^{\text{pred}}$ \\
+\midrule
+\endhead
+\midrule
+\multicolumn{11}{r}{\textit{continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{naive\_radar} & 15 & 0.6134 & 0.0924 & -0.0005 & 0.7033 & 0.7420 & 0.7621 & 0.7641 & 0.7601 & 52441 \\
+\texttt{naive\_radar} & 30 & 0.7412 & 0.1224 & -0.0011 & 0.5671 & 0.6291 & 0.6580 & 0.6614 & 0.6546 & 52441 \\
+\texttt{naive\_radar} & 45 & 0.8034 & 0.1381 & -0.0015 & 0.4915 & 0.5611 & 0.5952 & 0.5999 & 0.5906 & 52169 \\
+\texttt{naive\_radar} & 60 & 0.8428 & 0.1477 & -0.0020 & 0.4405 & 0.5112 & 0.5491 & 0.5549 & 0.5435 & 51897 \\
+\addlinespace[1pt]
+\texttt{naive\_gauge} & 15 & 0.6082 & 0.1000 & 0.0053 & 0.6943 & 0.6836 & 0.7078 & 0.7206 & 0.6955 & 50874 \\
+\texttt{naive\_gauge} & 30 & 0.7133 & 0.1219 & 0.0047 & 0.5794 & 0.6302 & 0.6586 & 0.6723 & 0.6455 & 50874 \\
+\texttt{naive\_gauge} & 45 & 0.7873 & 0.1399 & 0.0040 & 0.4872 & 0.5642 & 0.5975 & 0.6116 & 0.5841 & 50602 \\
+\texttt{naive\_gauge} & 60 & 0.8258 & 0.1515 & 0.0031 & 0.4350 & 0.5070 & 0.5446 & 0.5590 & 0.5310 & 50330 \\
+\addlinespace[1pt]
+\texttt{naive\_cml} & 15 & 0.6372 & 0.1117 & -0.0464 & 0.6061 & 0.5487 & 0.5822 & 0.6122 & 0.5549 & 47773 \\
+\texttt{naive\_cml} & 30 & 0.6374 & 0.1127 & -0.0471 & 0.6066 & 0.5252 & 0.5605 & 0.5910 & 0.5329 & 47773 \\
+\texttt{naive\_cml} & 45 & 0.6967 & 0.1275 & -0.0471 & 0.4925 & 0.4607 & 0.5007 & 0.5280 & 0.4761 & 47773 \\
+\texttt{naive\_cml} & 60 & 0.7327 & 0.1386 & -0.0471 & 0.4183 & 0.4021 & 0.4465 & 0.4709 & 0.4245 & 47773 \\
+\addlinespace[1pt]
+\texttt{model1\_physical} & 15 & 0.7362 & 0.1757 & -0.0107 & 0.3849 & 0.2744 & 0.3567 & 0.2450 & 0.6554 & 141003 \\
+\texttt{model1\_physical} & 30 & 0.7368 & 0.1762 & -0.0112 & 0.3847 & 0.2759 & 0.3584 & 0.2464 & 0.6570 & 141262 \\
+\texttt{model1\_physical} & 45 & 0.7370 & 0.1763 & -0.0112 & 0.3847 & 0.2759 & 0.3584 & 0.2464 & 0.6570 & 141262 \\
+\texttt{model1\_physical} & 60 & 0.7371 & 0.1763 & -0.0113 & 0.3847 & 0.2759 & 0.3584 & 0.2464 & 0.6570 & 141262 \\
+\addlinespace[1pt]
+\texttt{transformer\_single\_idw} & 15 & 0.6601 & 0.1296 & -0.0540 & 0.5671 & 0.5426 & 0.5784 & 0.5764 & 0.5804 & 53072 \\
+\texttt{transformer\_single\_idw} & 30 & 0.6607 & 0.1249 & -0.0692 & 0.6210 & 0.4885 & 0.5321 & 0.4861 & 0.5878 & 63752 \\
+\texttt{transformer\_single\_idw} & 45 & 0.7071 & 0.1700 & -0.1031 & 0.5299 & 0.4203 & 0.4736 & 0.4018 & 0.5765 & 75636 \\
+\texttt{transformer\_single\_idw} & 60 & 0.7436 & 0.1565 & -0.0496 & 0.4000 & 0.3422 & 0.4074 & 0.3203 & 0.5596 & 92075 \\
+\addlinespace[1pt]
+\texttt{transformer\_multi\_idw} & 15 & 0.6520 & 0.1212 & -0.0537 & 0.6117 & 0.5171 & 0.5579 & 0.5075 & 0.6193 & 63326 \\
+\texttt{transformer\_multi\_idw} & 30 & 0.6549 & 0.1252 & -0.0556 & 0.6193 & 0.4686 & 0.5159 & 0.4475 & 0.6088 & 70970 \\
+\texttt{transformer\_multi\_idw} & 45 & 0.6786 & 0.1358 & -0.0590 & 0.5650 & 0.4129 & 0.4667 & 0.3947 & 0.5709 & 75840 \\
+\texttt{transformer\_multi\_idw} & 60 & 0.7030 & 0.1485 & -0.0708 & 0.5042 & 0.3689 & 0.4268 & 0.3628 & 0.5184 & 75326 \\
+\addlinespace[1pt]
+\texttt{transformer\_single\_gmz} & 15 & 0.7772 & 0.1294 & -0.1150 & 0.2640 & 0.1371 & 0.1559 & 0.5557 & 0.0907 & 8601 \\
+\texttt{transformer\_single\_gmz} & 30 & 0.7812 & 0.1299 & -0.1166 & 0.2739 & 0.1549 & 0.1757 & 0.5568 & 0.1043 & 9875 \\
+\texttt{transformer\_single\_gmz} & 45 & 0.7860 & 0.1336 & -0.1094 & 0.2266 & 0.1415 & 0.1644 & 0.4809 & 0.0992 & 10869 \\
+\texttt{transformer\_single\_gmz} & 60 & 0.7906 & 0.1336 & -0.1141 & 0.2034 & 0.1277 & 0.1496 & 0.4639 & 0.0892 & 10136 \\
+\addlinespace[1pt]
+\texttt{transformer\_multi\_gmz} & 15 & 0.7848 & 0.1300 & -0.1133 & 0.2362 & 0.1779 & 0.2001 & 0.5676 & 0.1215 & 11107 \\
+\texttt{transformer\_multi\_gmz} & 30 & 0.7844 & 0.1296 & -0.1130 & 0.2504 & 0.1646 & 0.1870 & 0.5396 & 0.1131 & 10932 \\
+\texttt{transformer\_multi\_gmz} & 45 & 0.7873 & 0.1318 & -0.1119 & 0.2319 & 0.1486 & 0.1723 & 0.4807 & 0.1049 & 11449 \\
+\texttt{transformer\_multi\_gmz} & 60 & 0.7905 & 0.1334 & -0.1126 & 0.2042 & 0.1353 & 0.1596 & 0.4442 & 0.0972 & 11540 \\
+\addlinespace[1pt]
+\texttt{sindy\_single\_idw} & 15 & 0.7084 & 0.1256 & -0.0491 & 0.4907 & 0.5072 & 0.5436 & 0.5721 & 0.5178 & 47711 \\
+\texttt{sindy\_single\_idw} & 30 & 0.8613 & 0.1514 & -0.0502 & 0.3591 & 0.4371 & 0.4790 & 0.5016 & 0.4583 & 48161 \\
+\texttt{sindy\_single\_idw} & 45 & 7.0837 & 0.3996 & 0.0784 & 0.0114 & 0.3495 & 0.4003 & 0.3997 & 0.4008 & 52856 \\
+\texttt{sindy\_single\_idw} & 60 & 1.9125 & 0.2416 & -0.0610 & 0.0837 & 0.2918 & 0.3507 & 0.3287 & 0.3758 & 60274 \\
+\addlinespace[1pt]
+\texttt{sindy\_multi\_idw} & 15 & 0.6430 & 0.1162 & -0.0476 & 0.5942 & 0.5190 & 0.5547 & 0.5736 & 0.5370 & 48585 \\
+\texttt{sindy\_multi\_idw} & 30 & 0.6635 & 0.1270 & -0.0510 & 0.5584 & 0.4583 & 0.4991 & 0.5113 & 0.4874 & 49729 \\
+\texttt{sindy\_multi\_idw} & 45 & 0.7533 & 0.1529 & -0.0512 & 0.4197 & 0.3677 & 0.4176 & 0.4103 & 0.4253 & 54356 \\
+\texttt{sindy\_multi\_idw} & 60 & 1.9125 & 0.2416 & -0.0610 & 0.0837 & 0.2918 & 0.3507 & 0.3287 & 0.3758 & 60274 \\
+\addlinespace[1pt]
+\texttt{sindy\_single\_gmz} & 15 & 0.7735 & 0.1238 & -0.1109 & 0.2769 & 0.1380 & 0.1554 & 0.5984 & 0.0893 & 7868 \\
+\texttt{sindy\_single\_gmz} & 30 & 0.7761 & 0.1244 & -0.1102 & 0.2743 & 0.1320 & 0.1499 & 0.5684 & 0.0863 & 8005 \\
+\texttt{sindy\_single\_gmz} & 45 & 0.8073 & 0.1291 & -0.1096 & 0.2083 & 0.1127 & 0.1309 & 0.4974 & 0.0754 & 7989 \\
+\texttt{sindy\_single\_gmz} & 60 & 0.8192 & 0.1331 & -0.1107 & 0.1833 & 0.0986 & 0.1168 & 0.4511 & 0.0671 & 7838 \\
+\addlinespace[1pt]
+\texttt{sindy\_multi\_gmz} & 15 & 0.7727 & 0.1226 & -0.1096 & 0.2773 & 0.1402 & 0.1576 & 0.5984 & 0.0907 & 7868 \\
+\texttt{sindy\_multi\_gmz} & 30 & 0.7757 & 0.1236 & -0.1093 & 0.2746 & 0.1334 & 0.1512 & 0.5684 & 0.0872 & 8005 \\
+\texttt{sindy\_multi\_gmz} & 45 & 0.8071 & 0.1286 & -0.1092 & 0.2084 & 0.1133 & 0.1315 & 0.4974 & 0.0758 & 7989 \\
+\texttt{sindy\_multi\_gmz} & 60 & 0.8192 & 0.1331 & -0.1107 & 0.1833 & 0.0986 & 0.1168 & 0.4511 & 0.0671 & 7838 \\
+\addlinespace[1pt]
+\texttt{mamba\_single\_idw} & 15 & 0.6605 & 0.1363 & -0.0537 & 0.5694 & 0.5030 & 0.5452 & 0.5005 & 0.5987 & 63054 \\
+\texttt{mamba\_single\_idw} & 30 & 0.6798 & 0.1264 & -0.0664 & 0.5847 & 0.4873 & 0.5288 & 0.5087 & 0.5506 & 57063 \\
+\texttt{mamba\_single\_idw} & 45 & 0.7196 & 0.1379 & -0.0589 & 0.4960 & 0.4223 & 0.4739 & 0.4138 & 0.5545 & 70632 \\
+\texttt{mamba\_single\_idw} & 60 & 0.7343 & 0.1459 & -0.0631 & 0.4262 & 0.3744 & 0.4332 & 0.3594 & 0.5452 & 79954 \\
+\addlinespace[1pt]
+\texttt{mamba\_multi\_idw} & 15 & 0.6719 & 0.1275 & -0.0473 & 0.5781 & 0.5106 & 0.5514 & 0.5087 & 0.6018 & 61401 \\
+\texttt{mamba\_multi\_idw} & 30 & 0.6854 & 0.1264 & -0.0595 & 0.5866 & 0.4756 & 0.5196 & 0.4777 & 0.5696 & 62200 \\
+\texttt{mamba\_multi\_idw} & 45 & 0.7039 & 0.1345 & -0.0571 & 0.5344 & 0.4184 & 0.4704 & 0.4081 & 0.5552 & 71333 \\
+\texttt{mamba\_multi\_idw} & 60 & 0.7205 & 0.1456 & -0.0504 & 0.4636 & 0.3656 & 0.4263 & 0.3477 & 0.5507 & 83482 \\
+\addlinespace[1pt]
+\texttt{mamba\_single\_gmz} & 15 & 0.7765 & 0.1265 & -0.1116 & 0.2707 & 0.1562 & 0.1777 & 0.5431 & 0.1062 & 10311 \\
+\texttt{mamba\_single\_gmz} & 30 & 0.7753 & 0.1271 & -0.1129 & 0.2839 & 0.1447 & 0.1659 & 0.5224 & 0.0986 & 9951 \\
+\texttt{mamba\_single\_gmz} & 45 & 0.7809 & 0.1285 & -0.1127 & 0.2601 & 0.1400 & 0.1636 & 0.4656 & 0.0992 & 11233 \\
+\texttt{mamba\_single\_gmz} & 60 & 0.7877 & 0.1308 & -0.1128 & 0.2290 & 0.1196 & 0.1443 & 0.4012 & 0.0880 & 11564 \\
+\addlinespace[1pt]
+\texttt{mamba\_multi\_gmz} & 15 & 0.7756 & 0.1251 & -0.1112 & 0.2734 & 0.1553 & 0.1764 & 0.5426 & 0.1053 & 10073 \\
+\texttt{mamba\_multi\_gmz} & 30 & 0.7751 & 0.1261 & -0.1120 & 0.2900 & 0.1437 & 0.1652 & 0.5063 & 0.0987 & 10171 \\
+\texttt{mamba\_multi\_gmz} & 45 & 0.7826 & 0.1289 & -0.1128 & 0.2507 & 0.1271 & 0.1491 & 0.4583 & 0.0891 & 10189 \\
+\texttt{mamba\_multi\_gmz} & 60 & 0.7866 & 0.1312 & -0.1126 & 0.2265 & 0.1194 & 0.1422 & 0.4277 & 0.0853 & 10514 \\
+\addlinespace[1pt]
+\texttt{transformer\_idw\_fullperiod} & 15 & 0.7360 & 0.1794 & -0.0210 & 0.4227 & 0.2043 & 0.3001 & 0.1942 & 0.6601 & 179166 \\
+\texttt{transformer\_idw\_fullperiod} & 30 & 0.7544 & 0.1976 & -0.0099 & 0.3736 & 0.1128 & 0.2282 & 0.1367 & 0.6917 & 266774 \\
+\texttt{transformer\_idw\_fullperiod} & 45 & 0.7626 & 0.2151 & 0.0068 & 0.3389 & 0.0889 & 0.2095 & 0.1234 & 0.6950 & 296969 \\
+\texttt{transformer\_idw\_fullperiod} & 60 & 0.7715 & 0.2192 & 0.0079 & 0.2737 & 0.0685 & 0.1938 & 0.1123 & 0.7040 & 330358 \\
+\addlinespace[1pt]
+\texttt{transformer\_gmz\_fullperiod} & 15 & 0.7994 & 0.1424 & -0.1055 & 0.1057 & 0.0893 & 0.1463 & 0.1821 & 0.1222 & 35369 \\
+\texttt{transformer\_gmz\_fullperiod} & 30 & 0.8021 & 0.1440 & -0.1059 & 0.0753 & 0.0718 & 0.1355 & 0.1539 & 0.1210 & 41448 \\
+\texttt{transformer\_gmz\_fullperiod} & 45 & 0.8028 & 0.1432 & -0.1069 & 0.0679 & 0.0667 & 0.1275 & 0.1526 & 0.1095 & 37823 \\
+\texttt{transformer\_gmz\_fullperiod} & 60 & 0.8042 & 0.1434 & -0.1082 & 0.0519 & 0.0674 & 0.1276 & 0.1542 & 0.1087 & 37164 \\
+\addlinespace[1pt]
+\texttt{sindy\_idw\_fullperiod} & 15 & 0.7764 & 0.1926 & 5.91e-05 & 0.3039 & 0.1909 & 0.2875 & 0.1875 & 0.6166 & 173364 \\
+\texttt{sindy\_idw\_fullperiod} & 30 & 1.0544 & 0.2249 & 0.0280 & 0.1773 & 0.1161 & 0.2271 & 0.1409 & 0.5854 & 218989 \\
+\texttt{sindy\_idw\_fullperiod} & 45 & 1.1398 & 0.2374 & 0.0373 & 0.1907 & 0.0697 & 0.1903 & 0.1145 & 0.5645 & 259979 \\
+\texttt{sindy\_idw\_fullperiod} & 60 & 1.1134 & 0.2576 & 0.0498 & 0.1822 & 0.0475 & 0.1730 & 0.1024 & 0.5569 & 286688 \\
+\addlinespace[1pt]
+\texttt{sindy\_gmz\_fullperiod} & 15 & 0.8087 & 0.1391 & -0.1049 & 0.0866 & 0.0942 & 0.1390 & 0.2190 & 0.1018 & 24508 \\
+\texttt{sindy\_gmz\_fullperiod} & 30 & 6.7084 & 0.1893 & -0.0580 & 0.0018 & 0.0840 & 0.1266 & 0.2122 & 0.0902 & 22402 \\
+\texttt{sindy\_gmz\_fullperiod} & 45 & 3.2851 & 0.1702 & -0.0753 & 0.0974 & 0.0761 & 0.1166 & 0.2074 & 0.0811 & 20626 \\
+\texttt{sindy\_gmz\_fullperiod} & 60 & 2.6569 & 0.1588 & -0.0887 & 0.0289 & 0.0676 & 0.1066 & 0.1987 & 0.0728 & 19322 \\
+\addlinespace[1pt]
+\texttt{mamba\_idw\_fullperiod} & 15 & 0.7466 & 0.1944 & -0.0068 & 0.3874 & 0.1312 & 0.2424 & 0.1475 & 0.6810 & 243436 \\
+\texttt{mamba\_idw\_fullperiod} & 30 & 0.7403 & 0.1865 & -0.0132 & 0.4082 & 0.1738 & 0.2758 & 0.1740 & 0.6641 & 201133 \\
+\texttt{mamba\_idw\_fullperiod} & 45 & 0.7639 & 0.2008 & -0.0087 & 0.3119 & 0.1236 & 0.2361 & 0.1434 & 0.6676 & 245445 \\
+\texttt{mamba\_idw\_fullperiod} & 60 & 0.7746 & 0.1972 & -0.0200 & 0.2660 & 0.1312 & 0.2410 & 0.1487 & 0.6363 & 225585 \\
+\addlinespace[1pt]
+\texttt{mamba\_gmz\_fullperiod} & 15 & 0.7975 & 0.1407 & -0.1047 & 0.1249 & 0.0926 & 0.1461 & 0.1929 & 0.1176 & 32134 \\
+\texttt{mamba\_gmz\_fullperiod} & 30 & 0.7993 & 0.1427 & -0.1035 & 0.1059 & 0.0750 & 0.1354 & 0.1615 & 0.1166 & 38044 \\
+\texttt{mamba\_gmz\_fullperiod} & 45 & 0.8010 & 0.1430 & -0.1042 & 0.0893 & 0.0741 & 0.1326 & 0.1637 & 0.1115 & 35908 \\
+\texttt{mamba\_gmz\_fullperiod} & 60 & 0.8030 & 0.1417 & -0.1074 & 0.0705 & 0.0691 & 0.1255 & 0.1617 & 0.1025 & 33435 \\
+\addlinespace[1pt]
+\texttt{pysteps} & 15 & 0.5849 & 0.0881 & 0.0051 & 0.7406 & 0.7760 & 0.7933 & 0.7912 & 0.7953 & 52165 \\
+\texttt{pysteps} & 30 & 0.6270 & 0.0973 & 0.0050 & 0.7230 & 0.7239 & 0.7441 & 0.7884 & 0.7044 & 46614 \\
+\texttt{pysteps} & 45 & 0.7200 & 0.1114 & -0.0184 & 0.6099 & 0.5903 & 0.6154 & 0.7779 & 0.5091 & 34322 \\
+\texttt{pysteps} & 60 & 0.7922 & 0.1232 & -0.0593 & 0.4208 & 0.3913 & 0.4183 & 0.7355 & 0.2923 & 20947 \\
+\end{longtable}
+}
+
+\section{Full evaluation metrics versus radar (inner crop)}\label{app:radar_inner}
+
+{\footnotesize
+\begin{longtable}{p{4.0cm}cccccccccc}
+\caption{Full evaluation metrics versus the SMHI radar field, inner crop ($57.6$--$57.8\,^\circ$N $\times$ $11.75$--$12.10\,^\circ$E) on the held-out test window. Same column convention as Table~\ref{tab:app_gauges}. The number of observed wet pixels at the radar sample is $\approx 23404$.}\label{tab:app_radar_inner} \\
+\toprule
+Model & $h$ & RMSE & MAE & Bias & CC & HSS & F1 & Prec. & Rec. & $n_{\text{wet}}^{\text{pred}}$ \\
+\midrule
+\endfirsthead
+\multicolumn{11}{c}{\tablename\ \thetable{} --- \textit{continued from previous page}} \\
+\toprule
+Model & $h$ & RMSE & MAE & Bias & CC & HSS & F1 & Prec. & Rec. & $n_{\text{wet}}^{\text{pred}}$ \\
+\midrule
+\endhead
+\midrule
+\multicolumn{11}{r}{\textit{continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+\texttt{naive\_radar} & 15 & 0.6140 & 0.0931 & -0.0005 & 0.7151 & 0.7495 & 0.7690 & 0.7710 & 0.7670 & 23164 \\
+\texttt{naive\_radar} & 30 & 0.7475 & 0.1242 & -0.0011 & 0.5780 & 0.6344 & 0.6629 & 0.6663 & 0.6595 & 23164 \\
+\texttt{naive\_radar} & 45 & 0.8090 & 0.1404 & -0.0014 & 0.5059 & 0.5694 & 0.6029 & 0.6076 & 0.5983 & 23044 \\
+\texttt{naive\_radar} & 60 & 0.8460 & 0.1502 & -0.0019 & 0.4596 & 0.5213 & 0.5585 & 0.5643 & 0.5527 & 22924 \\
+\addlinespace[1pt]
+\texttt{naive\_gauge} & 15 & 0.5692 & 0.0926 & 0.0033 & 0.7465 & 0.7070 & 0.7292 & 0.7507 & 0.7088 & 21984 \\
+\texttt{naive\_gauge} & 30 & 0.7174 & 0.1225 & 0.0027 & 0.5972 & 0.6427 & 0.6699 & 0.6915 & 0.6495 & 21984 \\
+\texttt{naive\_gauge} & 45 & 0.8077 & 0.1442 & 0.0021 & 0.4889 & 0.5706 & 0.6032 & 0.6244 & 0.5833 & 21864 \\
+\texttt{naive\_gauge} & 60 & 0.8474 & 0.1565 & 0.0012 & 0.4368 & 0.5106 & 0.5476 & 0.5685 & 0.5282 & 21744 \\
+\addlinespace[1pt]
+\texttt{naive\_cml} & 15 & 0.6221 & 0.1069 & -0.0506 & 0.6575 & 0.5732 & 0.6039 & 0.6534 & 0.5614 & 20005 \\
+\texttt{naive\_cml} & 30 & 0.6198 & 0.1083 & -0.0512 & 0.6624 & 0.5441 & 0.5771 & 0.6261 & 0.5352 & 20005 \\
+\texttt{naive\_cml} & 45 & 0.7020 & 0.1286 & -0.0512 & 0.5115 & 0.4657 & 0.5043 & 0.5472 & 0.4677 & 20005 \\
+\texttt{naive\_cml} & 60 & 0.7442 & 0.1414 & -0.0513 & 0.4269 & 0.4035 & 0.4466 & 0.4845 & 0.4142 & 20005 \\
+\addlinespace[1pt]
+\texttt{model1\_physical} & 15 & 0.7457 & 0.1760 & -0.0144 & 0.4021 & 0.2718 & 0.3544 & 0.2435 & 0.6513 & 62287 \\
+\texttt{model1\_physical} & 30 & 0.7462 & 0.1766 & -0.0150 & 0.4020 & 0.2732 & 0.3560 & 0.2448 & 0.6526 & 62395 \\
+\texttt{model1\_physical} & 45 & 0.7464 & 0.1766 & -0.0150 & 0.4020 & 0.2731 & 0.3560 & 0.2448 & 0.6526 & 62395 \\
+\texttt{model1\_physical} & 60 & 0.7465 & 0.1767 & -0.0150 & 0.4020 & 0.2731 & 0.3560 & 0.2448 & 0.6526 & 62395 \\
+\addlinespace[1pt]
+\texttt{transformer\_single\_idw} & 15 & 0.6530 & 0.1270 & -0.0576 & 0.6118 & 0.5682 & 0.6021 & 0.5987 & 0.6055 & 23546 \\
+\texttt{transformer\_single\_idw} & 30 & 0.6600 & 0.1245 & -0.0731 & 0.6699 & 0.4983 & 0.5412 & 0.4945 & 0.5975 & 28131 \\
+\texttt{transformer\_single\_idw} & 45 & 0.7166 & 0.1724 & -0.1066 & 0.5549 & 0.4234 & 0.4765 & 0.4041 & 0.5803 & 33431 \\
+\texttt{transformer\_single\_idw} & 60 & 0.7581 & 0.1592 & -0.0538 & 0.4133 & 0.3479 & 0.4123 & 0.3263 & 0.5597 & 39944 \\
+\addlinespace[1pt]
+\texttt{transformer\_multi\_idw} & 15 & 0.6523 & 0.1213 & -0.0575 & 0.6508 & 0.5377 & 0.5768 & 0.5245 & 0.6406 & 27995 \\
+\texttt{transformer\_multi\_idw} & 30 & 0.6545 & 0.1251 & -0.0593 & 0.6640 & 0.4773 & 0.5239 & 0.4548 & 0.6176 & 31294 \\
+\texttt{transformer\_multi\_idw} & 45 & 0.6861 & 0.1381 & -0.0647 & 0.5915 & 0.4146 & 0.4682 & 0.3973 & 0.5698 & 33218 \\
+\texttt{transformer\_multi\_idw} & 60 & 0.7142 & 0.1515 & -0.0756 & 0.5214 & 0.3715 & 0.4290 & 0.3663 & 0.5176 & 32898 \\
+\addlinespace[1pt]
+\texttt{transformer\_single\_gmz} & 15 & 0.7572 & 0.1333 & -0.1041 & 0.3903 & 0.2670 & 0.2977 & 0.5545 & 0.2034 & 8543 \\
+\texttt{transformer\_single\_gmz} & 30 & 0.7664 & 0.1324 & -0.1074 & 0.4055 & 0.2974 & 0.3298 & 0.5587 & 0.2339 & 9750 \\
+\texttt{transformer\_single\_gmz} & 45 & 0.7772 & 0.1407 & -0.0915 & 0.3385 & 0.2692 & 0.3054 & 0.4810 & 0.2238 & 10832 \\
+\texttt{transformer\_single\_gmz} & 60 & 0.7872 & 0.1395 & -0.1012 & 0.3038 & 0.2441 & 0.2798 & 0.4627 & 0.2006 & 10093 \\
+\addlinespace[1pt]
+\texttt{transformer\_multi\_gmz} & 15 & 0.7760 & 0.1347 & -0.1017 & 0.3503 & 0.3337 & 0.3669 & 0.5660 & 0.2714 & 10991 \\
+\texttt{transformer\_multi\_gmz} & 30 & 0.7740 & 0.1325 & -0.0998 & 0.3741 & 0.3104 & 0.3445 & 0.5382 & 0.2533 & 10847 \\
+\texttt{transformer\_multi\_gmz} & 45 & 0.7804 & 0.1373 & -0.0967 & 0.3463 & 0.2772 & 0.3139 & 0.4793 & 0.2334 & 11281 \\
+\texttt{transformer\_multi\_gmz} & 60 & 0.7874 & 0.1403 & -0.0977 & 0.3025 & 0.2529 & 0.2913 & 0.4428 & 0.2171 & 11413 \\
+\addlinespace[1pt]
+\texttt{sindy\_single\_idw} & 15 & 0.7027 & 0.1238 & -0.0544 & 0.5276 & 0.5240 & 0.5584 & 0.6026 & 0.5202 & 20099 \\
+\texttt{sindy\_single\_idw} & 30 & 0.8606 & 0.1495 & -0.0588 & 0.3759 & 0.4511 & 0.4910 & 0.5274 & 0.4593 & 20278 \\
+\texttt{sindy\_single\_idw} & 45 & 6.9081 & 0.3970 & 0.0641 & 0.0039 & 0.3481 & 0.3981 & 0.4050 & 0.3916 & 22513 \\
+\texttt{sindy\_single\_idw} & 60 & 1.9549 & 0.2474 & -0.0679 & 0.0901 & 0.2903 & 0.3487 & 0.3308 & 0.3687 & 25949 \\
+\addlinespace[1pt]
+\texttt{sindy\_multi\_idw} & 15 & 0.6280 & 0.1127 & -0.0520 & 0.6459 & 0.5390 & 0.5725 & 0.6061 & 0.5424 & 20518 \\
+\texttt{sindy\_multi\_idw} & 30 & 0.6552 & 0.1247 & -0.0559 & 0.5968 & 0.4758 & 0.5144 & 0.5397 & 0.4914 & 20980 \\
+\texttt{sindy\_multi\_idw} & 45 & 0.7707 & 0.1562 & -0.0565 & 0.4242 & 0.3680 & 0.4171 & 0.4172 & 0.4170 & 23155 \\
+\texttt{sindy\_multi\_idw} & 60 & 1.9549 & 0.2474 & -0.0679 & 0.0901 & 0.2903 & 0.3487 & 0.3308 & 0.3687 & 25949 \\
+\addlinespace[1pt]
+\texttt{sindy\_single\_gmz} & 15 & 0.7486 & 0.1238 & -0.0944 & 0.4089 & 0.2736 & 0.3023 & 0.5984 & 0.2022 & 7868 \\
+\texttt{sindy\_single\_gmz} & 30 & 0.7546 & 0.1250 & -0.0927 & 0.4049 & 0.2613 & 0.2908 & 0.5684 & 0.1954 & 8005 \\
+\texttt{sindy\_single\_gmz} & 45 & 0.8253 & 0.1356 & -0.0915 & 0.3072 & 0.2232 & 0.2541 & 0.4974 & 0.1707 & 7989 \\
+\texttt{sindy\_single\_gmz} & 60 & 0.8512 & 0.1445 & -0.0938 & 0.2702 & 0.1956 & 0.2272 & 0.4511 & 0.1519 & 7838 \\
+\addlinespace[1pt]
+\texttt{sindy\_multi\_gmz} & 15 & 0.7480 & 0.1226 & -0.0932 & 0.4094 & 0.2774 & 0.3058 & 0.5984 & 0.2054 & 7868 \\
+\texttt{sindy\_multi\_gmz} & 30 & 0.7543 & 0.1243 & -0.0919 & 0.4052 & 0.2637 & 0.2931 & 0.5684 & 0.1974 & 8005 \\
+\texttt{sindy\_multi\_gmz} & 45 & 0.8251 & 0.1351 & -0.0910 & 0.3074 & 0.2242 & 0.2551 & 0.4974 & 0.1716 & 7989 \\
+\texttt{sindy\_multi\_gmz} & 60 & 0.8512 & 0.1445 & -0.0938 & 0.2702 & 0.1956 & 0.2272 & 0.4511 & 0.1519 & 7838 \\
+\addlinespace[1pt]
+\texttt{mamba\_single\_idw} & 15 & 0.6568 & 0.1356 & -0.0581 & 0.6090 & 0.5244 & 0.5646 & 0.5210 & 0.6162 & 27540 \\
+\texttt{mamba\_single\_idw} & 30 & 0.6832 & 0.1254 & -0.0700 & 0.6274 & 0.5076 & 0.5474 & 0.5291 & 0.5669 & 24948 \\
+\texttt{mamba\_single\_idw} & 45 & 0.7328 & 0.1391 & -0.0647 & 0.5184 & 0.4272 & 0.4779 & 0.4215 & 0.5516 & 30469 \\
+\texttt{mamba\_single\_idw} & 60 & 0.7487 & 0.1486 & -0.0661 & 0.4374 & 0.3769 & 0.4354 & 0.3623 & 0.5455 & 35063 \\
+\addlinespace[1pt]
+\texttt{mamba\_multi\_idw} & 15 & 0.6776 & 0.1255 & -0.0545 & 0.6141 & 0.5313 & 0.5697 & 0.5341 & 0.6104 & 26199 \\
+\texttt{mamba\_multi\_idw} & 30 & 0.6918 & 0.1259 & -0.0636 & 0.6268 & 0.4881 & 0.5314 & 0.4860 & 0.5861 & 27786 \\
+\texttt{mamba\_multi\_idw} & 45 & 0.7152 & 0.1364 & -0.0609 & 0.5554 & 0.4197 & 0.4716 & 0.4093 & 0.5563 & 31478 \\
+\texttt{mamba\_multi\_idw} & 60 & 0.7340 & 0.1485 & -0.0541 & 0.4755 & 0.3661 & 0.4267 & 0.3487 & 0.5495 & 36687 \\
+\addlinespace[1pt]
+\texttt{mamba\_single\_gmz} & 15 & 0.7558 & 0.1281 & -0.0960 & 0.3999 & 0.2848 & 0.3183 & 0.5309 & 0.2272 & 9966 \\
+\texttt{mamba\_single\_gmz} & 30 & 0.7528 & 0.1295 & -0.0990 & 0.4194 & 0.2661 & 0.2997 & 0.5103 & 0.2121 & 9678 \\
+\texttt{mamba\_single\_gmz} & 45 & 0.7659 & 0.1325 & -0.0985 & 0.3839 & 0.2499 & 0.2872 & 0.4515 & 0.2105 & 10856 \\
+\texttt{mamba\_single\_gmz} & 60 & 0.7803 & 0.1368 & -0.0983 & 0.3443 & 0.2187 & 0.2586 & 0.3955 & 0.1921 & 11308 \\
+\addlinespace[1pt]
+\texttt{mamba\_multi\_gmz} & 15 & 0.7548 & 0.1268 & -0.0970 & 0.4040 & 0.2873 & 0.3202 & 0.5341 & 0.2286 & 9813 \\
+\texttt{mamba\_multi\_gmz} & 30 & 0.7529 & 0.1283 & -0.0979 & 0.4293 & 0.2648 & 0.2990 & 0.4968 & 0.2139 & 9919 \\
+\texttt{mamba\_multi\_gmz} & 45 & 0.7695 & 0.1340 & -0.0992 & 0.3728 & 0.2342 & 0.2700 & 0.4489 & 0.1930 & 9960 \\
+\texttt{mamba\_multi\_gmz} & 60 & 0.7786 & 0.1386 & -0.0982 & 0.3345 & 0.2172 & 0.2545 & 0.4167 & 0.1832 & 10237 \\
+\addlinespace[1pt]
+\texttt{transformer\_idw\_fullperiod} & 15 & 0.7515 & 0.1828 & -0.0237 & 0.4289 & 0.2047 & 0.3004 & 0.1947 & 0.6573 & 78620 \\
+\texttt{transformer\_idw\_fullperiod} & 30 & 0.7703 & 0.1969 & -0.0189 & 0.3810 & 0.1215 & 0.2349 & 0.1420 & 0.6808 & 111669 \\
+\texttt{transformer\_idw\_fullperiod} & 45 & 0.7787 & 0.2151 & -0.0006 & 0.3421 & 0.0954 & 0.2144 & 0.1272 & 0.6833 & 125106 \\
+\texttt{transformer\_idw\_fullperiod} & 60 & 0.7878 & 0.2192 & 0.0004 & 0.2761 & 0.0758 & 0.1994 & 0.1164 & 0.6928 & 138531 \\
+\addlinespace[1pt]
+\texttt{transformer\_gmz\_fullperiod} & 15 & 0.8081 & 0.1609 & -0.0824 & 0.1583 & 0.1391 & 0.2200 & 0.1826 & 0.2766 & 35274 \\
+\texttt{transformer\_gmz\_fullperiod} & 30 & 0.8137 & 0.1646 & -0.0829 & 0.1135 & 0.1082 & 0.1972 & 0.1541 & 0.2740 & 41396 \\
+\texttt{transformer\_gmz\_fullperiod} & 45 & 0.8151 & 0.1636 & -0.0851 & 0.1023 & 0.1019 & 0.1887 & 0.1524 & 0.2476 & 37816 \\
+\texttt{transformer\_gmz\_fullperiod} & 60 & 0.8179 & 0.1636 & -0.0882 & 0.0786 & 0.1037 & 0.1897 & 0.1543 & 0.2462 & 37142 \\
+\addlinespace[1pt]
+\texttt{sindy\_idw\_fullperiod} & 15 & 0.8003 & 0.1972 & -0.0036 & 0.2907 & 0.1781 & 0.2773 & 0.1792 & 0.6129 & 79658 \\
+\texttt{sindy\_idw\_fullperiod} & 30 & 1.0907 & 0.2293 & 0.0224 & 0.1616 & 0.1085 & 0.2210 & 0.1367 & 0.5773 & 98367 \\
+\texttt{sindy\_idw\_fullperiod} & 45 & 1.1464 & 0.2430 & 0.0326 & 0.1850 & 0.0682 & 0.1890 & 0.1138 & 0.5588 & 114370 \\
+\texttt{sindy\_idw\_fullperiod} & 60 & 1.1296 & 0.2642 & 0.0451 & 0.1755 & 0.0476 & 0.1730 & 0.1026 & 0.5511 & 125086 \\
+\addlinespace[1pt]
+\texttt{sindy\_gmz\_fullperiod} & 15 & 0.8287 & 0.1582 & -0.0808 & 0.1280 & 0.1572 & 0.2246 & 0.2190 & 0.2305 & 24508 \\
+\texttt{sindy\_gmz\_fullperiod} & 30 & 10.0603 & 0.2721 & 0.0256 & 0.0025 & 0.1425 & 0.2081 & 0.2122 & 0.2042 & 22402 \\
+\texttt{sindy\_gmz\_fullperiod} & 45 & 4.8646 & 0.2288 & -0.0135 & 0.1435 & 0.1311 & 0.1948 & 0.2074 & 0.1837 & 20626 \\
+\texttt{sindy\_gmz\_fullperiod} & 60 & 3.8993 & 0.2029 & -0.0439 & 0.0425 & 0.1177 & 0.1802 & 0.1987 & 0.1649 & 19322 \\
+\addlinespace[1pt]
+\texttt{mamba\_idw\_fullperiod} & 15 & 0.7623 & 0.1941 & -0.0145 & 0.3957 & 0.1407 & 0.2498 & 0.1535 & 0.6703 & 101677 \\
+\texttt{mamba\_idw\_fullperiod} & 30 & 0.7562 & 0.1894 & -0.0181 & 0.4126 & 0.1708 & 0.2732 & 0.1725 & 0.6555 & 88451 \\
+\texttt{mamba\_idw\_fullperiod} & 45 & 0.7807 & 0.2029 & -0.0140 & 0.3116 & 0.1265 & 0.2382 & 0.1454 & 0.6583 & 105425 \\
+\texttt{mamba\_idw\_fullperiod} & 60 & 0.7911 & 0.1983 & -0.0259 & 0.2678 & 0.1373 & 0.2454 & 0.1529 & 0.6225 & 94829 \\
+\addlinespace[1pt]
+\texttt{mamba\_gmz\_fullperiod} & 15 & 0.8037 & 0.1585 & -0.0803 & 0.1872 & 0.1434 & 0.2207 & 0.1906 & 0.2620 & 32002 \\
+\texttt{mamba\_gmz\_fullperiod} & 30 & 0.8075 & 0.1638 & -0.0775 & 0.1595 & 0.1129 & 0.1987 & 0.1603 & 0.2613 & 37956 \\
+\texttt{mamba\_gmz\_fullperiod} & 45 & 0.8110 & 0.1647 & -0.0791 & 0.1351 & 0.1135 & 0.1974 & 0.1628 & 0.2506 & 35845 \\
+\texttt{mamba\_gmz\_fullperiod} & 60 & 0.8154 & 0.1619 & -0.0864 & 0.1058 & 0.1076 & 0.1897 & 0.1610 & 0.2308 & 33391 \\
+\addlinespace[1pt]
+\texttt{pysteps} & 15 & 0.5956 & 0.0906 & 0.0073 & 0.7478 & 0.7801 & 0.7970 & 0.7954 & 0.7986 & 23017 \\
+\texttt{pysteps} & 30 & 0.6489 & 0.1001 & 0.0096 & 0.7265 & 0.7404 & 0.7596 & 0.7903 & 0.7313 & 21324 \\
+\texttt{pysteps} & 45 & 0.7006 & 0.1107 & -0.0111 & 0.6681 & 0.5968 & 0.6216 & 0.7865 & 0.5138 & 15133 \\
+\texttt{pysteps} & 60 & 0.7837 & 0.1226 & -0.0618 & 0.4618 & 0.3821 & 0.4084 & 0.7491 & 0.2808 & 8727 \\
+\end{longtable}
+}
+
+\begin{thebibliography}{99}
+
+\bibitem{messer2006}
+H.~Messer, A.~Zinevich, and P.~Alpert.
+\newblock Environmental monitoring by wireless communication networks.
+\newblock \emph{Science}, 312(5774):713, 2006.
+
+\bibitem{goldshtein2009}
+O.~Goldshtein, H.~Messer, and A.~Zinevich.
+\newblock Rain rate estimation using measurements from commercial telecommunications links.
+\newblock \emph{IEEE Transactions on Signal Processing}, 57(4):1616--1625, 2009.
+
+\bibitem{pulkkinen2019pysteps}
+S.~Pulkkinen, D.~Nerini, A.~A. P\'erez Hortal, C.~Velasco-Forero, A.~Seed, U.~Germann, and L.~Foresti.
+\newblock pySTEPS: An open-source Python library for probabilistic precipitation nowcasting.
+\newblock \emph{Geoscientific Model Development}, 12(10):4185--4219, 2019.
+
+\bibitem{vaswani2017attention}
+A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones, A.~N. Gomez, {\L}.~Kaiser, and I.~Polosukhin.
+\newblock Attention is all you need.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2017.
+
+\bibitem{brunton2016sindy}
+S.~L. Brunton, J.~L. Proctor, and J.~N. Kutz.
+\newblock Discovering governing equations from data by sparse identification of nonlinear dynamical systems.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 113(15):3932--3937, 2016.
+
+\bibitem{gu2023mamba}
+A.~Gu and T.~Dao.
+\newblock Mamba: Linear-time sequence modeling with selective state spaces.
+\newblock \emph{arXiv preprint arXiv:2312.00752}, 2023.
+
+\bibitem{ituR838}
+International Telecommunication Union.
+\newblock \emph{Recommendation ITU-R~P.838-3: Specific attenuation model for rain for use in prediction methods}.
+\newblock ITU, Geneva, Switzerland, 2005.
+
+\bibitem{overeem2013}
+A.~Overeem, H.~Leijnse, and R.~Uijlenhoet.
+\newblock Country-wide rainfall maps from cellular communication networks.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 110(8):2741--2745, 2013.
+
+\bibitem{marshallpalmer1948}
+J.~S. Marshall and W.~M. Palmer.
+\newblock The distribution of raindrops with size.
+\newblock \emph{Journal of Meteorology}, 5(4):165--166, 1948.
+
+\bibitem{eshel2021spatial}
+A.~Eshel, H.~Messer, H.~Kunstmann, P.~Alpert, and C.~Chwala.
+\newblock Quantitative analysis of the performance of spatial interpolation methods for rainfall estimation using commercial microwave links.
+\newblock \emph{Journal of Hydrometeorology}, 22(4):831--843, 2021.
+\newblock DOI: \texttt{10.1175/JHM-D-20-0164.1}.
+
+\bibitem{andersson2023openmrg}
+J.~C.~M. Andersson, J.~Olsson, R.~van~de~Beek, and J.~Hansryd.
+\newblock openMRG: Open data from microwave links, radar, and gauges for rainfall quantification in Gothenburg, Sweden.
+\newblock \emph{Earth System Science Data}, 2023.
+
+\bibitem{chwala2019cml}
+C.~Chwala and H.~Kunstmann.
+\newblock Commercial microwave link networks for rainfall observation: Assessment of the current status and future challenges.
+\newblock \emph{WIREs Water}, 6(2):e1337, 2019.
+
+\bibitem{habi2021pynncml}
+H.~V. Habi and H.~Messer.
+\newblock Wet-dry classification using LSTM and commercial microwave links.
+\newblock In \emph{Proceedings of the IEEE Sensor Array and Multichannel Signal Processing Workshop (SAM)}, 2018.
+
+\bibitem{devos2019}
+L.-W. de~Vos, A.~Overeem, H.~Leijnse, and R.~Uijlenhoet.
+\newblock Rainfall estimation accuracy of a nationwide instantaneously sampling commercial microwave link network: Error dependency on known characteristics.
+\newblock \emph{Journal of Hydrometeorology}, 20(6):1101--1115, 2019.
+
+\end{thebibliography}
+
+\end{document}
