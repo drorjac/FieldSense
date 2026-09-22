@@ -105,9 +105,18 @@ def fig_merged_maps(ds_rad, fields: dict, labels: dict, title, path,
                      for f in fields.values()))
     vmax = max(vmax, 1.0)
 
+    # Size the panels from the domain's real aspect ratio. OpenMRG is roughly
+    # square, OpenRainER is nearly 3:1 wide; a fixed square cell leaves one of
+    # them swimming in whitespace.
+    span_x = extent[1] - extent[0]
+    span_y = extent[3] - extent[2]
+    aspect = float(np.clip(span_y / span_x, 0.32, 2.2))
+
     nrows = int(np.ceil(len(keys) / ncols))
+    panel_w = 3.5
     fig, axes = plt.subplots(nrows, ncols,
-                             figsize=(3.5 * ncols, 3.8 * nrows))
+                             figsize=(panel_w * ncols,
+                                      (panel_w * aspect + 0.55) * nrows))
     axes = np.atleast_1d(axes).ravel()
 
     for ax, key in zip(axes, keys):
@@ -118,13 +127,13 @@ def fig_merged_maps(ds_rad, fields: dict, labels: dict, title, path,
     for ax in axes[len(keys):]:
         ax.axis("off")
 
-    cb = fig.colorbar(im, ax=axes.tolist(), fraction=0.02, pad=0.012)
+    cb = fig.colorbar(im, ax=axes.tolist(), fraction=0.024, pad=0.012)
     cb.set_label("rain rate (mm h$^{-1}$)", color=vs.INK_SECONDARY)
     cb.ax.tick_params(colors=vs.INK_MUTED)
     cb.outline.set_edgecolor(vs.BASELINE)
 
-    fig.suptitle(title, fontsize=12.5, color=vs.INK_PRIMARY, y=0.99)
-    fig.savefig(path)
+    fig.suptitle(title, fontsize=12.5, color=vs.INK_PRIMARY, y=1.0)
+    fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -215,6 +224,63 @@ def fig_gauge_validation(results: dict, labels: dict, gauge_obs, path, title):
     ax.set_ylabel("reconstructed at gauge (mm h$^{-1}$)")
     ax.set_title(title, fontsize=11)
     ax.legend(fontsize=7.5, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
+# --------------------------------------------------------------------------
+def fig_coverage(rows, path, title):
+    """RMSE by method, split by each gauge's distance to the link network.
+
+    The y-axis is capped at a readable range and over-range bars are labelled,
+    because the unstable multiplicative merge reaches three figures and would
+    otherwise flatten every other method into the baseline.
+    """
+    bands = list(dict.fromkeys(r["band"] for r in rows))
+    methods = list(dict.fromkeys(r["method"] for r in rows))
+    family = {r["method"]: r["family"] for r in rows}
+
+    stable = [r["rmse"] for r in rows if r["frac_implausible"] <= 0.001
+              and np.isfinite(r["rmse"])]
+    cap = float(np.nanmax(stable)) * 1.45 if stable else float("nan")
+
+    fig, ax = plt.subplots(figsize=(1.9 * len(bands) + 5.4, 5.0))
+    width = 0.8 / len(methods)
+    x = np.arange(len(bands))
+
+    for i, m in enumerate(methods):
+        vals, over = [], []
+        for b in bands:
+            hit = [r for r in rows if r["method"] == m and r["band"] == b]
+            v = hit[0]["rmse"] if hit else np.nan
+            vals.append(min(v, cap) if np.isfinite(v) else np.nan)
+            over.append(np.isfinite(v) and v > cap)
+        offset = (i - len(methods) / 2 + 0.5) * width
+        ax.bar(x + offset, vals, width * 0.92, color=FAMILY_COLOR[family[m]],
+               label=m, edgecolor=vs.SURFACE, linewidth=0.6)
+        for xi, (v, o) in enumerate(zip(vals, over)):
+            if o:
+                true_v = [r for r in rows if r["method"] == m
+                          and r["band"] == bands[xi]][0]["rmse"]
+                ax.text(xi + offset, cap * 1.01, f"{true_v:,.0f}",
+                        ha="center", va="bottom", fontsize=6.5, rotation=90,
+                        color=vs.STATUS_CRITICAL)
+
+    ax.set_ylim(0, cap * 1.18)
+    ax.set_xticks(x)
+    ax.set_xticklabels(
+        [f"{b}\n(n={next(r['n_gauges'] for r in rows if r['band'] == b)})"
+         for b in bands], fontsize=9)
+    ax.set_xlabel("gauge distance to the nearest CML path")
+    ax.set_ylabel("RMSE against gauge (mm h$^{-1}$)")
+    ax.set_title(title, fontsize=11)
+    ax.grid(axis="x", visible=False)
+
+    handles = [Line2D([], [], marker="s", ls="", ms=8, color=c, label=k)
+               for k, c in FAMILY_COLOR.items()]
+    handles.append(Line2D([], [], ls="", marker="", label="red = over axis cap"))
+    ax.legend(handles=handles, fontsize=8.5, loc="upper left", ncol=4)
     fig.tight_layout()
     fig.savefig(path)
     plt.close(fig)

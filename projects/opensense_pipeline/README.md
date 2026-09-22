@@ -138,7 +138,7 @@ with the bias worsening by range.
 
 ### Synthetic truth — the ranking
 
-Field RMSE (mm/h), averaged over 3 field realizations. "Blow-up" marks methods
+Field RMSE (mm/h), averaged over 3 field realizations. "⚠" marks methods
 producing physically impossible rates (> 300 mm/h).
 
 | method | stratiform | convective | frontal |
@@ -151,21 +151,72 @@ producing physically impossible rates (> 300 mm/h).
 | CML only, IDW | 1.55 | 7.85 | 10.42 |
 | CML only, block kriging | 1.64 | 8.67 | 10.79 |
 
-**Merging beats radar-only in every regime**, and beats CML-only by more.
-That is the result the pipeline exists to establish.
-
-**Additive difference IDW is the method to reach for.** It is top-two on two
-of three regimes, never worst, and never blows up.
+Against synthetic truth, **merging beats radar-only in every regime**, and
+beats CML-only by more. **Additive difference IDW** is the method to reach for:
+top-two on two of three regimes, never worst, never unstable.
 
 **Multiplicative merging is a coin flip.** Best of all methods on the frontal
 band (4.10), catastrophic on convective cells — RMSE 41,022 mm/h with 8.6% of
 pixels physically impossible. It divides by the radar field, so one near-zero
 radar pixel under a raining link sends the estimate to five figures. The
-artifacts are visible as dark blotches in the top-left of its panel in
-`openmrg_2_maps.png`.
+artifacts are visible as dark blotches in its panel of `openmrg_2_maps.png`.
 
-**Kriging with external drift underperforms** consistently here and
-occasionally blows up, despite being the most sophisticated method on offer.
+### Real data — the ranking does not hold
+
+Scored against held-out gauges, pooled over the 20 wettest timesteps:
+
+| | radar only | best CML-only | best merged | winner |
+|---|---|---|---|---|
+| **OpenMRG** (n=200) | RMSE 6.16, r=0.35 | RMSE **4.45**, r=0.66 | RMSE 4.69, r=0.64 | CML |
+| **OpenRainER** (n=4,642) | RMSE **8.62**, r=0.72 | RMSE 10.50, r=0.35 | RMSE 8.98, r=0.58 | radar |
+
+On real data **merging never beat the better single sensor**. It landed between
+its two inputs in both cases — which is what a hedge does.
+
+The two datasets are near mirror images. The Swedish radar is poor against
+gauges (r=0.35) while its dense 364-link network is good (r=0.66); the Italian
+radar is good (r=0.72) while its sparse 151-link network is poor (r=0.35). The
+correlation gap is −0.31 one way and +0.37 the other, and in both cases the
+better sensor wins outright.
+
+**So the practical answer is: find out which of your sensors is better before
+merging.** Merging is insurance against the possibility that it is the other
+one, not a free improvement. That is a different claim from the one the
+synthetic benchmark supports, and the disagreement is the most useful thing
+this pipeline produced.
+
+### Why synthetic and real disagree
+
+The synthetic benchmark imposed a ~35% low radar bias with a relatively clean
+CML retrieval — errors that are *complementary*, which is the situation
+merging is designed for and where it duly wins. Real error structure is less
+obliging: the Italian radar has little bias to correct (−1.05 mm/h), so
+merging mostly injects CML noise into an already-good field.
+
+This is a caveat on synthetic benchmarking generally, this one included: **its
+ranking is only as good as the error model you assume.** The synthetic result
+here describes the OpenMRG regime well and the OpenRainER regime not at all.
+
+### A hypothesis that turned out to be wrong
+
+The obvious explanation for OpenRainER was geometry: only 22% of its gauges
+lie within 2 km of a link (median 5.9 km, max 30.5 km), against 100% within
+0.7 km for OpenMRG. So merging should help near the network and hurt far from
+it.
+
+It does not. Stratifying the OpenRainER gauges by distance to the nearest link
+path (`openrainer_4_coverage.png`), radar-only wins in **every** band,
+including 0–2 km where 1,420 gauge-timesteps sit right beside links:
+
+| band | n | best method | radar-only RMSE |
+|---|---|---|---|
+| 0–2 km | 1,420 | Radar only, 8.85 | 8.85 |
+| 2–5 km | 1,380 | Radar only, 8.53 | 8.53 |
+| 5–10 km | 1,740 | Radar only, 6.67 | 6.67 |
+| >10 km | 1,840 | Radar only, 9.99 | 9.99 |
+
+The figure is kept because it is the evidence that ruled the explanation out.
+Relative sensor skill, not network geometry, is what decides this.
 
 ## Figures
 
@@ -175,6 +226,7 @@ occasionally blows up, despite being the most sophisticated method on offer.
 | `*_1_sensors.png` | the three sensor geometries — grid, lines, points |
 | `*_2_maps.png` | one rainfall map per method |
 | `*_3_gauge_validation.png` | each method against held-out gauges |
+| `*_4_coverage.png` | RMSE by gauge distance to the link network |
 
 ## Layout
 
@@ -206,3 +258,8 @@ opensense_pipeline/
   unconditionally, even when constructed for projected coordinates, so gauge
   arrays must carry lon/lat even though nothing reads them numerically.
 - Every number here comes from `run_pipeline.py`; all randomness is seeded.
+- Runtime is dominated by block kriging, which scales with grid cells x links.
+  OpenRainER's full 160 x 285 grid takes ~35 min for a 20-timestep
+  validation, so `--val-max-cells` (default 6000) coarsens the grid for the
+  pooled validation only; the published maps stay at full resolution and the
+  coarsening applies identically to every method.
