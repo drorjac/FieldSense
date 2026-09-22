@@ -1,0 +1,22 @@
+# Project-specific dependencies (on top of the repository-root requirements.txt)
+#
+# Install into an ISOLATED venv. The pre-existing venv at ~/enviorments/FieldSense
+# has include-system-site-packages = true, and system cftime/netCDF4 built against
+# NumPy 1.x collide with its NumPy 2.4.6.
+numpy
+scipy
+pandas
+matplotlib
+xarray
+netCDF4
+h5netcdf
+pyproj
+scikit-learn
+requests
+tqdm
+
+# The OpenSense ecosystem. mergeplg 0.1.0 is the first release carrying the
+# merge/interpolate API used here; PyPI will resolve to the 0.0.2 stub if the
+# version is left unpinned alongside a numpy<2 constraint.
+mergeplg==0.1.0
+poligrain>=0.3.1

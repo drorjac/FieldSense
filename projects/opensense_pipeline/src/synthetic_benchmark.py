@@ -126,21 +126,48 @@ def synth_cml_observations(field, sim, ds_cml, origin_x, origin_y, rng,
     return np.nan_to_num(np.clip(r, 0.0, None))
 
 
-def synth_radar(field_on_radar_grid: np.ndarray, rng,
-                smooth_cells: float = 1.2, zr_bias: float = 1.0,
+def synth_radar(field_on_radar_grid: np.ndarray, rng, xg=None, yg=None,
+                smooth_cells: float = 1.2, zr_bias: float = 0.65,
+                range_bias_per_100km: float = 0.25,
                 rel_noise: float = 0.25) -> np.ndarray:
     """Degrade a truth field the way weather radar degrades it.
 
-    Beam smoothing, a multiplicative Z-R bias, and multiplicative noise.
-    Radar error is proportional, not additive, which is why a merge that
-    corrects it multiplicatively can behave very differently from an
-    additive one.
+    Radar QPE is not an unbiased view of the rain field, and that is the whole
+    reason for merging it with ground sensors. The degradations applied here,
+    in the order they physically arise:
+
+    ``smooth_cells``
+        beam volume averaging, which blunts convective peaks.
+    ``zr_bias``
+        a multiplicative bias from the Z-R relation, calibration drift and
+        attenuation. 0.65 means the radar reads ~35% low, which is within the
+        range routinely reported for uncorrected C-band QPE.
+    ``range_bias_per_100km``
+        the bias worsens with distance as the beam rises and broadens.
+    ``rel_noise``
+        multiplicative, not additive - radar error scales with the signal,
+        which is exactly why an additive and a multiplicative merge behave
+        so differently.
+
+    An earlier version of this function defaulted to ``zr_bias=1.0``. With an
+    unbiased radar there is nothing for a merge to correct, so radar-only won
+    every regime by construction and the benchmark measured nothing. Keeping
+    the bias realistic is what makes the comparison meaningful.
     """
     from scipy.ndimage import gaussian_filter
 
     smoothed = gaussian_filter(field_on_radar_grid, smooth_cells)
+
+    bias = np.full_like(smoothed, zr_bias)
+    if xg is not None and yg is not None:
+        # Range measured from the domain's south-west corner, standing in for
+        # a radar site off one edge.
+        r_km = np.hypot(xg - xg.min(), yg - yg.min()) / 1000.0
+        bias = bias * (1.0 - range_bias_per_100km * r_km / 100.0)
+        bias = np.clip(bias, 0.15, 1.5)
+
     noise = np.exp(rng.normal(0.0, rel_noise, smoothed.shape))
-    return np.clip(smoothed * zr_bias * noise, 0.0, None)
+    return np.clip(smoothed * bias * noise, 0.0, None)
 
 
 def build_case(model, ds_rad, ds_cml, ds_gauge, seed: int = 7) -> dict:
@@ -159,7 +186,7 @@ def build_case(model, ds_rad, ds_cml, ds_gauge, seed: int = 7) -> dict:
     truth = field[row, col]
 
     cml_obs = synth_cml_observations(field, sim, ds_cml, origin_x, origin_y, rng)
-    radar_obs = synth_radar(truth, rng)
+    radar_obs = synth_radar(truth, rng, xg=xg, yg=yg)
 
     gx = np.asarray(ds_gauge.x)
     gy = np.asarray(ds_gauge.y)
