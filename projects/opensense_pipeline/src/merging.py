@@ -30,6 +30,10 @@ import xarray as xr
 from mergeplg import interpolate, merge
 
 
+# Any estimate above this is a numerical blow-up, not rain.
+IMPLAUSIBLE_MM_H = 300.0
+
+
 @dataclass(frozen=True)
 class Method:
     """One named reconstruction method."""
@@ -150,19 +154,33 @@ def score(truth: np.ndarray, estimate: np.ndarray) -> dict:
     ok = np.isfinite(t) & np.isfinite(e)
     n = int(ok.sum())
     if n < 2:
-        return {k: float("nan") for k in
-                ("rmse", "mae", "bias", "corr", "n_valid", "coverage")} | {
+        keys = ("rmse", "mae", "median_abs_err", "p95_abs_err", "bias",
+                "corr", "max_estimate", "frac_implausible")
+        return {k: float("nan") for k in keys} | {
             "n_valid": n, "coverage": n / t.size if t.size else 0.0}
 
     t, e = t[ok], e[ok]
     err = e - t
     denom = t.std() * e.std()
+
+    # Multiplicative merging divides by the radar field, so a near-zero radar
+    # pixel under a raining link sends the estimate to absurd values; KED can
+    # extrapolate the same way. A single such pixel dominates RMSE and hides
+    # how the method behaves everywhere else, so robust statistics and an
+    # explicit blow-up rate are reported alongside it. 300 mm/h is far above
+    # any rate observed in these datasets.
+    implausible = float((e > IMPLAUSIBLE_MM_H).mean())
+
     return {
         "rmse": float(np.sqrt((err**2).mean())),
         "mae": float(np.abs(err).mean()),
+        "median_abs_err": float(np.median(np.abs(err))),
+        "p95_abs_err": float(np.percentile(np.abs(err), 95)),
         "bias": float(err.mean()),
         "corr": float(((t - t.mean()) * (e - e.mean())).mean() / denom)
                 if denom > 0 else float("nan"),
+        "max_estimate": float(e.max()),
+        "frac_implausible": implausible,
         "n_valid": n,
         "coverage": float(n / ok.size),
     }
@@ -194,8 +212,16 @@ def conform_radar(da_rad: xr.DataArray) -> xr.DataArray:
     return da
 
 
-def conform_gauge(da_gauge: xr.DataArray | None) -> xr.DataArray | None:
-    """Rename the station dimension to ``id`` and check x/y are present."""
+def conform_gauge(da_gauge: xr.DataArray | None,
+                  crs: str = "EPSG:32632") -> xr.DataArray | None:
+    """Rename the station dimension to ``id`` and ensure x/y *and* lon/lat.
+
+    poligrain's ``GridAtPoints.__call__`` builds its output with
+    ``da_point_data.lon`` unconditionally, even when it was constructed with
+    ``use_lon_lat=False`` and did every calculation in projected metres. So
+    lon/lat have to be present even though nothing reads them numerically;
+    they are back-projected from x/y when a caller did not supply them.
+    """
     if da_gauge is None:
         return None
     da = da_gauge
@@ -205,9 +231,16 @@ def conform_gauge(da_gauge: xr.DataArray | None) -> xr.DataArray | None:
             break
     if "id" not in da.coords:
         da = da.assign_coords(id=("id", np.arange(da.sizes["id"])))
+
     missing = [c for c in ("x", "y") if c not in da.coords]
     if missing:
         raise ValueError(f"gauge data is missing projected coords: {missing}")
+
+    if "lon" not in da.coords or "lat" not in da.coords:
+        from pyproj import Transformer
+        tf = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+        lon, lat = tf.transform(np.asarray(da.x), np.asarray(da.y))
+        da = da.assign_coords(lon=("id", lon), lat=("id", lat))
     return da
 
 
