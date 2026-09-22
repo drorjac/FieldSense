@@ -60,14 +60,21 @@ This tutorial demonstrates:
 ## Dataset
 
 The tutorials use the **OpenMRG dataset** (Open data from microwave links, radar, and gauges):
-- **Location**: Data is automatically downloaded to `./data/OpenMRG.zip` on first run
+- **Location**: Data is automatically downloaded to `./data/OpenMRG.zip` on first run. This
+  `data/` directory is git-ignored — it is a download target, not tracked content.
 - **Source**: [OpenSense Action - OpenMRG Dataset](https://opensenseaction.eu/datasets/openmrg-open-data-from-microwave-links-radar-and-gauges/)
+- **Already in this repo**: a copy of OpenMRG (metadata, gauges, radar, reader scripts and
+  the dataset `readme.txt`) lives at `dataset/open_datasets/OpenMRG_Sweden/`. Point the
+  notebooks there, or symlink it, to skip the download:
+  ```bash
+  ln -s ../../../dataset/open_datasets/OpenMRG_Sweden core/examples/pynncml_tutorial/data
+  ```
 - **Alternative**: Place `cml.nc` and `cml_metadata.csv` in `data/cml/` directory
 
 ### Data Structure
 
 ```
-data/
+data/                        # git-ignored; mirrors dataset/open_datasets/OpenMRG_Sweden/
 ├── cml/
 │   ├── cml.nc              # NetCDF file with RSL/TSL measurements
 │   ├── cml_metadata.csv    # Link metadata (coordinates, frequencies, etc.)

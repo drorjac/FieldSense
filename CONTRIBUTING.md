@@ -193,6 +193,30 @@ projects/your-project/
 
 ---
 
+## Notebook Hygiene
+
+Committed notebook outputs are the main cause of repo bloat — embedded PNGs and HTML
+tables can make a 40 KB notebook weigh 17 MB, and they produce unreadable diffs.
+
+**Clear outputs before committing:**
+
+```bash
+jupyter nbconvert --clear-output --inplace notebooks/your_notebook.ipynb
+```
+
+**Or automate it once per clone** with [nbstripout](https://github.com/kynan/nbstripout):
+
+```bash
+pip install nbstripout
+nbstripout --install          # run from the repo root; installs a git filter
+```
+
+After that, outputs are stripped automatically on `git add` while staying visible in your
+running notebook. If a figure is a deliverable, save it to `projects/YOUR_PROJECT/results/`
+as a `.png` and reference it from the README instead of relying on notebook output.
+
+---
+
 ## Troubleshooting
 
 ### Merge Conflicts

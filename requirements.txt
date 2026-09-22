@@ -3,10 +3,9 @@ numpy
 scipy
 pandas
 matplotlib
-scikit-learn
+scikit-learn==1.5.2
 
 # Dynamics & symbolic regression
-scikit-learn==1.5.2
 pysindy
 pysr
 sympy

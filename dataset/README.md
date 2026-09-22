@@ -11,10 +11,16 @@ dataset/
 │   ├── OpenMRG_Sweden/     # Swedish microwave link, radar, and gauge data
 │   ├── CML_Netherlands/    # Netherlands commercial microwave link data
 │   └── OpenRainER_Italy/   # Italian precipitation dataset
-├── our_datasets/           # Processed datasets (ready for analysis)
-├── processing/             # Data processing scripts and pipelines
-└── examples/               # Example notebooks and tutorials
+├── our_datasets/           # Processed datasets, ready for analysis (placeholder)
+├── processing/             # Data processing scripts and pipelines (placeholder)
+├── examples/               # Example notebooks and tutorials
+└── main.py                 # Dataset module entry point
 ```
+
+> **Note:** `our_datasets/` and `processing/` are placeholders for the workflow described
+> below — they are empty until conversion scripts and processed outputs are added. Large
+> data files are git-ignored (see the root `.gitignore`); only metadata, small samples and
+> reader scripts are tracked.
 
 ## 🌐 Available Datasets
 
@@ -32,7 +38,8 @@ dataset/
 
 **Contents:**
 - `links/` - Microwave link signal level data (RSL/TSL) in NetCDF format
-- `weather_stations/` - Personal weather stations and ASOS station data
+- `weather stations/` - Personal weather stations and ASOS station data
+  (folder name contains a space, matching the published Zenodo layout)
 - `maps/` - Interactive network topology visualizations
 - `fetch_data/` - Data collection and processing pipelines
 
@@ -163,6 +170,8 @@ See individual dataset folders for specific example notebooks.
 
 ### Processing Scripts
 
+*Not yet populated.* Planned contents:
+
 - Dataset-specific conversion scripts
 - Format standardization tools
 - Quality control and validation
@@ -180,7 +189,7 @@ Each dataset folder contains example notebooks demonstrating:
 
 **Notable Examples:**
 - `OpenMesh_NYC/links/openmesh_dataset_example.ipynb` - Link data exploration
-- `OpenMesh_NYC/weather_stations/read_pws_sample.ipynb` - Weather station data
+- `OpenMesh_NYC/weather stations/read_pws_sample.ipynb` - Weather station data
 - `OpenMRG_Sweden/cml/example_read_cml.nc.py` - CML data reading
 
 ---
@@ -263,10 +272,10 @@ For questions about datasets or data processing:
 
 ## 📖 Additional Documentation
 
-- **Processing Guide:** See `processing/` directory
+- **Processing Guide:** See `processing/` directory (placeholder)
 - **Examples:** See `examples/` directory
 - **Dataset-Specific Docs:** See individual dataset folders
 
 ---
 
-*Last Updated: January 2025*
+*Last Updated: September 2025*

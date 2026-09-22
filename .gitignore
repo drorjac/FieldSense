@@ -60,3 +60,10 @@ logs/
 # PySR generated files
 hall_of_fame*.csv
 .SymbolicRegression.jl/
+
+# Example / experiment run artifacts
+hall_of_fame*.csv.bak
+core/examples/outputs/
+
+# PyNNcml tutorial downloads OpenMRG here at runtime (canonical copy lives in dataset/open_datasets/OpenMRG_Sweden/)
+core/examples/pynncml_tutorial/data/
