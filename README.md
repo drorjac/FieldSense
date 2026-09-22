@@ -15,6 +15,7 @@ FieldSense/
 ├── projects/             # Research projects
 │   ├── estimation_after_detection/
 │   ├── openmesh_nyc_paper/     # OpenMesh NYC dataset paper
+│   ├── opensense_pipeline/     # Open CML data -> merged rainfall maps (OpenSense)
 │   ├── physics_ml/             # Hybrid physics + NN rain retrieval (CMLs)
 │   ├── rainfall_field_sim/     # Synthetic rain fields + CML sampling/retrieval
 │   └── spatial_interpolation/  # Rainfall nowcasting from CML networks
