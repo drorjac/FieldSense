@@ -67,3 +67,8 @@ core/examples/outputs/
 
 # PyNNcml tutorial downloads OpenMRG here at runtime (canonical copy lives in dataset/open_datasets/OpenMRG_Sweden/)
 core/examples/pynncml_tutorial/data/
+
+# Downloaded dataset archives and derived products (reproduced by
+# projects/opensense_pipeline/src/fetch.py and ingest_*.py)
+dataset/open_datasets/*/raw/
+dataset/open_datasets/*/processed/

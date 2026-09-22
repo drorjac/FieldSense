@@ -1,0 +1,224 @@
+"""
+Thin, uniform wrapper over the ``mergeplg`` interpolation and merging methods.
+
+Every method in ``mergeplg`` follows the same two-step contract: ``update()``
+caches geometry and intersection weights, then ``adjust()`` (merging) or
+``interpolate()`` (CML/gauge only) produces the field. The signatures differ
+though - IDW takes ``p``/``nnear``/``max_distance``, the kriging methods take
+``variogram_model``/``variogram_parameters``, and KED takes ``n_closest``. This
+module hides those differences behind one ``run(...)`` call so a benchmark can
+loop over methods without special-casing each one.
+
+Two baselines are included alongside the ``mergeplg`` methods so the *gain*
+from merging is measurable rather than assumed:
+
+``radar_only``
+    the radar field, untouched. Any merge that cannot beat this is not earning
+    its complexity.
+``cml_only_idw``
+    CML observations interpolated with no radar input at all.
+"""
+
+from __future__ import annotations
+
+import warnings
+from dataclasses import dataclass, field
+from typing import Callable
+
+import numpy as np
+import xarray as xr
+from mergeplg import interpolate, merge
+
+
+@dataclass(frozen=True)
+class Method:
+    """One named reconstruction method."""
+
+    key: str
+    label: str
+    uses_radar: bool
+    uses_cml: bool
+    build: Callable | None = None      # constructs the mergeplg object
+    kwargs: dict = field(default_factory=dict)
+
+    @property
+    def family(self) -> str:
+        if not self.uses_radar:
+            return "CML only"
+        if not self.uses_cml:
+            return "radar only"
+        return "merged"
+
+
+# The variogram is estimated per timestep by mergeplg when parameters are None.
+# Letting it fit rather than pinning a guess keeps the comparison fair across
+# the very different fields in the synthetic benchmark.
+METHODS: tuple[Method, ...] = (
+    Method("radar_only", "Radar only", True, False),
+    Method(
+        "cml_idw", "CML only, IDW", False, True,
+        build=lambda: interpolate.InterpolateIDW(min_observations=1),
+        kwargs=dict(p=2, idw_method="radolan", nnear=8, max_distance=30000),
+    ),
+    Method(
+        "cml_okrig", "CML only, block kriging", False, True,
+        build=lambda: interpolate.InterpolateOrdinaryKriging(
+            discretization=8, min_observations=1),
+        kwargs=dict(variogram_model="spherical", nnear=8, full_line=True),
+    ),
+    Method(
+        "merge_idw_add", "Merge: difference IDW (additive)", True, True,
+        build=lambda: merge.MergeDifferenceIDW(min_observations=1),
+        kwargs=dict(p=2, idw_method="radolan", nnear=8, max_distance=30000,
+                    method="additive"),
+    ),
+    Method(
+        "merge_idw_mult", "Merge: difference IDW (multiplicative)", True, True,
+        build=lambda: merge.MergeDifferenceIDW(min_observations=1),
+        kwargs=dict(p=2, idw_method="radolan", nnear=8, max_distance=30000,
+                    method="multiplicative"),
+    ),
+    Method(
+        "merge_okrig_add", "Merge: difference kriging (additive)", True, True,
+        build=lambda: merge.MergeDifferenceOrdinaryKriging(
+            discretization=8, min_observations=1),
+        kwargs=dict(variogram_model="spherical", nnear=8, full_line=True,
+                    method="additive"),
+    ),
+    Method(
+        "merge_ked", "Merge: kriging with external drift", True, True,
+        build=lambda: merge.MergeKrigingExternalDrift(
+            discretization=8, min_observations=1),
+        kwargs=dict(variogram_model="spherical", n_closest=8),
+    ),
+)
+
+METHODS_BY_KEY = {m.key: m for m in METHODS}
+
+
+def run(method: Method, da_rad: xr.DataArray, da_cml: xr.DataArray | None,
+        da_gauge: xr.DataArray | None = None) -> xr.DataArray:
+    """Produce a rainfall field for one method at one timestep.
+
+    ``da_rad`` must carry ``x``/``y`` coordinates; ``da_cml`` must carry the
+    ``site_0_x/y`` and ``site_1_x/y`` endpoint coordinates that mergeplg uses
+    to build line geometry.
+
+    Returns a DataArray on the radar grid. On failure - too few observations,
+    a singular kriging system - returns an all-NaN field rather than raising,
+    so one bad timestep cannot abort a long benchmark.
+    """
+    da_rad = conform_radar(da_rad)
+    da_cml = conform_cml(da_cml)
+    da_gauge = conform_gauge(da_gauge)
+
+    if method.key == "radar_only":
+        return da_rad
+
+    obj = method.build()
+    kwargs = dict(method.kwargs)
+
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if method.uses_radar:
+                obj.update(da_rad, da_cml=da_cml, da_gauge=da_gauge)
+                out = obj.adjust(da_rad, da_cml=da_cml, da_gauge=da_gauge,
+                                 **kwargs)
+            else:
+                obj.update(da_cml=da_cml, da_gauge=da_gauge)
+                out = obj.interpolate(da_rad, da_cml=da_cml,
+                                      da_gauge=da_gauge, **kwargs)
+    except Exception as exc:                        # noqa: BLE001
+        return xr.full_like(da_rad, np.nan).assign_attrs(
+            merge_error=f"{type(exc).__name__}: {exc}")
+
+    out = xr.DataArray(np.asarray(out), dims=da_rad.dims, coords=da_rad.coords)
+    return out.clip(min=0.0)
+
+
+# --------------------------------------------------------------------------
+def score(truth: np.ndarray, estimate: np.ndarray) -> dict:
+    """Agreement between a reconstructed field and a reference.
+
+    Pixels where either side is NaN are dropped, and the count kept, so a
+    method that quietly fails over most of the domain cannot post a good score
+    on the handful of pixels it did fill.
+    """
+    t = np.asarray(truth, dtype=float).ravel()
+    e = np.asarray(estimate, dtype=float).ravel()
+    ok = np.isfinite(t) & np.isfinite(e)
+    n = int(ok.sum())
+    if n < 2:
+        return {k: float("nan") for k in
+                ("rmse", "mae", "bias", "corr", "n_valid", "coverage")} | {
+            "n_valid": n, "coverage": n / t.size if t.size else 0.0}
+
+    t, e = t[ok], e[ok]
+    err = e - t
+    denom = t.std() * e.std()
+    return {
+        "rmse": float(np.sqrt((err**2).mean())),
+        "mae": float(np.abs(err).mean()),
+        "bias": float(err.mean()),
+        "corr": float(((t - t.mean()) * (e - e.mean())).mean() / denom)
+                if denom > 0 else float("nan"),
+        "n_valid": n,
+        "coverage": float(n / ok.size),
+    }
+
+
+# --------------------------------------------------------------------------
+# conforming data to the mergeplg contract
+# --------------------------------------------------------------------------
+# mergeplg reads geometry off specific coordinate names, and they do not all
+# match what the OpenSense-1.0 files (or mergeplg's own io loader) provide:
+#   da_rad   needs 2-D  x_grid / y_grid   (the loader supplies xs / ys)
+#   da_gauge needs      id, x, y          (files supply station_id)
+#   da_cml   needs      cml_id, site_0_x/y, site_1_x/y
+# These helpers rename rather than copy, so the arrays stay views where xarray
+# allows it.
+
+def conform_radar(da_rad: xr.DataArray) -> xr.DataArray:
+    """Give a radar DataArray the 2-D ``x_grid``/``y_grid`` coords mergeplg wants."""
+    da = da_rad
+    if "x_grid" not in da.coords or "y_grid" not in da.coords:
+        if "xs" in da.coords and "ys" in da.coords:
+            da = da.assign_coords(x_grid=da.xs, y_grid=da.ys)
+        elif "x" in da.coords and "y" in da.coords:
+            xg, yg = np.meshgrid(np.asarray(da.x), np.asarray(da.y))
+            da = da.assign_coords(
+                x_grid=(("y", "x"), xg), y_grid=(("y", "x"), yg))
+        else:
+            raise ValueError("radar needs x/y or xs/ys coordinates")
+    return da
+
+
+def conform_gauge(da_gauge: xr.DataArray | None) -> xr.DataArray | None:
+    """Rename the station dimension to ``id`` and check x/y are present."""
+    if da_gauge is None:
+        return None
+    da = da_gauge
+    for candidate in ("station_id", "gauge_id", "name"):
+        if candidate in da.dims:
+            da = da.rename({candidate: "id"})
+            break
+    if "id" not in da.coords:
+        da = da.assign_coords(id=("id", np.arange(da.sizes["id"])))
+    missing = [c for c in ("x", "y") if c not in da.coords]
+    if missing:
+        raise ValueError(f"gauge data is missing projected coords: {missing}")
+    return da
+
+
+def conform_cml(da_cml: xr.DataArray | None) -> xr.DataArray | None:
+    """Check the CML endpoint coordinates mergeplg builds line geometry from."""
+    if da_cml is None:
+        return None
+    needed = ("site_0_x", "site_0_y", "site_1_x", "site_1_y")
+    missing = [c for c in needed if c not in da_cml.coords]
+    if missing:
+        raise ValueError(f"CML data is missing endpoint coords: {missing}")
+    if "cml_id" not in da_cml.dims:
+        raise ValueError("CML data must have a 'cml_id' dimension")
+    return da_cml
