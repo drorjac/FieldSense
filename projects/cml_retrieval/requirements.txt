@@ -1,0 +1,7 @@
+# Project-specific dependencies (on top of the repository-root requirements.txt)
+pynncml
+torch
+xarray
+netCDF4
+matplotlib
+numpy

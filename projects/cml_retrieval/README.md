@@ -1,6 +1,29 @@
-# PyNNcml Tutorials
+# CML Retrieval — PyNNcml Tutorials
 
-This directory contains tutorials for using **PyNNcml** (Neural Network-based Commercial Microwave Link rain estimation) with the OpenMRG dataset.
+Rain retrieval from commercial microwave links using **PyNNcml**, worked
+end to end against the OpenMRG dataset. These were previously filed under
+`core/examples/`; they are a topic in their own right, not a shared utility.
+
+```
+cml_retrieval/
+├── notebooks/
+│   ├── model_driven_tutorial.ipynb  # wet-dry, baseline models, IDW/GMZ reconstruction
+│   └── data_driven_tutorial.ipynb   # neural-network retrieval
+└── README.md
+```
+
+## Related work in this repository
+
+| | |
+|---|---|
+| `projects/opensense_pipeline/` | the same problem at scale — full retrieval chain on OpenMRG and OpenRainER, then `mergeplg` merging |
+| `projects/rainfall_field_sim/` | synthetic rain fields and CML sampling, with known ground truth |
+| `core/scientific_packages/PYNNcml.md` | PyNNcml reference notes |
+| `core/scientific_packages/pynncml_wrapper.py` | thin wrapper used by these tutorials |
+
+## Overview
+
+These tutorials demonstrate how to **PyNNcml** (Neural Network-based Commercial Microwave Link rain estimation) with the OpenMRG dataset.
 
 ## Overview
 
@@ -67,7 +90,7 @@ The tutorials use the **OpenMRG dataset** (Open data from microwave links, radar
   the dataset `readme.txt`) lives at `dataset/open_datasets/OpenMRG_Sweden/`. Point the
   notebooks there, or symlink it, to skip the download:
   ```bash
-  ln -s ../../../dataset/open_datasets/OpenMRG_Sweden core/examples/pynncml_tutorial/data
+  ln -s ../../dataset/open_datasets/OpenMRG_Sweden projects/cml_retrieval/data
   ```
 - **Alternative**: Place `cml.nc` and `cml_metadata.csv` in `data/cml/` directory
 

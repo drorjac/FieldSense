@@ -6,7 +6,7 @@ Scripts and notebooks for fetching weather data from various sources.
 
 ## 📁 Folder Structure
 ```
-fetch_data/
+src/fetch/
 ├── noaa_asos/
 │   ├── asos_complete_pipeline.ipynb    # Main notebook
 │   ├── asos_functions.py               # Fetch & process functions
@@ -48,7 +48,7 @@ data/                                   # All outputs saved here
 
 **Station Selection:**
 - Use 4-letter ICAO codes (e.g., KJFK, KLGA, KNYC)
-- NYC stations metadata: See `../dataset/weather stations/ASOS_stations.csv`
+- NYC stations metadata: See `the published dataset's `weather stations/` folder: ASOS_stations.csv`
 - Or find stations manually at: https://mesonet.agron.iastate.edu/sites/networks.php?network=ASOS
 
 ### 2. Weather Underground (`weather_underground/`)
@@ -71,7 +71,7 @@ data/                                   # All outputs saved here
 
 **Station Selection:**
 - Pre-selected NYC PWS stations available in pipeline
-- NYC stations metadata: See `../dataset/weather stations/pws_metadata.csv`
+- NYC stations metadata: See `the published dataset's `weather stations/` folder: pws_metadata.csv`
 - Or search manually at: https://www.wunderground.com/wundermap
 
 ### 3. OpenMesh (`openmesh/`)
@@ -107,7 +107,7 @@ Examples:
 
 ## 📍 Station Metadata
 
-Station metadata files are located in `../dataset/weather stations/`:
+Station metadata files are located in `the published dataset's `weather stations/` folder: `:
 - `ASOS_stations.csv` - NOAA airport weather stations (NYC area)
 - `pws_metadata.csv` - Weather Underground personal weather stations (NYC)
 

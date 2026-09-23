@@ -19,7 +19,7 @@ This project uses a **fork workflow** with two main operations:
 
 | Direction | When | How Often |
 |-----------|------|-----------|
-| **PULL** (upstream → you) | Main repo updates `core/` or `datasets/` | Regular |
+| **PULL** (upstream → you) | Main repo updates `core/` or `dataset/` | Regular |
 | **PUSH** (you → upstream) | Submit your work or suggest improvements | Occasional |
 
 ---
@@ -69,7 +69,7 @@ pip install -r projects/YOUR_PROJECT/requirements.txt
 ### When to Pull
 
 - Before starting new work
-- When there are updates to `core/` or `datasets/`
+- When there are updates to `core/` or `dataset/`
 - If your code has errors that might be fixed upstream
 
 ### How to Pull
@@ -93,7 +93,7 @@ git push origin main
 To prevent merge conflicts when pulling:
 
 - **Don't edit files in `core/`** — only add new files or suggest changes via PR
-- **Don't edit files in `datasets/`** — same as above
+- **Don't edit files in `dataset/`** — same as above
 - **Work only in `projects/YOUR_PROJECT/`** — this is your safe space
 
 If you edit shared files locally, you may get conflicts when the main repo updates them.
@@ -131,7 +131,10 @@ If you wrote something useful that could benefit everyone:
 
 1. **Don't overwrite existing files** — instead:
    - Add a **new file** (e.g., `core/my_new_utils.py`)
-   - Or create a **copy** with your changes (e.g., `core/plotting_v2.py`)
+   - Or create a **copy** with your changes (e.g., `core/itu_p838_v2.py`)
+
+`core/` is for code **more than one project imports**. A helper only your
+project uses belongs in `projects/YOUR_PROJECT/src/`.
 2. Commit and push to your fork
 3. Open a Pull Request (same steps as above)
 4. In the PR description, explain what you added and why
@@ -168,8 +171,10 @@ git push origin main
 - `projects/YOUR_PROJECT/` — add and edit anything here
 
 ### 🔒 Shared Space (Pull Only, Don't Edit)
-- `core/` — pull updates, but don't edit existing files
-- `datasets/` — pull updates, but don't edit existing files
+- `core/` — shared code, imported by several projects
+- `dataset/` — the published open datasets themselves
+
+Pull updates to both; don't edit existing files in either.
 
 If you want to improve shared code, **add new files** and submit a PR.
 
@@ -185,11 +190,17 @@ Keep your project organized:
 ```
 projects/your-project/
 ├── src/              # Source code
-├── notebooks/        # Jupyter notebooks
+├── notebooks/        # Jupyter notebooks — keep them with the project they belong to
 ├── results/          # Outputs, figures, models
+├── paper/            # Manuscript, if the project has one
 ├── requirements.txt  # Project-specific dependencies
 └── README.md         # Project documentation
 ```
+
+**A project is a topic, and it should be self-contained.** Its notebooks, its
+source, its results and its manuscript live together. The only things that
+belong outside it are the raw published data (`dataset/`) and code that other
+projects import too (`core/`).
 
 ---
 

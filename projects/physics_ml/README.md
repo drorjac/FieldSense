@@ -60,13 +60,27 @@ physics_ml/
 │   ├── rain_simulator.py    # ITU-R P.838-3 synthetic attenuation generator
 │   ├── data_analysis.py     # Dataset generation and inspection
 │   └── training_utils.py    # Training loops, device selection, plotting
+│   └── gravity/             # worked PINN example (N-body gravity)
+│       ├── pinn_main.py     pinn_model.py
+│       └── pinn_learning.py pinn_utils.py
 ├── notebooks/
-│   └── Simulation_MBML.ipynb
+│   ├── Simulation_MBML.ipynb          # the CML rain-retrieval experiment
+│   ├── TUTORIALS.md                   # guide to the method tutorials below
+│   ├── 01_sindy_basics.ipynb          # SINDy on the Lorenz system
+│   ├── 02_pysr_basics.ipynb           # symbolic regression basics
+│   ├── 03_nbody_full_pipeline.ipynb   # simulation -> data -> discovery
+│   └── pinn_vs_nn_comparison.ipynb    # PINN against a plain network
 ├── results/
 │   └── training_curves.png  # Outputs and figures
 ├── requirements.txt         # Project-specific dependencies
 └── README.md                # This file
 ```
+
+`Simulation_MBML.ipynb` is the project's own experiment. The numbered
+notebooks and the PINN comparison are **method tutorials** for the
+physics-informed tools this project builds on — they moved here from
+`core/examples/`, which was holding notebooks from three unrelated topics.
+See `core/scientific_packages/` for the PySINDy and PySR reference notes.
 
 ## Getting Started
 
@@ -93,6 +107,6 @@ splitting and baselines, and Matplotlib/Seaborn for figures. See
 ## References
 
 - ITU-R P.838-3: Specific attenuation model for rain for use in prediction methods
-- Physics-Informed Neural Networks (PINNs) literature — see `core/examples/gravity/` for a worked PINN example
+- Physics-Informed Neural Networks (PINNs) literature — see `src/gravity/` and `notebooks/pinn_vs_nn_comparison.ipynb` for a worked PINN example
 - PDE-constrained optimization
 - Domain-informed machine learning

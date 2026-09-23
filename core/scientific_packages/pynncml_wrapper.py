@@ -318,7 +318,9 @@ def find_openmrg_data(
         search_paths.append(str(fieldsense_data))
         
         # Also check tutorial data location
-        tutorial_data = Path(project_root) / "core" / "examples" / "pynncml_tutorial" / "data" / "cml" / "cml.nc"
+        tutorial_data = (Path(project_root) / "dataset" / "open_datasets"
+                         / "OpenMRG_Sweden" / "raw" / "extracted"
+                         / "cml" / "cml.nc")
         search_paths.append(str(tutorial_data))
         
         # 2. Common user data locations

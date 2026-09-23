@@ -37,11 +37,13 @@ dataset/
 - **Time Resolution:** Variable (5-minute to hourly)
 
 **Contents:**
-- `links/` - Microwave link signal level data (RSL/TSL) in NetCDF format
-- `weather stations/` - Personal weather stations and ASOS station data
-  (folder name contains a space, matching the published Zenodo layout)
 - `maps/` - Interactive network topology visualizations
-- `fetch_data/` - Data collection and processing pipelines
+- `links/`, `weather stations/` - link and station measurements, downloaded
+  from Zenodo rather than tracked (the folder name with a space matches the
+  published layout)
+
+The collection pipelines, the exploration notebooks and the dataset paper live
+in `projects/openmesh_nyc/`.
 
 **Dataset Links:**
 - **Zenodo:** [10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692)
@@ -181,16 +183,19 @@ See individual dataset folders for specific example notebooks.
 
 ## 📚 Example Notebooks
 
-Each dataset folder contains example notebooks demonstrating:
+Notebooks live with the project that owns the analysis, not beside the raw
+data. Each dataset folder documents its own format; the notebooks that read it
+demonstrate:
 - Data loading and reading
 - Basic visualization
 - Data quality assessment
 - Format compliance checking
 
 **Notable Examples:**
-- `OpenMesh_NYC/links/openmesh_dataset_example.ipynb` - Link data exploration
-- `OpenMesh_NYC/weather stations/read_pws_sample.ipynb` - Weather station data
 - `OpenMRG_Sweden/cml/example_read_cml.nc.py` - CML data reading
+- `projects/openmesh_nyc/notebooks/` - OpenMesh link, PWS and ASOS notebooks
+- `projects/cml_retrieval/notebooks/` - PyNNcml retrieval on OpenMRG
+- `projects/opensense_pipeline/` - full retrieval + merging on OpenMRG and OpenRainER
 
 ---
 
