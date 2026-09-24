@@ -80,6 +80,58 @@ def list_record(source: Source) -> list[dict]:
     ]
 
 
+def download_url(url: str, dest: Path, force: bool = False,
+                 expected_size: int | None = None) -> Path:
+    """Download one URL to ``dest``, resumably, skipping verified files.
+
+    The generic counterpart to :func:`download`, which needs Zenodo's file
+    listing for its size and checksum. Here the expected size comes from a
+    HEAD request when the caller does not supply one, so a truncated file is
+    still detected - a bare ``urlretrieve`` cannot tell a half-written file
+    from a complete one.
+    """
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    if expected_size is None:
+        try:
+            head = requests.head(url, timeout=60, allow_redirects=True)
+            head.raise_for_status()
+            expected_size = int(head.headers.get("content-length", 0)) or None
+        except requests.RequestException:
+            expected_size = None
+
+    if not force and dest.exists():
+        if expected_size is None or dest.stat().st_size == expected_size:
+            print(f"  [skip]  {dest.name}  "
+                  f"({dest.stat().st_size/1e6:.2f} MB, already present)")
+            return dest
+        print(f"  [stale] {dest.name} is {dest.stat().st_size/1e6:.2f} MB, "
+              f"expected {expected_size/1e6:.2f} MB - refetching")
+
+    part = dest.with_suffix(dest.suffix + ".part")
+    have = part.stat().st_size if part.exists() and not force else 0
+    if force and part.exists():
+        part.unlink()
+        have = 0
+
+    headers = {"Range": f"bytes={have}-"} if have else {}
+    size_note = f"{expected_size/1e6:.2f} MB" if expected_size else "unknown size"
+    print(f"  [get]   {dest.name}  ({size_note})")
+
+    with requests.get(url, stream=True, timeout=120, headers=headers) as r:
+        r.raise_for_status()
+        with part.open("ab" if have else "wb") as fh:
+            for block in r.iter_content(CHUNK):
+                fh.write(block)
+
+    if expected_size is not None and part.stat().st_size != expected_size:
+        raise RuntimeError(
+            f"{dest.name}: got {part.stat().st_size} bytes, "
+            f"expected {expected_size}")
+    part.replace(dest)
+    return dest
+
+
 def _md5(path: Path) -> str:
     h = hashlib.md5()  # noqa: S324 - Zenodo publishes md5, not our choice
     with path.open("rb") as fh:

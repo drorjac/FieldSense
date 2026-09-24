@@ -16,16 +16,46 @@ The bracketed stage is the point of the design. See *Why a synthetic stage*.
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r projects/opensense_pipeline/requirements.txt
+```
 
+There are **two tiers of data acquisition**, and which you want depends on
+whether you are exercising the code or doing the science.
+
+### Example subsets — seconds, ~57 MB
+
+The curated subsets the OpenSense community publishes. Already on the
+OpenSense-1.0 convention, so no retrieval chain is needed to look at them.
+
+```bash
+.venv/bin/python projects/opensense_pipeline/src/example_data.py --list
+.venv/bin/python projects/opensense_pipeline/src/example_data.py --dataset openmrg --subset 8d
+.venv/bin/python projects/opensense_pipeline/src/example_data.py --all
+```
+
+```python
+from example_data import load
+data = load("openmesh", "20d")     # dict: cml, pws, asos
+data["cml"].frequency_ghz          # normalized on load
+```
+
+| dataset | subsets | components |
+|---|---|---|
+| `openmrg` | `8d`, `5min_2h` | cml, radar, gauge_municipal, gauge_smhi |
+| `openrainer` | `8d` | cml, radar, gauge |
+| `openmesh` | `1d`, `1w`, `20d` | cml, pws, asos *(20d only)* |
+| `ams_pws` | `full_period` | pws, gauge |
+
+### Full records — 8.4 GB, the actual experiments
+
+```bash
 .venv/bin/python projects/opensense_pipeline/src/fetch.py --dataset openmrg
 .venv/bin/python projects/opensense_pipeline/src/fetch.py --dataset openrainer
 .venv/bin/python projects/opensense_pipeline/src/run_pipeline.py
 ```
 
 `fetch.py --list` shows what each Zenodo record holds without downloading.
-Downloads resume and are md5-verified against the published checksum, so
-re-running is cheap. `run_pipeline.py --skip-benchmark` runs only the
-application half.
+Downloads resume and are md5-verified, so re-running is cheap.
+`run_pipeline.py --skip-benchmark` runs only the application half.
 
 ## The data
 
@@ -76,11 +106,16 @@ drove the radar field to a flat 0.0 mm/h while gauges read 24 mm/h. The file
 also carries its own Z-R coefficients (`zr_b = 1.5`, not the textbook 1.6),
 now preferred over the default.
 
-**Units differ between the two datasets.** OpenRainER declares `length` in
-metres and `frequency` in MHz; OpenMRG uses km and GHz. Feeding metres into
-`k·L` and MHz into the ITU-R table retrieves exactly zero rain everywhere —
-no error, no warning. The loaders now read the declared `units` attribute
-rather than assuming a convention.
+**Units differ between every source, and are sometimes undeclared.**
+OpenRainER's raw files declare `length` in metres and `frequency` in MHz;
+OpenMRG's use km and GHz. Feeding metres into `k·L` and MHz into the ITU-R
+table retrieves exactly zero rain everywhere — no error, no warning. Worse,
+the *example subsets* ship MHz with **no units attribute at all**, and
+polarization is spelled `Vertical`, `vertical` or `v` depending on the file.
+
+`conventions.py` holds the full table of who disagrees with whom, reads the
+declared units where present, and falls back on magnitude where absent —
+nothing terrestrial transmits at 7,456 GHz, so that value is MHz.
 
 **Zeroing rain on the dry flag deletes steady rain.** The rolling-standard-
 deviation classifier keys on *fluctuation*, and widespread stratiform rain
@@ -233,7 +268,9 @@ Relative sensor skill, not network geometry, is what decides this.
 ```
 opensense_pipeline/
 ├── src/
-│   ├── fetch.py                # Zenodo download, resumable + verified
+│   ├── fetch.py                # Zenodo full records, resumable + verified
+│   ├── example_data.py         # curated OpenSense subsets (ported from poligrain)
+│   ├── conventions.py          # unit / polarization normalization across sources
 │   ├── ingest_openmrg.py       # raw TSL/RSL -> OpenSense-1.0 + retrieval
 │   ├── ingest_openrainer.py    # same, second dataset
 │   ├── merging.py              # uniform wrapper over mergeplg + baselines

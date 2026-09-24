@@ -35,6 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import conventions as cv                                             # noqa: E402
 from ingest_openmrg import _baseline_from_dry, _wet_dry_rolling_std  # noqa: E402
 from core.itu_p838 import get_k_alpha                                # noqa: E402
 
@@ -90,29 +91,6 @@ def _ensure_extracted(member: str, archive: str) -> Path:
     return target
 
 
-def _to_km(da: xr.DataArray) -> np.ndarray:
-    """Link length in km, honouring the declared units."""
-    units = str(da.attrs.get("units", "")).lower()
-    v = np.asarray(da, dtype=float)
-    if units in ("m", "metre", "meter", "metres", "meters"):
-        return v / 1000.0
-    if units in ("km", "kilometre", "kilometer", ""):
-        return v
-    raise ValueError(f"unexpected length units {units!r}")
-
-
-def _to_ghz(da: xr.DataArray) -> np.ndarray:
-    """Frequency in GHz, honouring the declared units."""
-    units = str(da.attrs.get("units", "")).lower()
-    v = np.asarray(da, dtype=float)
-    if units == "mhz":
-        return v / 1000.0
-    if units in ("ghz", ""):
-        return v
-    if units == "hz":
-        return v / 1e9
-    raise ValueError(f"unexpected frequency units {units!r}")
-
 
 def _cml_file(month: str) -> Path:
     """CML files are named by their full time span, so glob for the month."""
@@ -157,12 +135,12 @@ def load_cml(event: Event) -> xr.Dataset:
 
     # Unit trap: OpenRainER declares length in metres and frequency in MHz,
     # where OpenMRG uses km and GHz. Feeding metres into k*L, or MHz into the
-    # ITU-R table, silently retrieves zero rain everywhere. Read the declared
-    # units rather than assuming either convention.
-    length = _to_km(ds.length)
-    freq = _to_ghz(ds.frequency)
-    pol = np.array([str(p).lower()
-                    for p in np.atleast_1d(ds.polarization.values).ravel()])
+    # ITU-R table, silently retrieves zero rain everywhere. conventions.py
+    # reads the declared units, and falls back on magnitude when a source
+    # ships no units attribute at all.
+    length = cv.to_km(ds.length)
+    freq = cv.to_ghz(ds.frequency)
+    pol = cv.normalize_polarization(ds.polarization.values)
 
     # frequency/polarization may be per (cml_id, sublink_id) or per cml_id
     if freq.ndim == 1:

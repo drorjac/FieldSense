@@ -1,0 +1,132 @@
+"""
+Normalizing CML datasets to one internal convention.
+
+Every source in this pipeline describes the same physical quantities
+differently, and the disagreements are silent: the wrong unit does not raise,
+it just retrieves the wrong rain rate. Collected here so there is one place
+that knows about them.
+
+What actually differs across the sources handled here:
+
+=========================  ==================  ====================  ==================
+source                     ``length``          ``frequency``         ``polarization``
+=========================  ==================  ====================  ==================
+OpenMRG raw (Zenodo)       km, declared        GHz, declared         ``Vertical``
+OpenRainER raw (Zenodo)    m, declared         MHz, declared         ``vertical``
+OpenMRG example subset     m, declared         MHz, **undeclared**   ``v``
+OpenRainER example subset  m, declared         MHz, **undeclared**   ``vertical``
+OpenMesh example subset    m, declared         MHz, declared         ``v``
+=========================  ==================  ====================  ==================
+
+The undeclared cases are the dangerous ones. ``to_ghz`` therefore falls back to
+inspecting the magnitude when no unit is attached: nothing in a terrestrial CML
+network transmits at 7,456 GHz, so a value that large is MHz.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import xarray as xr
+
+# ITU-R P.838-3 is tabulated to 1000 GHz; real CML bands sit well below.
+_MAX_PLAUSIBLE_GHZ = 1000.0
+
+
+def to_km(da) -> np.ndarray:
+    """Path length in km, from the declared units."""
+    units = str(getattr(da, "attrs", {}).get("units", "")).strip().lower()
+    v = np.asarray(da, dtype=float)
+    if units in ("m", "metre", "meter", "metres", "meters"):
+        return v / 1000.0
+    if units in ("km", "kilometre", "kilometer", "kilometres", "kilometers"):
+        return v
+    if units:
+        raise ValueError(f"unexpected length units {units!r}")
+    # Undeclared: a terrestrial CML is not 10,000 km long.
+    return v / 1000.0 if np.nanmedian(v) > 100.0 else v
+
+
+def to_ghz(da) -> np.ndarray:
+    """Frequency in GHz, from the declared units, or from magnitude if absent."""
+    units = str(getattr(da, "attrs", {}).get("units", "")).strip().lower()
+    v = np.asarray(da, dtype=float)
+    if units == "mhz":
+        return v / 1000.0
+    if units == "hz":
+        return v / 1e9
+    if units == "ghz":
+        return v
+    if units:
+        raise ValueError(f"unexpected frequency units {units!r}")
+    # Undeclared. The example subsets ship MHz with no units attribute, and
+    # feeding those straight into the ITU-R table clamps every link to the top
+    # of the table and retrieves near-zero rain, silently.
+    return v / 1000.0 if np.nanmedian(v) > _MAX_PLAUSIBLE_GHZ else v
+
+
+def normalize_polarization(values) -> np.ndarray:
+    """Map any spelling onto ``"horizontal"`` / ``"vertical"``.
+
+    Unrecognized entries become ``"vertical"``, which is the ITU-R default
+    assumption when polarization is unknown.
+    """
+    out = []
+    for p in np.atleast_1d(np.asarray(values)).ravel():
+        s = str(p).strip().lower()
+        if s.startswith("h"):
+            out.append("horizontal")
+        elif s.startswith("v"):
+            out.append("vertical")
+        else:
+            out.append("vertical")
+    return np.array(out)
+
+
+def itu_coefficients(freq_ghz: np.ndarray, pol: np.ndarray) -> tuple:
+    """Per-link ITU-R P.838-3 ``(k, alpha)`` arrays."""
+    from core.itu_p838 import get_k_alpha
+
+    freq_ghz = np.asarray(freq_ghz, dtype=float)
+    pol = np.asarray(pol)
+    flat_f = freq_ghz.ravel()
+    flat_p = pol.ravel() if pol.size == flat_f.size else np.full(flat_f.size, "vertical")
+
+    k = np.empty(flat_f.size)
+    alpha = np.empty(flat_f.size)
+    for i, (f, p) in enumerate(zip(flat_f, flat_p)):
+        k[i], alpha[i] = get_k_alpha(float(f), str(p))
+    return k.reshape(freq_ghz.shape), alpha.reshape(freq_ghz.shape)
+
+
+def project_cml(ds: xr.Dataset, crs: str = "EPSG:32632") -> xr.Dataset:
+    """Attach projected endpoint and midpoint coordinates to a CML dataset.
+
+    ``mergeplg`` builds its line geometry from ``site_0_x/y`` and
+    ``site_1_x/y`` in metres, so lat/lon alone is not enough.
+    """
+    import poligrain as plg
+
+    out = ds
+    x0, y0 = plg.spatial.project_point_coordinates(
+        out.site_0_lon, out.site_0_lat, crs)
+    x1, y1 = plg.spatial.project_point_coordinates(
+        out.site_1_lon, out.site_1_lat, crs)
+    dim = out.site_0_lon.dims[0]
+    for name, val in (("site_0_x", x0), ("site_0_y", y0),
+                      ("site_1_x", x1), ("site_1_y", y1)):
+        out.coords[name] = (dim, np.asarray(val))
+    out.coords["x"] = (dim, (np.asarray(x0) + np.asarray(x1)) / 2)
+    out.coords["y"] = (dim, (np.asarray(y0) + np.asarray(y1)) / 2)
+    return out
+
+
+def project_points(ds: xr.Dataset, crs: str = "EPSG:32632",
+                   lon: str = "lon", lat: str = "lat") -> xr.Dataset:
+    """Attach projected x/y to a point dataset (gauges, PWS, ASOS)."""
+    import poligrain as plg
+
+    dim = ds[lon].dims[0]
+    x, y = plg.spatial.project_point_coordinates(ds[lon], ds[lat], crs)
+    ds.coords["x"] = (dim, np.asarray(x))
+    ds.coords["y"] = (dim, np.asarray(y))
+    return ds
