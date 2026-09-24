@@ -29,12 +29,14 @@ openmesh_nyc/
 │   ├── openmesh_dataset_example.ipynb    # explore the link data
 │   ├── read_pws_sample.ipynb             # personal weather station sample
 │   ├── asos_pipeline.ipynb               # NOAA ASOS collection pipeline
-│   └── wu_pipeline.ipynb                 # Weather Underground collection pipeline
+│   ├── wu_pipeline.ipynb                 # Weather Underground collection pipeline
+│   └── nexrad_rain_vs_snow.ipynb         # radar over the network, rain vs snow
 ├── src/
 │   ├── mop.py                  # strips \blue{} markup, camera_ready → *_clean
 │   └── fetch/                  # the collection pipelines the notebooks drive
 │       ├── asos_functions.py   asos_plotting.py
-│       └── wu_functions.py     wu_plotting.py
+│       ├── wu_functions.py     wu_plotting.py
+│       └── nexrad.py           # KOKX radar for the network's rain and snow days
 ├── requirements.txt
 └── README.md
 ```
@@ -50,6 +52,55 @@ Network maps and the dataset description live in
 
 The notebooks locate `src/` by walking up from their own directory, so they
 run from anywhere inside this project without path fiddling.
+
+## Radar
+
+OpenMesh ships CMLs, PWS and ASOS but **no radar**, so there is no gridded
+reference to score a CML-derived field against — the one thing OpenMRG and
+OpenRainER both have. `src/fetch/nexrad.py` supplies one from **KOKX**
+(Upton, NY), the NEXRAD covering New York City, through the Iowa
+Environmental Mesonet archive.
+
+```bash
+python projects/openmesh_nyc/src/fetch/nexrad.py --classify        # which days
+python projects/openmesh_nyc/src/fetch/nexrad.py --date 2024-01-16 # fetch one
+python projects/openmesh_nyc/src/fetch/nexrad.py --best 3 --kind snow
+```
+
+Days are classified from METAR present-weather codes at the four NYC ASOS
+stations — `SN`/`SG`/`IC`/`PL` for frozen, `RA`/`DZ`/`TS` for liquid — which
+is more reliable than a temperature threshold near the melting layer.
+
+| | strongest days | daily precip |
+|---|---|---|
+| snow | 2024-01-16, 02-13, 02-17 | 8.8, 16.8, 6.8 mm |
+| rain | 2024-03-23, 2023-12-18, 11-22 | 84.1, 60.2, 50.9 mm |
+
+**2024-01-16 and 01-19 fall inside the OpenMesh 20-day example subset**, so
+radar and CML cover the same hours and can be compared directly.
+
+### Rain and snow need different conversions
+
+Reflectivity becomes a rate through a power law whose coefficients are not
+the same for the two — snow of a given liquid-water-equivalent rate scatters
+much more than rain:
+
+| | relation | |
+|---|---|---|
+| rain | `Z = 200 R^1.6` | Marshall-Palmer |
+| snow | `Z = 180 S^2.0` | Sekhon-Srivastava, the WSR-88D operational pair |
+
+At 40 dBZ the rain relation gives 11.5 mm/h against snow's 7.5 — applying it
+to a snow day overstates the rate by half. The module picks the relation from
+the day's classification.
+
+Two caveats that matter for any comparison against the links: the beam is
+several hundred metres above the city, and that gap between beam and ground
+is larger in snow than in rain; and published snow relations disagree with
+each other by a factor of two or more, so `Z = 180 S^2.0` is a defensible
+choice rather than a settled one.
+
+`notebooks/nexrad_rain_vs_snow.ipynb` works through all of it.
 
 ## The manuscript
 

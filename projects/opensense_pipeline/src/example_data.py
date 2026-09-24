@@ -155,7 +155,10 @@ def load(dataset: str, subset: str | None = None,
     subset = subset or next(iter(spec.subsets))
     paths = download(dataset, subset, cache_dir)
 
-    out = {c: xr.open_dataset(p) for c, p in paths.items()}
+    # load_dataset, not open_dataset: these are small files and callers open
+    # several in one process, which exhausts netCDF4's handle cache and fails
+    # with "NetCDF: HDF error" rather than anything that names the cause.
+    out = {c: xr.load_dataset(p) for c, p in paths.items()}
     if not normalize:
         return out
 

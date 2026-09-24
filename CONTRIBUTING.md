@@ -226,6 +226,10 @@ After that, outputs are stripped automatically on `git add` while staying visibl
 running notebook. If a figure is a deliverable, save it to `projects/YOUR_PROJECT/results/`
 as a `.png` and reference it from the README instead of relying on notebook output.
 
+**One exception:** a tutorial or example notebook whose whole purpose is to be *read*
+may keep its outputs, as long as it stays small — a few hundred KB, not a few MB. The
+rule exists to stop 17 MB notebooks, not to make documentation useless on GitHub.
+
 ---
 
 ## Troubleshooting

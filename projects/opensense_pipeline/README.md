@@ -38,6 +38,9 @@ data = load("openmesh", "20d")     # dict: cml, pws, asos
 data["cml"].frequency_ghz          # normalized on load
 ```
 
+`notebooks/01_read_opensense_data.ipynb` walks through reading all four
+datasets and plotting them with `poligrain`, including the units trap below.
+
 | dataset | subsets | components |
 |---|---|---|
 | `openmrg` | `8d`, `5min_2h` | cml, radar, gauge_municipal, gauge_smhi |
@@ -360,6 +363,8 @@ opensense_pipeline/
 │   ├── synthetic_benchmark.py  # real geometry, synthetic truth
 │   ├── plots.py                # figures
 │   └── run_pipeline.py         # entry point
+├── notebooks/
+│   └── 01_read_opensense_data.ipynb   # reading all four datasets
 ├── results/
 ├── PLAN.md
 └── README.md
