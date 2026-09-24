@@ -9,7 +9,7 @@ reference retrieval OpenSense publishes.
 
 The chain, per sublink:
 
-1. total loss ``A = TSL - RSL`` (or ``-RSL`` where no TSL is published)
+1. total loss ``A = TSL - RSL``, or ``-RSL`` where no TSL is published
 2. wet/dry classification by rolling standard deviation (Schleiss & Berne 2010)
 3. dry-weather baseline, a long rolling median over samples classified dry
 4. ``A_rain = A - baseline``, floored
@@ -92,6 +92,26 @@ def baseline_from_dry(attenuation: np.ndarray, wet: np.ndarray,
         fallback = pd.DataFrame(attenuation).quantile(0.1)
         base.loc[:, all_wet] = fallback[all_wet].to_numpy()
     return base.to_numpy()
+
+
+def total_loss_from(rsl: np.ndarray, tsl: np.ndarray | None = None) -> np.ndarray:
+    """Path loss in dB from received, and transmitted power if it exists.
+
+    With both channels the loss is ``TSL - RSL``, and a drift in transmit
+    power cancels. OpenMesh publishes **RSL only**, so there ``-RSL`` is used
+    instead, which assumes the transmitter holds a constant level.
+
+    That assumption is not free. Anything that moves TSL - automatic transmit
+    power control, a hardware change, a temperature drift in the amplifier -
+    enters the retrieval as if it were rain. The saving grace is that the
+    baseline step removes whatever part of it is slow; what survives is the
+    fast component, and there is no way to separate that from real
+    attenuation without the second channel.
+    """
+    rsl = np.asarray(rsl, dtype=float)
+    if tsl is None:
+        return -rsl
+    return np.asarray(tsl, dtype=float) - rsl
 
 
 def retrieve(total_loss: np.ndarray, length_km: np.ndarray,

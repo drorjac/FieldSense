@@ -233,50 +233,94 @@ unaffected, since every method receives the same CML input.
 
 Both sensors claim the same field and disagree. `src/compare_radar_cml.py`
 puts them on the **same grid** — radar as published, CML interpolated onto it
-line-aware — and asks where and when they part company.
+line-aware — across eight events, three datasets and two precipitation phases.
 
 ```bash
 .venv/bin/python projects/opensense_pipeline/src/compare_radar_cml.py --all
+.venv/bin/python projects/opensense_pipeline/src/compare_radar_cml.py --nyc   # phase only
 ```
 
-| event | regime | median spatial corr | IQR | CML / radar accumulation |
+Every row also carries a **control**: the same CML retrieval scored against
+co-located point sensors. When CML and radar disagree either could be at
+fault, and the control separates them.
+
+| event | regime | CML vs radar | CML vs gauges | CML/radar accumulation |
 |---|---|---|---|---|
-| Torslanda 2015-07-28 | convective cell | 0.25 | 0.15–0.37 | **1.79** |
-| 25 August 2015 | mixed | 0.54 | 0.47–0.63 | **0.61** |
-| 17 June 2015 | widespread frontal | 0.11 | -0.06–0.32 | **1.26** |
-| 26 September 2021 | widespread, Italy | 0.36 | 0.24–0.43 | **1.02** |
+| Torslanda 2015-07-28 | convective cell | +0.25 | **+0.76** | 1.79 |
+| 25 August 2015 | mixed | +0.54 | **+0.79** | 0.62 |
+| 17 June 2015 | widespread frontal | +0.11 | **+0.35** | 1.27 |
+| 26 September 2021 | widespread, Italy | +0.36 | **+0.39** | 1.15 |
+| NYC 13 Jan 2024 | rain | +0.07 | **+0.53** | 0.67 |
+| NYC 28 Jan 2024 | rain | +0.08 | **+0.39** | 0.15 |
+| NYC 16 Jan 2024 | snow + rain | -0.05 | **-0.00** | 0.61 |
+| NYC 19 Jan 2024 | snow | -0.07 | **-0.05** | 1.77 |
 
-**They agree moderately at best, and never well.** Per-timestep spatial
-correlation runs 0.11 to 0.54 across four events in two countries. These are
-two instruments measuring the same rain and they concur on roughly a quarter
-to a half of the spatial variance.
+### Europe: moderate agreement, unstable magnitude
 
-**The magnitude relationship is not stable.** The CML/radar accumulation ratio
-swings from 0.61 to 1.79 — a factor of three across events — with no
-consistent sign. Whatever bias each carries is event-dependent, which is why a
-single calibration constant does not transfer (the same conclusion the
-wet-antenna sweep reaches from the other direction).
+Per-timestep spatial correlation runs 0.11 to 0.54 — two instruments
+measuring the same rain, concurring on a quarter to a half of the spatial
+variance. The accumulation ratio swings 0.62 to 1.79 with no consistent sign,
+which is the same conclusion the wet-antenna sweep reaches from the other
+direction: whatever bias each carries is event-dependent.
 
-**Agreement is best where the links are — except when it is not.**
-Correlation of accumulation, by distance from the nearest link path:
+Agreement generally falls with distance from the link network — 25 August
+runs 0.91 at 0–2 km down to 0.68 beyond 10 km, and 17 June goes negative.
+Torslanda inverts it, 0.43 rising to 0.61, and the reason matters more than
+the number: it is the convective case, one cell over a mostly dry domain, so
+far from the network both sensors report near-zero and correlate on agreeing
+that nothing is happening. **That is agreement about absence, not skill**, and
+it is a standing hazard for any correlation computed over a mostly-dry field.
 
-| event | 0-2 km | 2-5 km | 5-10 km | 10+ km |
-|---|---|---|---|---|
-| Torslanda 2015-07-28 | 0.43 | 0.44 | 0.41 | 0.61 |
-| 25 August 2015 | 0.91 | 0.89 | 0.82 | 0.68 |
-| 17 June 2015 | 0.43 | 0.33 | 0.24 | -0.19 |
-| 26 September 2021 | 0.45 | 0.46 | 0.37 | 0.29 |
+### New York: the retrieval works, the radar reference does not
 
-Three of four decline monotonically with distance, sharply — 25 August runs
-0.91 down to 0.68, and 17 June goes *negative* beyond 10 km. That is the
-expected shape: interpolation has nothing to work with far from the network.
+The NYC events use an **RSL-only** retrieval, because OpenMesh publishes no
+transmitted power. Against radar they look like a total failure — correlation
+0.08, 0.08, −0.05, −0.07, indistinguishable from zero.
 
-Torslanda inverts it, rising from 0.43 to 0.61, and the reason is worth
-stating rather than explaining away. It is the convective case: a single cell
-over a mostly dry domain. Far from the network both sensors report near-zero
-and correlate on their shared agreement that nothing is happening. **That is
-agreement about absence, not skill** — a reminder that a correlation computed
-over a mostly-dry field flatters whichever method produces smooth nothing.
+The control says otherwise. On the two rain days the same retrieval correlates
+**+0.53 and +0.39** with co-located personal weather stations. The retrieval
+is working; KOKX is simply a poor reference over Manhattan. It sits ~80 km
+away, so its beam passes well above the city, and a 1.2 km composite cannot
+resolve a link network spanning ~20 km of it.
+
+### In snow, the CML signal carries no precipitation information
+
+This is the part worth stating plainly. On the snow and mixed days the
+retrieval correlates with **nothing** — not radar (−0.05, −0.07) and not the
+point sensors (−0.00, −0.05). Against the same control that gives +0.53 in
+rain.
+
+Two things are going on and this data cannot separate them:
+
+- **The physics is wrong by construction.** ITU-R P.838-3 is a *rain*
+  relation. Dry snow scatters far less per mm/h of melted water than rain;
+  wet snow scatters more than either. A retrieved "rain rate" on a snow day
+  is an attenuation proxy wearing the wrong units, which is why
+  `ingest_openmesh.PHASE_NOTE` says so on every dataset it writes.
+- **The reference is also wrong.** Tipping-bucket PWS do not measure snow
+  reliably — the 19 January event yields only **2 usable gauge pairs** out of
+  37 stations, because the rest report nothing while it snows.
+
+The accumulation ratio does flip direction — 0.15–0.67 on rain days against
+1.77 on the snow day, CML reading *higher* than radar in snow, which is what
+wet snow on a radome would do. It is a suggestive direction, not a result,
+and with correlation at zero it should not be treated as one.
+
+### The band-selection trap
+
+The first NYC run returned CML/radar ratios of 30–114× on days including
+plain rain. The cause was not phase: **a 5.7 GHz sublink on a 2 km path
+develops 0.029 dB at 10 mm/h**, roughly thirty times *below* the 0.3 dB
+quantization of the reported RSL. Inverting the power law there divides by
+`k·L ≈ 8e-4`, so one quantization step of noise returns ~40 mm/h, and a
+median across three bands with one like that returns the noise.
+
+`ingest_openmesh` now selects, per link, the most sensitive band that
+develops at least 0.6 dB at 5 mm/h — twice the quantization step. That leaves
+**28 of 75 links usable**, almost all V-band (58–69 GHz) with a few at 24 GHz,
+and drops the peak retrieval from 178 to 45 mm/h. Two thirds of this network
+cannot measure rain at all, which is a property of the network rather than a
+shortcoming of the method.
 
 ![Radar against CML](results/radar_vs_cml.png)
 
@@ -409,6 +453,7 @@ opensense_pipeline/
 │   ├── retrieval.py            # the CML retrieval chain, source-independent
 │   ├── validate_retrieval.py   # ours vs the OpenSense reference retrieval
 │   ├── compare_radar_cml.py    # radar vs CML maps through events
+│   ├── ingest_openmesh.py      # NYC: RSL-only retrieval, band selection
 │   ├── ingest_openmrg.py       # raw TSL/RSL -> OpenSense-1.0 + retrieval
 │   ├── ingest_openrainer.py    # same, second dataset
 │   ├── merging.py              # uniform wrapper over mergeplg + baselines

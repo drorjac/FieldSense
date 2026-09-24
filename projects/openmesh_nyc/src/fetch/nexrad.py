@@ -75,7 +75,11 @@ RADAR_SITE = "OKX"
 RADAR_PRODUCT = "N0B"
 
 # Z-R and Z-S pairs. Snow is far more reflective per mm/h of melted water.
-ZR = {"rain": (200.0, 1.6), "snow": (180.0, 2.0)}
+ZR = {"rain": (200.0, 1.6), "snow": (180.0, 2.0),
+      # A mixed day has both phases present and no single relation is right.
+      # The rain pair is used and the result flagged, rather than inventing a
+      # blend that would look more precise than it is.
+      "mixed": (200.0, 1.6)}
 
 # OpenMesh covers this period; classification is restricted to it.
 PERIOD = ("2023-10-01", "2024-07-31")
@@ -138,7 +142,16 @@ def classify_days(min_precip_mm: float = 2.0) -> pd.DataFrame:
 
     obs = df.groupby("date")[["is_snow", "is_rain"]].sum()
     out = obs.join(daily_mm.rename("precip_mm")).fillna(0.0)
-    out["kind"] = np.where(out["is_snow"] > 0, "snow", "rain")
+
+    # A single snow observation in a day of rain does not make a snow day -
+    # 2024-01-28 has 2 frozen obs against 706 liquid ones. Classify on which
+    # phase dominates, and call it mixed when both are well represented,
+    # because the Z-S and Z-R relations disagree most there.
+    total = out["is_snow"] + out["is_rain"]
+    snow_frac = np.where(total > 0, out["is_snow"] / np.maximum(total, 1), 0.0)
+    out["snow_fraction"] = snow_frac
+    out["kind"] = np.where(snow_frac >= 0.7, "snow",
+                           np.where(snow_frac <= 0.1, "rain", "mixed"))
     out = out[out["precip_mm"] >= min_precip_mm]
     return out.rename(columns={"is_snow": "snow_obs", "is_rain": "rain_obs"})
 
@@ -151,6 +164,15 @@ def best_days(kind: str, n: int = 3) -> list[Day]:
     sel = sel.sort_values(sort_by, ascending=False).head(n)
     return [Day(str(d), kind, float(r.precip_mm), int(r.snow_obs),
                 int(r.rain_obs)) for d, r in sel.iterrows()]
+
+
+def classify_one(date: str) -> str:
+    """The kind assigned to a single day."""
+    import pandas as pd
+
+    table = classify_days(min_precip_mm=0.0)
+    key = pd.Timestamp(date).date()
+    return str(table.loc[key, "kind"]) if key in table.index else "rain"
 
 
 # --------------------------------------------------------------------------
