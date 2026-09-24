@@ -14,11 +14,15 @@ Interpolation follows the recommendation's own prescription: ``k`` is
 interpolated on a log-log scale (log frequency, log k) and ``alpha`` on a
 semi-log scale (log frequency, linear alpha).
 
-Note: ``projects/physics_ml/src/rain_simulator.py`` carries its own copy of this
-table, predating this module. It interpolates ``log k`` and ``alpha`` linearly in
-frequency rather than in log-frequency, so the two disagree slightly between
-tabulated points. That project is left untouched here; point it at this module
-when convenient.
+This is the only copy of Table 5 in the repository's Python code.
+``projects/physics_ml/src/rain_simulator.py`` used to carry a duplicate with a
+different interpolation - linear in frequency rather than in log-frequency -
+which disagreed with this one between tabulated points (0.00222 against
+0.00225 at 7.5 GHz). It now re-exports from here.
+
+``projects/physics_ml/notebooks/Simulation_MBML.ipynb`` still has the table
+pasted inline. That notebook is a working experiment rather than library
+code, so it is left alone; import from here in anything new.
 """
 
 from typing import Tuple

@@ -16,9 +16,14 @@ Specific rain attenuation, `gamma = k * R**alpha`, with ITU-R P.838-3 Table 5
 for both polarizations, 1–1000 GHz, interpolated the way the recommendation
 prescribes (log-log in `k`, semi-log in `alpha`).
 
-Imported by `projects/rainfall_field_sim/` and `projects/opensense_pipeline/`.
-`projects/physics_ml/src/rain_simulator.py` still carries an older private copy
-of the same table that interpolates slightly differently.
+Imported by `projects/rainfall_field_sim/`, `projects/opensense_pipeline/` and
+`projects/physics_ml/` — which used to carry its own copy of Table 5 with a
+different interpolation, and now re-exports from here.
+
+One copy remains outside this module: the table is pasted inline in
+`projects/physics_ml/notebooks/Simulation_MBML.ipynb`. That is a working
+experiment rather than library code, so it is left as it is; anything new
+should import from here.
 
 ```python
 from core.itu_p838 import get_k_alpha, specific_attenuation
