@@ -7,10 +7,60 @@ end to end against the OpenMRG dataset. These were previously filed under
 ```
 cml_retrieval/
 ├── notebooks/
-│   ├── model_driven_tutorial.ipynb  # wet-dry, baseline models, IDW/GMZ reconstruction
-│   └── data_driven_tutorial.ipynb   # neural-network retrieval
+│   ├── model_driven_tutorial.ipynb    # wet-dry, baseline models, IDW/GMZ
+│   ├── data_driven_tutorial.ipynb     # neural-network retrieval
+│   └── rainfall_maps_idw_gmz.ipynb    # five reconstructions, side by side
+├── src/
+│   └── rain_maps.py                   # one API over four packages
 └── README.md
 ```
+
+## Rainfall maps, five ways
+
+`src/rain_maps.py` runs five reconstructions over the same links at the same
+timestep, so the differences are the methods rather than the input:
+
+| | package | geometry | peak (mm/h) | grid mean |
+|---|---|---|---|---|
+| IDW | `pycomlink` | midpoint | 85.9 | 2.63 |
+| IDW | `pynncml` | midpoint | 84.6 | 1.30 |
+| **GMZ** | `pynncml` | **line**, 3 pts/link | 66.6 | 1.68 |
+| IDW | `mergeplg` | **line** | 72.9 | 2.13 |
+| block kriging | `mergeplg` | **line** | 80.5 | 2.19 |
+
+```bash
+jupyter lab projects/cml_retrieval/notebooks/rainfall_maps_idw_gmz.ipynb
+```
+
+The split that matters is midpoint versus line. A CML measures a path average
+over kilometres; collapsing it to its midpoint throws that away. GMZ
+(Goldshtein–Messer–Zinevich) and both `mergeplg` methods keep it, and it
+shows: GMZ has the highest 99th percentile of the five (42.8 against
+30–35 mm/h) while having the *lowest* peak, because it spreads intensity
+along the paths instead of piling it onto midpoints.
+
+The grid means span a factor of two, which is mostly a coverage difference
+rather than a physical one — `pynncml` only fills a radius around each link
+and leaves the rest masked, while the others interpolate across the whole
+domain.
+
+### Two bugs in pynncml's GMZ
+
+Found while building this, both in `compute_rain_point_from_field`
+(pynncml 0.3.7). `rain_maps.patch_pynncml_gmz()` fixes them in memory; they
+belong upstream at [haihabi/PyNNcml](https://github.com/haihabi/PyNNcml).
+
+**The ceiling index is unclamped.** `i_ceiling` reaches `len(grid)` whenever a
+link point lands on the edge of the bounding box built from the links
+themselves — so it raises `IndexError` on any full network, which is how it
+surfaced.
+
+**The ceiling-ceiling corner reads the wrong axis.**
+`cc = in_rain_map[:, j_ceiling, j_ceiling]` uses the *y* index for both
+dimensions where it should be `[i_ceiling, j_ceiling]`. This one does not
+raise — it silently samples the wrong grid cell for one of the four bilinear
+corners, wherever `i_ceiling != j_ceiling`, which is almost everywhere. Any
+GMZ result produced with this version is affected.
 
 ## Related work in this repository
 

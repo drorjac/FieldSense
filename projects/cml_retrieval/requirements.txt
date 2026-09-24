@@ -1,7 +1,14 @@
 # Project-specific dependencies (on top of the repository-root requirements.txt)
-pynncml
-torch
+numpy
+scipy
+matplotlib
 xarray
 netCDF4
-matplotlib
-numpy
+
+# Rainfall-map reconstruction backends compared in
+# notebooks/rainfall_maps_idw_gmz.ipynb
+pynncml          # IDW and GMZ; see patch_pynncml_gmz() in src/rain_maps.py
+pycomlink        # IdwKdtreeInterpolator, OrdinaryKrigingInterpolator
+mergeplg==0.1.0  # line-aware InterpolateIDW / InterpolateOrdinaryKriging
+poligrain>=0.3.1
+torch            # pynncml runs on torch
