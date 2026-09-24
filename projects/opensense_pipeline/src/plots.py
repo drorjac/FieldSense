@@ -284,3 +284,70 @@ def fig_coverage(rows, path, title):
     fig.tight_layout()
     fig.savefig(path)
     plt.close(fig)
+
+
+# --------------------------------------------------------------------------
+def fig_retrieval_vs_reference(ours, ref, stats, path, subtitle=""):
+    """Our retrieval against the OpenSense reference, on identical signals."""
+    a = np.asarray(ours).ravel()
+    b = np.asarray(ref).ravel()
+    ok = np.isfinite(a) & np.isfinite(b)
+    a, b = a[ok], b[ok]
+
+    fig, axes = plt.subplots(1, 3, figsize=(14.6, 4.6))
+    ax_sc, ax_ts, ax_cdf = axes
+
+    # (a) paired scatter. Wet-only, on log axes: the great majority of
+    # link-timesteps are dry zeros, which on a linear axis pile onto the
+    # origin and hide the part of the range anyone cares about.
+    wet = (a > 0.1) & (b > 0.1)
+    ax_sc.scatter(b[wet], a[wet], s=5, alpha=0.18,
+                  color=FAMILY_COLOR["CML only"], edgecolor="none", zorder=3)
+    lim = float(max(np.percentile(a[wet], 99.9), np.percentile(b[wet], 99.9))) \
+        if wet.any() else 10.0
+    ax_sc.plot([0.1, lim], [0.1, lim], ls=":", lw=1.2, color=vs.INK_MUTED, zorder=4)
+    ax_sc.set_xscale("log")
+    ax_sc.set_yscale("log")
+    ax_sc.set_xlim(0.1, lim)
+    ax_sc.set_ylim(0.1, lim)
+    ax_sc.set_xlabel("OpenSense reference R (mm h$^{-1}$)")
+    ax_sc.set_ylabel("our retrieval (mm h$^{-1}$)")
+    ax_sc.set_title("Paired link-timesteps, wet only")
+    vs.annotate_corner(
+        ax_sc,
+        f"r = {stats['corr_wet']:.3f}\nratio = {stats['ratio_total']:.2f}\n"
+        f"n = {int(wet.sum()):,}", loc="upper left")
+
+    # (b) network-mean time series
+    ours2d = np.asarray(ours)
+    ref2d = np.asarray(ref)
+    with np.errstate(invalid="ignore"):
+        m_ours = np.nanmean(ours2d, axis=1)
+        m_ref = np.nanmean(ref2d, axis=1)
+    t = np.arange(m_ours.size)
+    ax_ts.plot(t, m_ref, color=vs.INK_SECONDARY, lw=1.6, label="reference")
+    ax_ts.plot(t, m_ours, color=FAMILY_COLOR["CML only"], lw=1.6, label="ours")
+    ax_ts.set_xlabel("timestep")
+    ax_ts.set_ylabel("network-mean rain (mm h$^{-1}$)")
+    ax_ts.set_title("Network mean over time")
+    ax_ts.legend(loc="upper right")
+
+    # (c) exceedance, which shows where in the distribution they part company
+    levels = np.logspace(-1, np.log10(max(lim, 1.1)), 60)
+    ax_cdf.plot(levels, [(b > lv).mean() * 100 for lv in levels],
+                color=vs.INK_SECONDARY, lw=1.8, label="reference")
+    ax_cdf.plot(levels, [(a > lv).mean() * 100 for lv in levels],
+                color=FAMILY_COLOR["CML only"], lw=1.8, label="ours")
+    ax_cdf.set_xscale("log")
+    ax_cdf.set_yscale("log")
+    ax_cdf.set_xlabel("rain rate r (mm h$^{-1}$)")
+    ax_cdf.set_ylabel("link-timesteps with R > r  (%)")
+    ax_cdf.set_title("Intensity exceedance")
+    ax_cdf.legend(loc="lower left")
+
+    head = "Our retrieval vs the OpenSense reference, identical input signals"
+    fig.suptitle(f"{head}  —  {subtitle}" if subtitle else head,
+                 fontsize=12.5, color=vs.INK_PRIMARY, y=1.02)
+    fig.tight_layout()
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)

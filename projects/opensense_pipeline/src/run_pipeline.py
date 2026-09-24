@@ -148,14 +148,32 @@ def validate_over_time(ds_rad, ds_cml, ds_gauge, n_times: int = 20,
 
 # --------------------------------------------------------------------------
 def run_dataset(name: str, module, event_key: str,
-                n_val: int = 20, max_cells: int = 6000) -> dict:
-    """Ingest one event, apply every method, write maps and validation."""
-    event = module.EVENTS[event_key]
-    print(f"\n{'=' * 74}\n{name}: {event.label}\n  {event.note}\n{'=' * 74}")
+                n_val: int = 20, max_cells: int = 6000,
+                source: str = "raw", offline: bool = False) -> dict:
+    """Ingest one event, apply every method, write maps and validation.
 
-    # The ingest modules already emit gauges on an "id" dimension carrying
-    # x/y and lon/lat, which is what mergeplg and poligrain need.
-    ds_rad, ds_cml, ds_gauge = module.build_event(event)
+    ``source`` picks where the data comes from - the full local Zenodo
+    archives (``raw``) or the curated example subsets (``example``). Both
+    produce the same (radar, cml, gauge) triple, so nothing downstream cares.
+    """
+    # Results from the two sources must not overwrite each other: the example
+    # subsets cover a different period from the curated events.
+    tag = "" if source == "raw" else f"_{source}"
+
+    if source == "example":
+        key = name.lower()
+        _, subset, _, label = EXAMPLE_EVENTS[key]
+        print(f"\n{'=' * 74}\n{name}: {label}\n"
+              f"  curated example subset '{subset}'\n{'=' * 74}")
+        ds_rad, ds_cml, ds_gauge = build_from_example(key, offline=offline)
+        event_key_used, event_label = subset, label
+    else:
+        event = module.EVENTS[event_key]
+        print(f"\n{'=' * 74}\n{name}: {event.label}\n  {event.note}\n{'=' * 74}")
+        # The ingest modules already emit gauges on an "id" dimension carrying
+        # x/y and lon/lat, which is what mergeplg and poligrain need.
+        ds_rad, ds_cml, ds_gauge = module.build_event(event)
+        event_key_used, event_label = event.key, event.label
 
     t = peak_timestep(ds_cml)
     stamp = str(ds_cml.time.values[t])[:16].replace("T", " ")
@@ -165,15 +183,15 @@ def run_dataset(name: str, module, event_key: str,
 
     plots.fig_sensors(
         ds_rad, ds_cml, ds_gauge, t,
-        f"{name} - {event.label}, {stamp} UTC: three sensor geometries",
-        RESULTS / f"{name.lower()}_1_sensors.png")
+        f"{name} - {event_label}, {stamp} UTC: three sensor geometries",
+        RESULTS / f"{name.lower()}_1_sensors{tag}.png")
 
     fields, _ = apply_methods(ds_rad, ds_cml, ds_gauge, t)
     labels = {m.key: m.label for m in METHODS}
     plots.fig_merged_maps(
         ds_rad, fields, labels,
-        f"{name} - {event.label}, {stamp} UTC: rainfall maps by method",
-        RESULTS / f"{name.lower()}_2_maps.png")
+        f"{name} - {event_label}, {stamp} UTC: rainfall maps by method",
+        RESULTS / f"{name.lower()}_2_maps{tag}.png")
 
     print(f"  validating against gauges over the {n_val} wettest timesteps")
     rows, pooled, chosen = validate_over_time(ds_rad, ds_cml, ds_gauge,
@@ -182,7 +200,7 @@ def run_dataset(name: str, module, event_key: str,
     plots.fig_gauge_validation(
         {k: np.concatenate(v["est"]) for k, v in pooled.items()},
         label_map, np.concatenate(pooled[METHODS[0].key]["obs"]),
-        RESULTS / f"{name.lower()}_3_gauge_validation.png",
+        RESULTS / f"{name.lower()}_3_gauge_validation{tag}.png",
         f"{name}: methods vs held-out gauges, "
         f"{len(chosen)} wettest timesteps")
 
@@ -195,7 +213,7 @@ def run_dataset(name: str, module, event_key: str,
 
     coverage = coverage_analysis(pooled, ds_cml, ds_gauge, len(chosen))
     if coverage:
-        plots.fig_coverage(coverage, RESULTS / f"{name.lower()}_4_coverage.png",
+        plots.fig_coverage(coverage, RESULTS / f"{name.lower()}_4_coverage{tag}.png",
                            f"{name}: does merge gain depend on proximity "
                            f"to the link network?")
         dist = distance_to_network(ds_cml, np.asarray(ds_gauge.x),
@@ -212,9 +230,122 @@ def run_dataset(name: str, module, event_key: str,
             print(f"  {b:>12} {best['n_gauges']:6d}  {best['method']:34s} "
                   f"{best['rmse']:6.2f}   {radar['rmse']:6.2f}")
 
-    return {"dataset": name, "event": event.key, "label": event.label,
+    return {"dataset": name, "event": event_key_used,
+            "label": event_label,
             "timestep": stamp, "gauge_validation": rows,
             "coverage_analysis": coverage}
+
+
+# --------------------------------------------------------------------------
+# the example-subset source
+# --------------------------------------------------------------------------
+EXAMPLE_EVENTS = {
+    "openmrg": ("openmrg", "8d", "gauge_municipal",
+                "OpenMRG 8-day subset, 2015-07-22 .. 07-29"),
+    "openrainer": ("openrainer", "8d", "gauge",
+                   "OpenRainER 8-day subset"),
+}
+
+
+def build_from_example(dataset: str, resample: str = "5min",
+                       offline: bool = False) -> tuple:
+    """(radar, cml, gauge) from a curated example subset.
+
+    The same triple ``ingest_*.build_event`` returns from the full Zenodo
+    archives, so everything downstream is unchanged. The CML retrieval is the
+    shared chain in ``retrieval.py``, run on the subset's own tsl/rsl.
+
+    Radar in these subsets is already rain rate on a lat/lon grid, so it needs
+    projecting but not a Z-R step.
+    """
+    import example_data
+    from retrieval import RetrievalConfig, retrieve
+
+    key, subset, gauge_component, label = EXAMPLE_EVENTS[dataset]
+    cache = example_data.CACHE / example_data.DATASETS[key].folder
+    if offline and not cache.exists():
+        raise SystemExit(
+            f"--offline but no cached subset at {cache}.\n"
+            f"Run: python projects/opensense_pipeline/src/example_data.py "
+            f"--dataset {key} --subset {subset}")
+
+    data = example_data.load(key, subset)
+    crs = example_data.DATASETS[key].crs
+    cml_raw = data["cml"]
+
+    # --- CML: run the retrieval chain on the subset's raw signals ---
+    d = cml_raw.transpose("time", "cml_id", "sublink_id")
+    loss = np.asarray(d.tsl - d.rsl, dtype=float)
+    n_t, n_c, n_s = loss.shape
+    length = np.asarray(cml_raw.length_km)
+    if length.ndim == 1:
+        length = np.repeat(length[:, None], n_s, axis=1)
+    freq = np.asarray(cml_raw.frequency_ghz)
+    if freq.ndim == 1:
+        freq = np.repeat(freq[:, None], n_s, axis=1)
+    pol = np.asarray(cml_raw.polarization)
+    pol = pol.reshape(freq.shape) if pol.size == freq.size \
+        else np.full(freq.shape, "vertical")
+
+    interval = float(np.diff(cml_raw.time.values[:2])
+                     .astype("timedelta64[s]").astype(float)[0])
+    cfg = RetrievalConfig.for_interval(interval)
+    rain = retrieve(loss.reshape(n_t, n_c * n_s), length.ravel(),
+                    freq.ravel(), pol.ravel(), cfg)["R"]
+    with np.errstate(invalid="ignore"):
+        rain = np.nanmean(rain.reshape(n_t, n_c, n_s), axis=2)
+
+    keep = ("site_0_x", "site_0_y", "site_1_x", "site_1_y", "x", "y",
+            "length_km", "frequency_ghz")
+    cml = xr.Dataset({"R": (("time", "cml_id"), rain)},
+                     coords={"time": cml_raw.time, "cml_id": cml_raw.cml_id})
+    for c in keep:
+        if c not in cml_raw.coords:
+            continue
+        da = cml_raw[c]
+        # Per-link metadata is sometimes stored per sublink, and the dim order
+        # is not consistent between files - select by name, never by position.
+        if "sublink_id" in da.dims:
+            da = da.isel(sublink_id=0, drop=True)
+        cml.coords[c] = ("cml_id", np.asarray(da))
+    cml.coords["length"] = cml.length_km
+    cml.coords["frequency"] = cml.frequency_ghz
+
+    # --- radar: already rain rate, just needs projected grid coordinates ---
+    rad_raw = data["radar"]
+    var = "R" if "R" in rad_raw.data_vars else "rainfall_amount"
+    rad = xr.Dataset({"R": rad_raw[var]})
+    lon2d, lat2d = np.asarray(rad_raw.lon), np.asarray(rad_raw.lat)
+    if lon2d.ndim == 1:
+        lon2d, lat2d = np.meshgrid(lon2d, lat2d)
+    rad.coords["longitudes"] = (("y", "x"), lon2d)
+    rad.coords["latitudes"] = (("y", "x"), lat2d)
+    import poligrain as plg
+    xs, ys = plg.spatial.project_point_coordinates(
+        rad.longitudes, rad.latitudes, crs)
+    rad.coords["x_grid"], rad.coords["y_grid"] = xs, ys
+    xv, yv = np.asarray(xs), np.asarray(ys)
+    rad.coords["x"] = ("x", xv[xv.shape[0] // 2, :])
+    rad.coords["y"] = ("y", yv[:, xv.shape[1] // 2])
+
+    # --- gauges: accumulations per sampling step -> mm/h ---
+    g_raw = data[gauge_component]
+    g_interval = float(np.diff(g_raw.time.values[:2])
+                       .astype("timedelta64[s]").astype(float)[0])
+    gauge = xr.Dataset({"R": g_raw.rainfall_amount.transpose("time", "id")
+                        * (3600.0 / g_interval)})
+    for c in ("x", "y", "lon", "lat"):
+        if c in g_raw.coords:
+            gauge.coords[c] = ("id", np.asarray(g_raw[c]))
+
+    cml = cml.resample(time=resample).mean()
+    gauge = gauge.resample(time=resample).mean()
+    rad = rad.resample(time=resample).mean()
+    times = np.intersect1d(np.intersect1d(rad.time, cml.time), gauge.time)
+    rad, cml, gauge = (x.sel(time=times) for x in (rad, cml, gauge))
+    for ds_ in (rad, cml, gauge):
+        ds_.attrs.update(source=f"{key} example subset {subset}", label=label)
+    return rad, cml, gauge
 
 
 # --------------------------------------------------------------------------
@@ -279,6 +410,12 @@ def main() -> None:
                     choices=sorted(omrg.EVENTS))
     ap.add_argument("--openrainer-event", default="sep26",
                     choices=sorted(orain.EVENTS))
+    ap.add_argument("--source", choices=["raw", "example"], default="raw",
+                    help="raw: the full Zenodo archives already on disk "
+                         "(default). example: the small curated subsets, "
+                         "downloaded on first use (~57 MB).")
+    ap.add_argument("--offline", action="store_true",
+                    help="never download; fail if the data is not local")
     ap.add_argument("--skip-benchmark", action="store_true")
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--val-timesteps", type=int, default=20,
@@ -290,14 +427,20 @@ def main() -> None:
 
     vs.use_style()
     RESULTS.mkdir(parents=True, exist_ok=True)
-    summary = {}
+    summary = {"source": args.source}
+    print(f"data source: {args.source}"
+          + ("  (offline)" if args.offline else ""))
 
     if not args.skip_benchmark:
         print(f"\n{'=' * 74}\nSynthetic benchmark on the real OpenMRG "
               f"geometry\n{'=' * 74}")
-        rad, cml, gauge = omrg.build_event(omrg.EVENTS[args.openmrg_event])
+        if args.source == "example":
+            rad, cml, gauge = build_from_example("openmrg", offline=args.offline)
+        else:
+            rad, cml, gauge = omrg.build_event(omrg.EVENTS[args.openmrg_event])
         rows = run_benchmark(rad, cml, gauge, n_seeds=args.seeds)
-        plots.fig_benchmark(rows, RESULTS / "benchmark_ranking.png")
+        plots.fig_benchmark(rows, RESULTS / ("benchmark_ranking.png" if args.source == "raw"
+                                else f"benchmark_ranking_{args.source}.png"))
         summary["benchmark"] = rows
 
         for regime in dict.fromkeys(r["regime"] for r in rows):
@@ -312,13 +455,16 @@ def main() -> None:
     runs = []
     if args.dataset in ("openmrg", "both"):
         runs.append(run_dataset("OpenMRG", omrg, args.openmrg_event,
-                                args.val_timesteps, args.val_max_cells))
+                                args.val_timesteps, args.val_max_cells,
+                                args.source, args.offline))
     if args.dataset in ("openrainer", "both"):
         runs.append(run_dataset("OpenRainER", orain, args.openrainer_event,
-                                args.val_timesteps, args.val_max_cells))
+                                args.val_timesteps, args.val_max_cells,
+                                args.source, args.offline))
     summary["applications"] = runs
 
-    out = RESULTS / "summary.json"
+    out = RESULTS / ("summary.json" if args.source == "raw"
+                     else f"summary_{args.source}.json")
     out.write_text(json.dumps(summary, indent=1, default=float))
     print(f"\nwrote {out.relative_to(REPO_ROOT)}")
     for p in sorted(RESULTS.glob("*.png")):

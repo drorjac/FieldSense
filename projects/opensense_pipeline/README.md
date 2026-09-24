@@ -48,14 +48,33 @@ data["cml"].frequency_ghz          # normalized on load
 ### Full records — 8.4 GB, the actual experiments
 
 ```bash
+.venv/bin/python projects/opensense_pipeline/src/fetch.py --list        # look, don't fetch
 .venv/bin/python projects/opensense_pipeline/src/fetch.py --dataset openmrg
-.venv/bin/python projects/opensense_pipeline/src/fetch.py --dataset openrainer
 .venv/bin/python projects/opensense_pipeline/src/run_pipeline.py
 ```
 
-`fetch.py --list` shows what each Zenodo record holds without downloading.
-Downloads resume and are md5-verified, so re-running is cheap.
-`run_pipeline.py --skip-benchmark` runs only the application half.
+Downloads resume and are md5-verified, and an already-verified file is
+skipped, so re-running costs nothing.
+
+### Choosing where the pipeline reads from
+
+```bash
+# the full archives already on disk — never touches the network
+.venv/bin/python projects/opensense_pipeline/src/run_pipeline.py --source raw --offline
+
+# the small subsets instead; downloads ~57 MB on first use, then cached
+.venv/bin/python projects/opensense_pipeline/src/run_pipeline.py --source example
+```
+
+`--source raw` (the default) reads the extracted Zenodo archives.
+`--source example` runs the identical pipeline on the curated subsets — same
+retrieval chain, same merge methods, same figures. `--offline` refuses to
+download anything and fails with the command to run instead, so a machine that
+already has the data never re-fetches it.
+
+Results are namespaced by source (`openmrg_2_maps.png` vs
+`openmrg_2_maps_example.png`), because the subsets cover a different period
+from the curated events and would otherwise overwrite them.
 
 ## The data
 
@@ -144,6 +163,68 @@ attenuation at 10 mm/h, so subtracting 2.3 dB removes most of the signal.
 Correlation is flat at 0.75–0.80 across the entire range. **These knobs move
 magnitude, never skill** — which is why the merge comparison downstream is
 robust to them.
+
+## Checking the retrieval against OpenSense's own
+
+The retrieval had no independent check: it was scored against rain gauges,
+which are sparse point sensors measuring something different from a path
+average, so a disagreement could not be attributed to either side.
+
+The OpenMRG `8d` subset closes that gap. It ships raw `tsl`/`rsl` **and** a
+reference rain rate `R` that the OpenSense community retrieved from exactly
+those signals — 364 links at 10 s over 2015-07-22 to 07-29, a window that
+contains the Torslanda event. Both retrievals see identical input.
+
+```bash
+.venv/bin/python projects/opensense_pipeline/src/validate_retrieval.py --offline
+.venv/bin/python projects/opensense_pipeline/src/validate_retrieval.py --sweep
+```
+
+**The chain has the right skill and the wrong magnitude.** Over the full 8 days
+(22.5 M link-timesteps):
+
+| | ours | reference |
+|---|---|---|
+| correlation with each other | 0.878 | — |
+| wet/dry agreement | 82.7% | — |
+| mean rain | 0.490 mm/h | 0.266 mm/h |
+| ratio to municipal gauges, matched pairs | **2.28** | **1.05** |
+| correlation with gauges | 0.72 | 0.74 |
+
+The reference is essentially unbiased against gauges; ours over-reads by a
+factor of ~2, with the same correlation. `retrieval_vs_reference_torslanda.png`
+shows why: the time series have the same shape and timing, uniformly scaled up,
+and the exceedance curves run parallel. That is a calibration error, not a
+skill error.
+
+### The wet-antenna default is not transferable
+
+`--sweep` varies the wet-antenna term against the reference. On the Torslanda
+window correlation *peaks* at 1.5–2.0 dB and the ratio reaches 1.0 at 2.3 dB —
+the Schleiss et al. (2013) literature value:
+
+| waa_max_db | ratio to reference (8d) | ratio (Torslanda) | corr |
+|---|---|---|---|
+| 0.5 *(current default)* | 1.75 | 1.74 | 0.896 |
+| 1.5 | 1.11 | 1.25 | 0.907 |
+| 2.3 *(literature)* | 0.78 | 0.98 | 0.906 |
+
+But the same sweep against the aug25 **gauges** pulls the other way: 0.5 dB
+gives 0.79 and 1.5 dB gives 0.53. No single static value satisfies both, and
+the spread across events is about 2× (aug25 0.79, Torslanda 1.48, 8-day 2.28
+at the current default).
+
+Two things are worth saying plainly. The 0.5 dB default was fitted to one
+event against 10 gauges — 200 paired values — and does not generalise; the
+reference comparison is 22.5 M paired values and favours 1.5–2.3 dB, which is
+also where the literature sits. And a static saturating wet-antenna model
+cannot track an effect that depends on the wetting and drying history of the
+radome, which is the likely reason no constant works everywhere.
+
+**The default is left at 0.5 dB** so the results elsewhere in this README stay
+reproducible. Treat the magnitude as uncertain to a factor of ~2 and the
+ranking of merge methods — which is what the pipeline exists to establish — as
+unaffected, since every method receives the same CML input.
 
 ## Why a synthetic stage
 
@@ -271,6 +352,8 @@ opensense_pipeline/
 │   ├── fetch.py                # Zenodo full records, resumable + verified
 │   ├── example_data.py         # curated OpenSense subsets (ported from poligrain)
 │   ├── conventions.py          # unit / polarization normalization across sources
+│   ├── retrieval.py            # the CML retrieval chain, source-independent
+│   ├── validate_retrieval.py   # ours vs the OpenSense reference retrieval
 │   ├── ingest_openmrg.py       # raw TSL/RSL -> OpenSense-1.0 + retrieval
 │   ├── ingest_openrainer.py    # same, second dataset
 │   ├── merging.py              # uniform wrapper over mergeplg + baselines
