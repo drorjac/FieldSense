@@ -60,6 +60,7 @@ physics_ml/
 │   ├── rain_simulator.py    # ITU-R P.838-3 synthetic attenuation generator
 │   ├── data_analysis.py     # Dataset generation and inspection
 │   └── training_utils.py    # Training loops, device selection, plotting
+│   ├── discover_itu.py      # PySR: recover k, alpha from CML data
 │   └── gravity/             # worked PINN example (N-body gravity)
 │       ├── pinn_main.py     pinn_model.py
 │       └── pinn_learning.py pinn_utils.py
@@ -81,6 +82,54 @@ notebooks and the PINN comparison are **method tutorials** for the
 physics-informed tools this project builds on — they moved here from
 `core/examples/`, which was holding notebooks from three unrelated topics.
 See `core/scientific_packages/` for the PySINDy and PySR reference notes.
+
+## Rediscovering ITU-R P.838-3 with symbolic regression
+
+Every retrieval here *inverts* `gamma = k * R^alpha`. `src/discover_itu.py`
+asks the opposite question: given attenuation and rain rate, does PySR find
+the power law, and does it recover the tabulated coefficients?
+
+```bash
+python projects/physics_ml/src/discover_itu.py --all --band 30
+```
+
+Three experiments in deliberate order, all in the 30 GHz band where OpenMRG
+has 172 links (ITU: k = 0.229, alpha = 0.913):
+
+| experiment | rain rate from | recovered k | recovered alpha | alpha error |
+|---|---|---|---|---|
+| synthetic | ITU + noise, truth known | 0.229 | 0.913 | **0.000** |
+| reference | OpenSense's published retrieval | 0.419 | 0.911 | **0.002** |
+| gauge | municipal rain gauges | 0.488 | 0.478 | **0.435** |
+
+**The exponent is recoverable from real data; the prefactor is not.** Against
+the reference retrieval PySR lands on alpha = 0.911 against ITU's 0.913 — but
+k comes out 83% high. The fitted curve is *parallel* to ITU and displaced
+upward, which is the signature of a constant added to the attenuation rather
+than an error in the power law.
+
+That offset is almost certainly unmodelled wet-antenna attenuation, and the
+size is telling: +83% here, against the ~1.86x over-read that
+`opensense_pipeline/src/validate_retrieval.py` measures for the same chain
+against the same reference. Two independent methods, the same bias, and both
+locate it in the prefactor.
+
+**The gauge experiment fails, for a statistical reason worth naming.** Alpha
+collapses to 0.478 and the naive log-log fit to 0.312. This is regression
+dilution: the predictor is a point gauge, the response is a path average over
+kilometres, and when the predictor carries that much independent noise the
+fitted slope is biased toward zero. It is not evidence against the power law
+— it is evidence that gauge-link pairs are the wrong data to fit one with.
+
+Two notes on method. PySR needs `^` in its operator set or the search cannot
+reach a power law at all and spends its budget on polynomial approximations
+that fit acceptably and explain nothing. And `model_selection="best"` tends
+to pick a straight line at CML frequencies, because alpha sits within ~0.15
+of 1 across 15–40 GHz; the script therefore reduces *every* Pareto candidate
+to the `k * R^alpha` it is equivalent to, rather than trusting the single
+"best" expression.
+
+![Recovering ITU-R P.838-3](results/discover_itu.png)
 
 ## Getting Started
 
