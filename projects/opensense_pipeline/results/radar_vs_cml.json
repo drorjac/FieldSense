@@ -1,0 +1,78 @@
+[
+ {
+  "source": "openmrg",
+  "event": "torslanda",
+  "label": "Torslanda 2015-07-28",
+  "regime": "convective cell",
+  "n_steps": 40,
+  "corr_median": 0.2497409619341522,
+  "corr_p25": 0.15401264004385715,
+  "corr_p75": 0.3726920773674075,
+  "ratio_accumulation": 1.7915871216431567,
+  "radar_acc_mean": 37.81581497192383,
+  "cml_acc_mean": 68.835575927823,
+  "band_corr": {
+   "0-2 km": 0.43284863504887333,
+   "2-5 km": 0.43810783671487874,
+   "5-10 km": 0.4101206428310663,
+   "10-inf km": 0.6149664386855086
+  }
+ },
+ {
+  "source": "openmrg",
+  "event": "aug25",
+  "label": "25 August 2015",
+  "regime": "mixed",
+  "n_steps": 40,
+  "corr_median": 0.5368395633270144,
+  "corr_p25": 0.4681172251726874,
+  "corr_p75": 0.6257494144188072,
+  "ratio_accumulation": 0.6122047885587839,
+  "radar_acc_mean": 178.16001892089844,
+  "cml_acc_mean": 110.81753795529737,
+  "band_corr": {
+   "0-2 km": 0.9126271704965309,
+   "2-5 km": 0.891171915429224,
+   "5-10 km": 0.8225938998262816,
+   "10-inf km": 0.6788675134615972
+  }
+ },
+ {
+  "source": "openmrg",
+  "event": "jun17",
+  "label": "17 June 2015",
+  "regime": "widespread frontal",
+  "n_steps": 40,
+  "corr_median": 0.11331821635568712,
+  "corr_p25": -0.06111925386561256,
+  "corr_p75": 0.31790807238723046,
+  "ratio_accumulation": 1.2621391253823397,
+  "radar_acc_mean": 18.792348861694336,
+  "cml_acc_mean": 24.098489440564848,
+  "band_corr": {
+   "0-2 km": 0.4316597924103256,
+   "2-5 km": 0.3313616607381319,
+   "5-10 km": 0.2392070182085558,
+   "10-inf km": -0.19381667819670925
+  }
+ },
+ {
+  "source": "openrainer",
+  "event": "sep26",
+  "label": "26 September 2021",
+  "regime": "widespread, Italy",
+  "n_steps": 37,
+  "corr_median": 0.35845987160151904,
+  "corr_p25": 0.2372103539274208,
+  "corr_p75": 0.42743555890566143,
+  "ratio_accumulation": 1.0181606839020396,
+  "radar_acc_mean": 92.50155639648438,
+  "cml_acc_mean": 124.76538417603162,
+  "band_corr": {
+   "0-2 km": 0.4494969903720198,
+   "2-5 km": 0.4589488304683389,
+   "5-10 km": 0.3743148481406542,
+   "10-inf km": 0.2861523507218751
+  }
+ }
+]

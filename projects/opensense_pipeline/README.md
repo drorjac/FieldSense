@@ -229,6 +229,57 @@ reproducible. Treat the magnitude as uncertain to a factor of ~2 and the
 ranking of merge methods — which is what the pipeline exists to establish — as
 unaffected, since every method receives the same CML input.
 
+## Radar against CML maps, through precipitation events
+
+Both sensors claim the same field and disagree. `src/compare_radar_cml.py`
+puts them on the **same grid** — radar as published, CML interpolated onto it
+line-aware — and asks where and when they part company.
+
+```bash
+.venv/bin/python projects/opensense_pipeline/src/compare_radar_cml.py --all
+```
+
+| event | regime | median spatial corr | IQR | CML / radar accumulation |
+|---|---|---|---|---|
+| Torslanda 2015-07-28 | convective cell | 0.25 | 0.15–0.37 | **1.79** |
+| 25 August 2015 | mixed | 0.54 | 0.47–0.63 | **0.61** |
+| 17 June 2015 | widespread frontal | 0.11 | -0.06–0.32 | **1.26** |
+| 26 September 2021 | widespread, Italy | 0.36 | 0.24–0.43 | **1.02** |
+
+**They agree moderately at best, and never well.** Per-timestep spatial
+correlation runs 0.11 to 0.54 across four events in two countries. These are
+two instruments measuring the same rain and they concur on roughly a quarter
+to a half of the spatial variance.
+
+**The magnitude relationship is not stable.** The CML/radar accumulation ratio
+swings from 0.61 to 1.79 — a factor of three across events — with no
+consistent sign. Whatever bias each carries is event-dependent, which is why a
+single calibration constant does not transfer (the same conclusion the
+wet-antenna sweep reaches from the other direction).
+
+**Agreement is best where the links are — except when it is not.**
+Correlation of accumulation, by distance from the nearest link path:
+
+| event | 0-2 km | 2-5 km | 5-10 km | 10+ km |
+|---|---|---|---|---|
+| Torslanda 2015-07-28 | 0.43 | 0.44 | 0.41 | 0.61 |
+| 25 August 2015 | 0.91 | 0.89 | 0.82 | 0.68 |
+| 17 June 2015 | 0.43 | 0.33 | 0.24 | -0.19 |
+| 26 September 2021 | 0.45 | 0.46 | 0.37 | 0.29 |
+
+Three of four decline monotonically with distance, sharply — 25 August runs
+0.91 down to 0.68, and 17 June goes *negative* beyond 10 km. That is the
+expected shape: interpolation has nothing to work with far from the network.
+
+Torslanda inverts it, rising from 0.43 to 0.61, and the reason is worth
+stating rather than explaining away. It is the convective case: a single cell
+over a mostly dry domain. Far from the network both sensors report near-zero
+and correlate on their shared agreement that nothing is happening. **That is
+agreement about absence, not skill** — a reminder that a correlation computed
+over a mostly-dry field flatters whichever method produces smooth nothing.
+
+![Radar against CML](results/radar_vs_cml.png)
+
 ## Why a synthetic stage
 
 Merge methods cannot be honestly ranked on real data. There is no true
@@ -357,6 +408,7 @@ opensense_pipeline/
 │   ├── conventions.py          # unit / polarization normalization across sources
 │   ├── retrieval.py            # the CML retrieval chain, source-independent
 │   ├── validate_retrieval.py   # ours vs the OpenSense reference retrieval
+│   ├── compare_radar_cml.py    # radar vs CML maps through events
 │   ├── ingest_openmrg.py       # raw TSL/RSL -> OpenSense-1.0 + retrieval
 │   ├── ingest_openrainer.py    # same, second dataset
 │   ├── merging.py              # uniform wrapper over mergeplg + baselines
