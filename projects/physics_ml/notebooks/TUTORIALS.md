@@ -10,8 +10,6 @@ experiment — that is `Simulation_MBML.ipynb` in this folder.
 |----------|-------------|-------|
 | `01_sindy_basics.ipynb` | SINDy on Lorenz system | PySINDy |
 | `02_pysr_basics.ipynb` | Symbolic regression basics | PySR |
-| `pinn_vs_nn_comparison.ipynb` | PINN vs a plain network on N-body gravity | PyTorch |
-| `03_nbody_full_pipeline.ipynb` | Full pipeline: simulation → data → discovery | PySINDy, PySR |
 
 ## Getting Started
 
@@ -25,23 +23,22 @@ source .venv/bin/activate   # from the repository root
 jupyter notebook
 ```
 
-3. Start with `01_sindy_basics.ipynb` or `02_pysr_basics.ipynb` for tool basics, then move to `03_nbody_full_pipeline.ipynb` for a complete workflow.
+3. Start with `01_sindy_basics.ipynb` or `02_pysr_basics.ipynb` for the tool basics, then read `../src/discover_advection.py` and `../src/discover_itu.py`, which run those tools on CML data.
 
-## Learning Path
+## Learning path
 
 ```
-Basics                          Full Pipeline
-┌─────────────────┐            ┌─────────────────────────┐
-│ 01_sindy_basics │──┐         │ 03_nbody_full_pipeline  │
-└─────────────────┘  │         │                         │
-                     ├────────▶│ • Simulation            │
-┌─────────────────┐  │         │ • Visualization         │
-│ 02_pysr_basics  │──┘         │ • Data extraction       │
-└─────────────────┘            │ • SINDy + PySR learning │
-                               └─────────────────────────┘
+01_sindy_basics   ──►  ../src/discover_advection.py   (SINDy on rain fields)
+02_pysr_basics    ──►  ../src/discover_itu.py         (PySR on CML attenuation)
 ```
 
-## See Also
+Each tutorial teaches a method on a textbook problem; each script runs that
+method on a FieldSense quantity where the right answer is known.
 
-- [PySINDy Resources](../docs/PYSINDY.md)
-- [PySR Resources](../docs/PYSR.md)
+---
+
+The N-body pipeline and the PINN-vs-network comparison moved to
+`projects/mphysics/` — they are classical-physics demonstrations with no
+FieldSense counterpart. The two tutorials that remain teach methods this
+project runs on real data: see `src/discover_itu.py` (PySR) and
+`src/discover_advection.py` (SINDy).

@@ -1,0 +1,8 @@
+# Project-specific dependencies (on top of the repository-root requirements.txt)
+numpy
+scipy
+matplotlib
+torch
+tqdm
+pysindy
+pysr

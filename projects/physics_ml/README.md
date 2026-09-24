@@ -60,28 +60,42 @@ physics_ml/
 │   ├── rain_simulator.py    # ITU-R P.838-3 synthetic attenuation generator
 │   ├── data_analysis.py     # Dataset generation and inspection
 │   └── training_utils.py    # Training loops, device selection, plotting
-│   ├── discover_itu.py      # PySR: recover k, alpha from CML data
-│   └── gravity/             # worked PINN example (N-body gravity)
-│       ├── pinn_main.py     pinn_model.py
-│       └── pinn_learning.py pinn_utils.py
+│   ├── discover_itu.py      # PySR: recover ITU-R k, alpha from CML attenuation
+│   └── discover_advection.py # SINDy: recover rain-field advection
 ├── notebooks/
 │   ├── Simulation_MBML.ipynb          # the CML rain-retrieval experiment
-│   ├── TUTORIALS.md                   # guide to the method tutorials below
+│   ├── TUTORIALS.md                   # guide to the two method tutorials
 │   ├── 01_sindy_basics.ipynb          # SINDy on the Lorenz system
-│   ├── 02_pysr_basics.ipynb           # symbolic regression basics
-│   ├── 03_nbody_full_pipeline.ipynb   # simulation -> data -> discovery
-│   └── pinn_vs_nn_comparison.ipynb    # PINN against a plain network
+│   └── 02_pysr_basics.ipynb           # symbolic regression basics
 ├── results/
 │   └── training_curves.png  # Outputs and figures
 ├── requirements.txt         # Project-specific dependencies
 └── README.md                # This file
 ```
 
-`Simulation_MBML.ipynb` is the project's own experiment. The numbered
-notebooks and the PINN comparison are **method tutorials** for the
-physics-informed tools this project builds on — they moved here from
-`core/examples/`, which was holding notebooks from three unrelated topics.
-See `core/scientific_packages/` for the PySINDy and PySR reference notes.
+## Why each method is here
+
+This project holds two things: a hybrid CML retrieval, and two experiments
+that run equation discovery **on FieldSense's own quantities**. Every method
+present has a job:
+
+| method | question it answers | script | tutorial |
+|---|---|---|---|
+| **PySR** (symbolic regression) | does the ITU-R power law fall out of measured attenuation, and with what coefficients? | `src/discover_itu.py` | `notebooks/02_pysr_basics.ipynb` |
+| **SINDy** (sparse regression) | does a rain field's advection fall out of the field's own evolution? | `src/discover_advection.py` | `notebooks/01_sindy_basics.ipynb` |
+| **physics + NN hybrid** | can a learnable ITU branch and a GRU branch be fused per sample? | `src/hybrid_nn.py` | `notebooks/Simulation_MBML.ipynb` |
+
+**Why SINDy specifically.** A rain field crossing a region is a dynamical
+system, and field estimation is where that matters: a nowcast has to
+propagate the field forward, which means knowing how it moves.
+`projects/spatial_interpolation` benchmarks POD-SINDy against a Transformer
+and a Mamba-style SSM for exactly this. The Lorenz notebook teaches the
+method; `discover_advection.py` runs it on rainfall with a velocity known
+exactly, so the answer can be checked.
+
+The N-body and PINN-gravity material has no such counterpart and moved to
+`projects/mphysics/`. See `core/scientific_packages/` for PySINDy and PySR
+reference notes.
 
 ## Rediscovering ITU-R P.838-3 with symbolic regression
 
@@ -130,6 +144,65 @@ to the `k * R^alpha` it is equivalent to, rather than trusting the single
 "best" expression.
 
 ![Recovering ITU-R P.838-3](results/discover_itu.png)
+
+## Recovering field dynamics with SINDy
+
+`src/discover_advection.py` is the temporal counterpart to the ITU experiment.
+A rain field advects, so to first order
+
+```
+dR/dt = -u dR/dx - v dR/dy
+```
+
+and fitting a library of spatial derivatives against the time derivative
+should return the wind in its coefficients. The fields come from
+`projects/rainfall_field_sim` translated at a velocity we choose, so the
+answer is known exactly.
+
+```bash
+python projects/physics_ml/src/discover_advection.py --all
+```
+
+True velocity u = 14.0, v = 5.0 km/h:
+
+| observation | SINDy u | SINDy v | active terms |
+|---|---|---|---|
+| exact fields | **13.68** | **4.87** | 2 — the two correct ones |
+| + 5% noise | 13.77 | 2.64 | 3 — one spurious |
+| through 90 CML paths, IDW back to a grid | 4.14 | 0.00 | 2 |
+
+**Clean recovery works, and the sparsity is real** — the library offers
+second derivatives and quadratic terms that the true dynamics do not use, and
+on exact fields SINDy selects neither.
+
+**Noise costs the weaker component first.** At 5% multiplicative noise `u`
+survives but `v` halves, which is what you would expect: v = 5 km/h carries
+less signal than u = 14, so the same absolute derivative error eats a larger
+fraction of it.
+
+**Through a CML network it fails completely.** Sampling the field along 90
+link paths and interpolating back with IDW leaves u = 4.1 and v = 0. This is
+consistent with what the rest of the repository finds about IDW —
+`rainfall_field_sim` measures it destroying intermittency and 83–87% of peak
+intensity. Advection lives in the *gradients* of the field, and those are
+exactly what the interpolation smooths away. A nowcast fitted on IDW-derived
+fields is fitting the reconstruction, not the weather.
+
+### A methodological trap worth knowing
+
+Naive finite differences bias the recovered velocity **high by 20%** on exact,
+noise-free data — 16.8 km/h for a true 14.0. A central difference computes
+`sin(k dx)/dx` instead of `k`, so it under-reads high-wavenumber content, and
+it under-reads the *spatial* derivative more than the temporal one, because
+the field moves only a fraction of a cell per timestep. Their ratio is the
+velocity, so the errors do not cancel. Spectral spatial derivatives are exact
+for a periodic field and give 13.6.
+
+The time derivative stays a finite difference: the sequence is not periodic in
+time — the field translates out of one edge and into the other — so a spectral
+time derivative picks up Gibbs error and reads 12.8 instead.
+
+![SINDy advection recovery](results/discover_advection.png)
 
 ## Getting Started
 

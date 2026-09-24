@@ -18,9 +18,10 @@ FieldSense/
 ├── projects/             # Research projects — each self-contained, notebooks included
 │   ├── cml_retrieval/          # PyNNcml retrieval tutorials on OpenMRG
 │   ├── estimation_after_detection/
+│   ├── mphysics/               # Physics-ML on classical problems (no FieldSense data)
 │   ├── openmesh_nyc/           # OpenMesh NYC: paper, fetch pipelines, notebooks
 │   ├── opensense_pipeline/     # Open CML data -> merged rainfall maps (OpenSense)
-│   ├── physics_ml/             # Hybrid physics + NN rain retrieval, method tutorials
+│   ├── physics_ml/             # Hybrid retrieval + equation discovery on CML data
 │   ├── rainfall_field_sim/     # Synthetic rain fields + CML sampling/retrieval
 │   └── spatial_interpolation/  # Rainfall nowcasting from CML networks
 ├── requirements.txt
