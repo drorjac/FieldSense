@@ -39,7 +39,7 @@ sys.path.insert(0, str(HERE))
 
 from core.itu_p838 import get_k_alpha  # noqa: E402
 from merging import METHODS, run, score            # noqa: E402
-from core.simulation.rain_fields import MODELS, Grid  # noqa: E402
+from core.simulation.rain_fields import Grid  # noqa: E402
 
 N_PATH_SAMPLES = 96
 

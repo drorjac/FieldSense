@@ -40,8 +40,7 @@ REPO_ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 
 from core.opensense import conventions as cv  # noqa: E402
-from core.opensense.retrieval import (RetrievalConfig, retrieve,  # noqa: E402
-                                      total_loss_from)
+from core.opensense.retrieval import link_metadata, retrieve_dataset  # noqa: E402
 
 PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenMesh_NYC/processed"
 
@@ -110,28 +109,12 @@ def load_cml(event: Event, subset: str = "20d", pad_hours: float = 6.0,
     window = cml.sel(time=slice(str(start - pd.Timedelta(hours=pad_hours)),
                                 str(start + pd.Timedelta(hours=24 + pad_hours))))
 
-    d = window.transpose("time", "cml_id", "sublink_id")
-    loss = total_loss_from(np.asarray(d.rsl, dtype=float))
-    n_t, n_c, n_s = loss.shape
-
-    length = np.asarray(cml.length_km)
-    if length.ndim > 1:
-        length = length[:, 0] if length.shape[0] == n_c else length[0, :]
-    length = np.repeat(length[:, None], n_s, axis=1)
-
-    freq = np.asarray(cml.frequency_ghz)
-    if freq.shape != (n_c, n_s):
-        freq = freq.T if freq.shape == (n_s, n_c) else \
-            np.repeat(np.atleast_1d(freq).ravel()[:n_c, None], n_s, axis=1)
-    pol = np.full(freq.shape, "vertical")
-
-    interval = float(np.diff(window.time.values[:2])
-                     .astype("timedelta64[s]").astype(float)[0])
-    cfg = RetrievalConfig.for_interval(interval)
-
-    out = retrieve(loss.reshape(n_t, n_c * n_s), length.ravel(),
-                   freq.ravel(), pol.ravel(), cfg)
-    rain = out["R"].reshape(n_t, n_c, n_s)
+    # RSL only: retrieve_dataset sees no tsl and uses -RSL as the loss.
+    per_band = retrieve_dataset(window)
+    rain = per_band.R.transpose("time", "cml_id", "sublink_id").values
+    n_c = rain.shape[1]
+    length, freq, _ = link_metadata(
+        window, window.rsl.isel(time=0, drop=True).transpose("cml_id", "sublink_id"))
 
     # Pick a band per link by whether it can physically see the rain, rather
     # than averaging across all three.
@@ -180,21 +163,9 @@ def load_cml(event: Event, subset: str = "20d", pad_hours: float = 6.0,
 def load_radar(event: Event) -> xr.Dataset:
     """KOKX reflectivity for the day, as a rate, on a projected grid."""
     from core.radar import nexrad
-    import poligrain as plg
 
     ds = nexrad.build_day(event.date, event.kind)
-    out = xr.Dataset({"R": ds.R})
-    lon2d, lat2d = np.meshgrid(np.asarray(ds.lon), np.asarray(ds.lat))
-    out.coords["longitudes"] = (("lat", "lon"), lon2d)
-    out.coords["latitudes"] = (("lat", "lon"), lat2d)
-    out = out.rename({"lat": "y", "lon": "x"})
-
-    xs, ys = plg.spatial.project_point_coordinates(
-        out.longitudes, out.latitudes, CRS)
-    out.coords["x_grid"], out.coords["y_grid"] = xs, ys
-    xv, yv = np.asarray(xs), np.asarray(ys)
-    out.coords["x"] = ("x", xv[xv.shape[0] // 2, :])
-    out.coords["y"] = ("y", yv[:, xv.shape[1] // 2])
+    out = cv.project_grid(xr.Dataset({"R": ds.R}), CRS)
     out.R.attrs.update(units="mm h-1", phase=event.kind,
                        note=f"Z-S relation used for snow; {ds.R.attrs.get('note','')}")
     return out

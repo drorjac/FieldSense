@@ -10,15 +10,9 @@ The published archive is raw instrument data, not rainfall:
 This module cuts an event window out of each, runs the CML retrieval chain, and
 returns datasets carrying the coordinate names ``mergeplg`` expects.
 
-Retrieval chain, per sublink:
-
-1. total loss ``A = TSL - RSL``
-2. wet/dry classification by rolling standard deviation (Schleiss & Berne 2010)
-3. baseline = last dry level, held through the wet period
-4. ``A_rain = A - baseline``, floored at zero
-5. wet-antenna attenuation subtracted (Schleiss et al. 2013)
-6. ``R = (A_rain / (k L))^(1/alpha)`` with ITU-R P.838-3 coefficients
-7. the two directions of a link are averaged into one ``cml_id``
+The retrieval chain is ``core.opensense.retrieval`` - the same code every
+other source in this project runs through - followed by averaging the two
+directions of each link into one ``cml_id``.
 """
 
 from __future__ import annotations
@@ -33,7 +27,8 @@ import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-from core.itu_p838 import get_k_alpha
+from core.opensense.retrieval import (RetrievalConfig, retrieve,  # noqa: E402
+                                      total_loss_from)
 
 RAW = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/raw/extracted"
 PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/processed"
@@ -87,57 +82,14 @@ def load_cml_metadata() -> pd.DataFrame:
     return df.set_index("Sublink")
 
 
-def _wet_dry_rolling_std(attenuation: np.ndarray, window: int,
-                         threshold_db: float) -> np.ndarray:
-    """Wet flag per sample from the rolling standard deviation of total loss.
-
-    Schleiss & Berne (2010): rain makes the signal fluctuate, so a window whose
-    spread exceeds a threshold is classified wet. Operates along axis 0 (time).
-    """
-    s = pd.DataFrame(attenuation)
-    roll = s.rolling(window=window, center=True, min_periods=max(2, window // 4))
-    return (roll.std().to_numpy() > threshold_db)
-
-
-def _baseline_from_dry(attenuation: np.ndarray, wet: np.ndarray,
-                       window: int) -> np.ndarray:
-    """Dry-weather reference level per sublink.
-
-    The dry level is the attenuation with no rain on the path: free-space loss
-    plus hardware offsets, drifting slowly with temperature. It is estimated as
-    a long rolling median over samples classified dry, then carried across wet
-    spells.
-
-    A rolling median of the dry samples beats holding the single last dry
-    value, which inherits that sample's noise into the whole wet spell.
-    """
-    dry_only = pd.DataFrame(np.where(wet, np.nan, attenuation))
-    base = (dry_only
-            .rolling(window=window, center=True, min_periods=1)
-            .median()
-            .ffill()
-            .bfill())
-
-    # A link wet for the entire window has no dry reference; its own lower
-    # decile is the best available proxy.
-    all_wet = base.isna().all(axis=0)
-    if all_wet.any():
-        fallback = pd.DataFrame(attenuation).quantile(0.1)
-        base.loc[:, all_wet] = fallback[all_wet].to_numpy()
-    return base.to_numpy()
-
-
 def retrieve_cml_rain(ds_raw: xr.Dataset, meta: pd.DataFrame,
-                      wet_window: int = 30, wet_threshold_db: float = 0.8,
-                      baseline_window: int = 1080,
-                      min_attenuation_db: float = 0.1,
-                      waa_max_db: float = 0.5,
-                      waa_rate_per_mm_h: float = 0.28,
-                      min_length_km: float = 0.5) -> xr.Dataset:
+                      cfg: RetrievalConfig | None = None) -> xr.Dataset:
     """Raw TSL/RSL for one window -> per-sublink path rain rate (mm/h).
 
-    Window lengths are in samples; at the native 10 s spacing ``wet_window``
-    30 is 5 minutes and ``baseline_window`` 1080 is three hours.
+    The chain itself is ``core.opensense.retrieval``; this function only
+    joins the archive's bespoke sublink metadata table onto the signals.
+    ``cfg`` defaults to the standard windows at OpenMRG's native 10 s - a
+    5-minute wet/dry window and a 3-hour baseline.
 
     Two defaults are calibration choices, not physics, and both were checked
     against the municipal gauges on the 25 August event (see the project
@@ -149,66 +101,24 @@ def retrieve_cml_rain(ds_raw: xr.Dataset, meta: pd.DataFrame,
         to ~0.68 of gauge totals. Three hours gives 0.94.
     ``waa_max_db``
         The dominant magnitude knob. The Schleiss et al. (2013) value of
-        2.3 dB drives this network to 0.35 of gauge totals, because a 2 km
-        link at 23 GHz only develops ~2.7 dB of rain attenuation at 10 mm/h -
-        subtracting 2.3 dB of it removes most of the signal. 0.5 dB gives
-        0.79. Correlation against gauges is flat (0.75-0.80) across the whole
-        range, so this shifts magnitude only, never skill.
+        2.3 dB drives this network to 0.35 of gauge totals on this event;
+        0.5 dB gives 0.79. ``retrieval_benchmark.py`` shows why no static
+        value transfers between events, and what does better.
     """
+    cfg = cfg or RetrievalConfig.for_interval(10.0)
     sublinks = ds_raw.sublink.to_numpy().astype(int)
     known = [s for s in sublinks if s in meta.index]
     ds_raw = ds_raw.sel(sublink=known)
     m = meta.loc[known]
 
-    tsl = ds_raw.tsl.to_numpy()
-    rsl = ds_raw.rsl.to_numpy()
-    total_loss = tsl - rsl                      # dB
-
-    # TSL is often a constant nominal value; a NaN in either channel is a gap.
-    bad = ~np.isfinite(total_loss)
-    total_loss = pd.DataFrame(total_loss).ffill().bfill().to_numpy()
-
-    wet = _wet_dry_rolling_std(total_loss, wet_window, wet_threshold_db)
-    baseline = _baseline_from_dry(total_loss, wet, baseline_window)
-
-    # Rain attenuation is the excess over the dry reference, everywhere.
-    #
-    # It is tempting to also force a_rain to zero wherever the classifier says
-    # dry, but that silently deletes steady rain: the rolling-standard-
-    # deviation test keys on fluctuation, and widespread stratiform rain
-    # attenuates steadily, so hours of real rain get labelled dry. Subtracting
-    # the baseline already drives genuinely dry periods to ~0.
-    a_rain = np.clip(total_loss - baseline, 0.0, None)
-
-    # Below the quantization floor the retrieval only amplifies noise.
-    a_rain[a_rain < min_attenuation_db] = 0.0
-
-    # Wet-antenna attenuation is a saturating function of the rain rate we are
-    # solving for, so it is removed by fixed-point iteration.
-    lengths = m["Length_km"].to_numpy()[None, :]
-    freqs = m["Frequency_GHz"].to_numpy()
-    pols = m["Polarization"].str.lower().to_numpy()
-    ka = np.array([get_k_alpha(float(f), str(p))
-                   for f, p in zip(freqs, pols)])
-    k, alpha = ka[:, 0][None, :], ka[:, 1][None, :]
-
-    rain = np.zeros_like(a_rain)
-    for _ in range(8):
-        waa = waa_max_db * (1.0 - np.exp(-waa_rate_per_mm_h * rain))
-        effective = np.clip(a_rain - waa, 0.0, None)
-        rain = (effective / (k * lengths)) ** (1.0 / alpha)
-    rain[~np.isfinite(rain)] = 0.0
-    rain[bad] = np.nan
-
-    # Short links cannot resolve rain: their path attenuation is below the
-    # quantization floor, so the retrieval is pure noise amplification.
-    too_short = lengths.ravel() < min_length_km
-    rain[:, too_short] = np.nan
+    loss = total_loss_from(ds_raw.rsl.to_numpy(), ds_raw.tsl.to_numpy())
+    res = retrieve(loss, m["Length_km"].to_numpy(), m["Frequency_GHz"].to_numpy(),
+                   m["Polarization"].to_numpy(), cfg)
 
     out = xr.Dataset(
-        {"R": (("time", "sublink"), rain),
-         "A_rain": (("time", "sublink"), a_rain),
-         "wet": (("time", "sublink"), wet)},
+        {"R": (("time", "sublink"), res["R"]),
+         "A_rain": (("time", "sublink"), res["A_obs"]),
+         "wet": (("time", "sublink"), res["wet"])},
         coords={"time": ds_raw.time.to_numpy(),
                 "sublink": np.asarray(known, dtype=int)},
     )

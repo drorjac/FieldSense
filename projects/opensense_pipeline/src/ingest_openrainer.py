@@ -35,8 +35,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core.opensense import conventions as cv  # noqa: E402
-from ingest_openmrg import _baseline_from_dry, _wet_dry_rolling_std  # noqa: E402
-from core.itu_p838 import get_k_alpha  # noqa: E402
+from core.opensense.retrieval import (RetrievalConfig, combine_sublinks,  # noqa: E402
+                                      retrieve_dataset)
 
 RAW = REPO_ROOT / "dataset/open_datasets/OpenRainER_Italy/raw"
 EXTRACTED = RAW / "extracted"
@@ -108,88 +108,37 @@ def _cml_file(month: str) -> Path:
 
 
 # --------------------------------------------------------------------------
-def load_cml(event: Event) -> xr.Dataset:
-    """Retrieve path rain rate from raw RSL/TSL for one event window."""
+def _per_link(da: xr.DataArray) -> xr.DataArray:
+    """First sublink's value of per-sublink metadata; attrs (units) kept."""
+    return da.isel(sublink_id=0, drop=True) if "sublink_id" in da.dims else da
+
+
+def load_cml(event: Event, cfg: RetrievalConfig | None = None) -> xr.Dataset:
+    """Retrieve path rain rate from raw RSL/TSL for one event window.
+
+    The files are already OpenSense-1.0, so this is ``retrieve_dataset`` on
+    a padded window - the baseline needs dry weather either side of the event
+    to anchor on - then the two sublinks averaged per link.
+
+    Unit trap: OpenRainER declares length in metres and frequency in MHz,
+    where OpenMRG uses km and GHz. Fed straight into ``k*L`` and the ITU-R
+    table they retrieve zero rain everywhere, silently. ``retrieve_dataset``
+    reads the declared units through ``conventions.py``.
+    """
     path = _cml_file(event.month)
     pad = pd.Timedelta(hours=4)
-    ds = xr.open_dataset(path).sel(
-        time=slice(str(pd.Timestamp(event.start) - pad),
-                   str(pd.Timestamp(event.end) + pad))).load()
+    with xr.open_dataset(path) as raw:
+        ds = raw.sel(time=slice(str(pd.Timestamp(event.start) - pad),
+                                str(pd.Timestamp(event.end) + pad))).load()
 
-    # (cml_id, sublink_id, time) -> total loss, averaged over the two sublinks
-    total_loss = (ds.tsl - ds.rsl).transpose("time", "cml_id", "sublink_id")
-    loss = np.asarray(total_loss).astype(float)
-    n_time, n_cml, n_sub = loss.shape
-
-    flat = loss.reshape(n_time, n_cml * n_sub)
-    flat = pd.DataFrame(flat).ffill().bfill().to_numpy()
-
-    # 1-minute sampling here, against 10 s for OpenMRG, so the window lengths
-    # that mean 5 minutes and 3 hours differ by a factor of six.
-    wet = _wet_dry_rolling_std(flat, window=5, threshold_db=0.8)
-    baseline = _baseline_from_dry(flat, wet, window=180)
-    a_rain = np.clip(flat - baseline, 0.0, None)
-    a_rain[a_rain < 0.1] = 0.0
-    a_rain = a_rain.reshape(n_time, n_cml, n_sub)
-
-    # Unit trap: OpenRainER declares length in metres and frequency in MHz,
-    # where OpenMRG uses km and GHz. Feeding metres into k*L, or MHz into the
-    # ITU-R table, silently retrieves zero rain everywhere. conventions.py
-    # reads the declared units, and falls back on magnitude when a source
-    # ships no units attribute at all.
-    length = cv.to_km(ds.length)
-    freq = cv.to_ghz(ds.frequency)
-    pol = cv.normalize_polarization(ds.polarization.values)
-
-    # frequency/polarization may be per (cml_id, sublink_id) or per cml_id
-    if freq.ndim == 1:
-        freq = np.repeat(freq[:, None], n_sub, axis=1)
-    if pol.size != freq.size:
-        pol = np.full(freq.shape, "vertical")
-    pol = pol.reshape(freq.shape)
-    if length.ndim == 1:
-        length = np.repeat(length[:, None], n_sub, axis=1)
-
-    k = np.empty(freq.shape)
-    alpha = np.empty(freq.shape)
-    for i in range(freq.shape[0]):
-        for j in range(freq.shape[1]):
-            p = pol[i, j]
-            k[i, j], alpha[i, j] = get_k_alpha(
-                float(freq[i, j]),
-                p if p in ("vertical", "horizontal") else "vertical")
-
-    waa_max, waa_rate = 0.5, 0.28
-    rain = np.zeros_like(a_rain)
-    for _ in range(8):
-        waa = waa_max * (1.0 - np.exp(-waa_rate * rain))
-        rain = (np.clip(a_rain - waa, 0.0, None)
-                / (k[None] * length[None])) ** (1.0 / alpha[None])
-    rain[~np.isfinite(rain)] = np.nan
-
-    with np.errstate(invalid="ignore"):
-        rain_cml = np.nanmean(rain, axis=2)          # average the sublinks
-
-    out = xr.Dataset(
-        {"R": (("time", "cml_id"), rain_cml)},
-        coords={"time": np.asarray(ds.time), "cml_id": np.asarray(ds.cml_id)},
-    )
-    for name in ("site_0_lat", "site_0_lon", "site_1_lat", "site_1_lon"):
-        out.coords[name] = ("cml_id", np.asarray(ds[name]).reshape(n_cml, -1)[:, 0]
-                            if np.asarray(ds[name]).ndim > 1
-                            else np.asarray(ds[name]))
-    out.coords["length"] = ("cml_id", length[:, 0])
-    out.coords["frequency"] = ("cml_id", freq[:, 0])
-
-    x0, y0 = plg.spatial.project_point_coordinates(
-        out.site_0_lon, out.site_0_lat, CRS)
-    x1, y1 = plg.spatial.project_point_coordinates(
-        out.site_1_lon, out.site_1_lat, CRS)
-    for nm, v in (("site_0_x", x0), ("site_0_y", y0),
-                  ("site_1_x", x1), ("site_1_y", y1)):
-        out.coords[nm] = ("cml_id", np.asarray(v))
-    out.coords["x"] = ("cml_id", (np.asarray(x0) + np.asarray(x1)) / 2)
-    out.coords["y"] = ("cml_id", (np.asarray(y0) + np.asarray(y1)) / 2)
+    # 1-minute sampling here against 10 s for OpenMRG, so the windows that
+    # mean 5 minutes and 3 hours are scaled from the data, not hardcoded.
+    res = retrieve_dataset(ds, cfg)
+    out = combine_sublinks(res)
+    out = cv.project_cml(out, CRS)
+    # downstream (mergeplg, the synthetic benchmark) reads km and GHz per link
+    out.coords["length"] = ("cml_id", cv.to_km(_per_link(ds.length)))
+    out.coords["frequency"] = ("cml_id", cv.to_ghz(_per_link(ds.frequency)))
     out.R.attrs["units"] = "mm h-1"
     return out.sel(time=slice(event.start, event.end))
 
@@ -214,17 +163,7 @@ def load_radar(event: Event, bbox_pad_km: float = 15.0,
             rain = (ds.rainfall_amount * 4.0).sel(
                 lon=slice(lon0, lon1), lat=slice(lat1, lat0))
 
-    lon2d, lat2d = np.meshgrid(np.asarray(rain.lon), np.asarray(rain.lat))
-    out = xr.Dataset({"R": rain.rename({"lat": "y", "lon": "x"})})
-    out.coords["longitudes"] = (("y", "x"), lon2d)
-    out.coords["latitudes"] = (("y", "x"), lat2d)
-
-    xs, ys = plg.spatial.project_point_coordinates(
-        out.longitudes, out.latitudes, CRS)
-    out.coords["x_grid"], out.coords["y_grid"] = xs, ys
-    xv, yv = np.asarray(xs), np.asarray(ys)
-    out.coords["x"] = ("x", xv[xv.shape[0] // 2, :])
-    out.coords["y"] = ("y", yv[:, xv.shape[1] // 2])
+    out = cv.project_grid(xr.Dataset({"R": rain}), CRS)
     out.R.attrs["units"] = "mm h-1"
     return out
 

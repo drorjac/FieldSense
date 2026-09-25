@@ -24,16 +24,15 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 
-from core.opensense import conventions as cv  # noqa: E402
 from core.opensense import example_data  # noqa: E402
-from core.opensense.retrieval import RetrievalConfig, retrieve  # noqa: E402
+from core.opensense.retrieval import (RetrievalConfig, combine_sublinks,  # noqa: E402
+                                      retrieve_dataset, sampling_interval_s)
 
 RESULTS = HERE.parent / "results"
 
@@ -51,44 +50,24 @@ def load_reference(offline: bool = False) -> xr.Dataset:
         if not cache.exists():
             raise SystemExit(
                 f"--offline but {cache} is missing.\n"
-                f"Run: python {HERE.name}/example_data.py "
+                f"Run: python -m core.opensense.example_data "
                 f"--dataset openmrg --subset 8d")
-        ds = xr.open_dataset(cache)
-        return example_data.normalize_cml(ds, "EPSG:32632")
+        return example_data.normalize_cml(xr.load_dataset(cache), "EPSG:32632")
     return example_data.load("openmrg", "8d")["cml"]
 
 
-def run_our_retrieval(ds: xr.Dataset) -> np.ndarray:
-    """Our chain on the reference subset's own tsl/rsl.
+def run_our_retrieval(ds: xr.Dataset,
+                      cfg: RetrievalConfig | None = None) -> np.ndarray:
+    """Our chain on the reference subset's own tsl/rsl -> (time, cml_id).
 
-    Returns (time, cml_id) rain rate, averaging the two sublinks the way the
-    ingest does.
+    Before ``retrieve_dataset`` existed this function flattened the signals
+    as (cml_id, sublink_id) and the metadata as the file stores it,
+    (sublink_id, cml_id), so every link's second sublink was retrieved with
+    another link's frequency. That inflated our totals by ~13% here and is
+    why the README's first version of this comparison read 2.28x gauges.
     """
-    d = ds.transpose("time", "cml_id", "sublink_id")
-    loss = np.asarray(d.tsl - d.rsl, dtype=float)
-    n_t, n_c, n_s = loss.shape
-
-    length = np.asarray(cv.to_km(ds.length), dtype=float)
-    freq = np.asarray(cv.to_ghz(ds.frequency), dtype=float)
-    pol = cv.normalize_polarization(ds.polarization.values)
-
-    # Broadcast per-link metadata over sublinks where it is not already.
-    if length.ndim == 1:
-        length = np.repeat(length[:, None], n_s, axis=1)
-    if freq.ndim == 1:
-        freq = np.repeat(freq[:, None], n_s, axis=1)
-    pol = pol.reshape(freq.shape) if pol.size == freq.size else \
-        np.full(freq.shape, "vertical")
-
-    interval = float(np.diff(ds.time.values[:2])
-                     .astype("timedelta64[s]").astype(float)[0])
-    cfg = RetrievalConfig.for_interval(interval)
-
-    out = retrieve(loss.reshape(n_t, n_c * n_s),
-                   length.ravel(), freq.ravel(), pol.ravel(), cfg)
-    rain = out["R"].reshape(n_t, n_c, n_s)
-    with np.errstate(invalid="ignore"):
-        return np.nanmean(rain, axis=2)
+    out = combine_sublinks(retrieve_dataset(ds, cfg))
+    return out.R.transpose("time", "cml_id").values
 
 
 def reference_rain(ds: xr.Dataset) -> np.ndarray:
@@ -133,25 +112,14 @@ def sweep_waa(ds: xr.Dataset, ref: np.ndarray,
     ratio to the reference is strongly event-dependent, so a value calibrated
     on one event does not transfer to the next.
     """
-    from core.opensense.retrieval import RetrievalConfig, retrieve
-
-    d = ds.transpose("time", "cml_id", "sublink_id")
-    loss = np.asarray(d.tsl - d.rsl, dtype=float)
-    n_t, n_c, n_s = loss.shape
-    length = np.repeat(np.asarray(cv.to_km(ds.length))[:, None], n_s, axis=1)
-    freq = np.asarray(cv.to_ghz(ds.frequency))
-    pol = cv.normalize_polarization(ds.polarization.values).reshape(freq.shape)
-    interval = float(np.diff(ds.time.values[:2])
-                     .astype("timedelta64[s]").astype(float)[0])
+    interval = sampling_interval_s(ds.time)
 
     m_ref = float(np.nanmean(ref))
     print(f"\nreference mean {m_ref:.4f} mm/h")
     print(f"{'waa_max_db':>11}{'our mean':>11}{'ratio/ref':>11}{'corr':>8}")
     for waa in values:
-        cfg = RetrievalConfig.for_interval(interval, waa_max_db=waa)
-        r = retrieve(loss.reshape(n_t, n_c * n_s), length.ravel(),
-                     freq.ravel(), pol.ravel(), cfg)["R"]
-        ours = np.nanmean(r.reshape(n_t, n_c, n_s), axis=2)
+        ours = run_our_retrieval(
+            ds, RetrievalConfig.for_interval(interval, waa_max_db=waa))
         a, b = ours.ravel(), ref.ravel()
         ok = np.isfinite(a) & np.isfinite(b)
         corr = float(np.corrcoef(a[ok], b[ok])[0, 1])

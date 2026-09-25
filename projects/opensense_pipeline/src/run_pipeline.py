@@ -253,83 +253,36 @@ def build_from_example(dataset: str, resample: str = "5min",
     archives, so everything downstream is unchanged. The CML retrieval is the
     shared chain in ``retrieval.py``, run on the subset's own tsl/rsl.
 
-    Radar in these subsets is already rain rate on a lat/lon grid, so it needs
-    projecting but not a Z-R step.
+    Radar needs no Z-R step: ``example_data`` returns it as a rate on a
+    projected grid. (OpenRainER's subset ships 15-minute accumulations under
+    the name ``R``; before that conversion moved into ``example_data`` this
+    function read them as mm/h, four times too low.)
     """
     from core.opensense import example_data
-    from core.opensense.retrieval import RetrievalConfig, retrieve
+    from core.opensense.retrieval import (combine_sublinks, retrieve_dataset,
+                                          sampling_interval_s)
 
     key, subset, gauge_component, label = EXAMPLE_EVENTS[dataset]
     cache = example_data.CACHE / example_data.DATASETS[key].folder
     if offline and not cache.exists():
         raise SystemExit(
             f"--offline but no cached subset at {cache}.\n"
-            f"Run: python projects/opensense_pipeline/src/example_data.py "
+            f"Run: python -m core.opensense.example_data "
             f"--dataset {key} --subset {subset}")
 
     data = example_data.load(key, subset)
-    crs = example_data.DATASETS[key].crs
-    cml_raw = data["cml"]
 
-    # --- CML: run the retrieval chain on the subset's raw signals ---
-    d = cml_raw.transpose("time", "cml_id", "sublink_id")
-    loss = np.asarray(d.tsl - d.rsl, dtype=float)
-    n_t, n_c, n_s = loss.shape
-    length = np.asarray(cml_raw.length_km)
-    if length.ndim == 1:
-        length = np.repeat(length[:, None], n_s, axis=1)
-    freq = np.asarray(cml_raw.frequency_ghz)
-    if freq.ndim == 1:
-        freq = np.repeat(freq[:, None], n_s, axis=1)
-    pol = np.asarray(cml_raw.polarization)
-    pol = pol.reshape(freq.shape) if pol.size == freq.size \
-        else np.full(freq.shape, "vertical")
-
-    interval = float(np.diff(cml_raw.time.values[:2])
-                     .astype("timedelta64[s]").astype(float)[0])
-    cfg = RetrievalConfig.for_interval(interval)
-    rain = retrieve(loss.reshape(n_t, n_c * n_s), length.ravel(),
-                    freq.ravel(), pol.ravel(), cfg)["R"]
-    with np.errstate(invalid="ignore"):
-        rain = np.nanmean(rain.reshape(n_t, n_c, n_s), axis=2)
-
-    keep = ("site_0_x", "site_0_y", "site_1_x", "site_1_y", "x", "y",
-            "length_km", "frequency_ghz")
-    cml = xr.Dataset({"R": (("time", "cml_id"), rain)},
-                     coords={"time": cml_raw.time, "cml_id": cml_raw.cml_id})
-    for c in keep:
-        if c not in cml_raw.coords:
-            continue
-        da = cml_raw[c]
-        # Per-link metadata is sometimes stored per sublink, and the dim order
-        # is not consistent between files - select by name, never by position.
-        if "sublink_id" in da.dims:
-            da = da.isel(sublink_id=0, drop=True)
-        cml.coords[c] = ("cml_id", np.asarray(da))
+    # --- CML: the shared retrieval chain on the subset's raw signals ---
+    cml = combine_sublinks(retrieve_dataset(data["cml"]))
     cml.coords["length"] = cml.length_km
     cml.coords["frequency"] = cml.frequency_ghz
 
-    # --- radar: already rain rate, just needs projected grid coordinates ---
-    rad_raw = data["radar"]
-    var = "R" if "R" in rad_raw.data_vars else "rainfall_amount"
-    rad = xr.Dataset({"R": rad_raw[var]})
-    lon2d, lat2d = np.asarray(rad_raw.lon), np.asarray(rad_raw.lat)
-    if lon2d.ndim == 1:
-        lon2d, lat2d = np.meshgrid(lon2d, lat2d)
-    rad.coords["longitudes"] = (("y", "x"), lon2d)
-    rad.coords["latitudes"] = (("y", "x"), lat2d)
-    import poligrain as plg
-    xs, ys = plg.spatial.project_point_coordinates(
-        rad.longitudes, rad.latitudes, crs)
-    rad.coords["x_grid"], rad.coords["y_grid"] = xs, ys
-    xv, yv = np.asarray(xs), np.asarray(ys)
-    rad.coords["x"] = ("x", xv[xv.shape[0] // 2, :])
-    rad.coords["y"] = ("y", yv[:, xv.shape[1] // 2])
+    # --- radar: example_data already made it a rate on a projected grid ---
+    rad = data["radar"][["R"]]
 
     # --- gauges: accumulations per sampling step -> mm/h ---
     g_raw = data[gauge_component]
-    g_interval = float(np.diff(g_raw.time.values[:2])
-                       .astype("timedelta64[s]").astype(float)[0])
+    g_interval = sampling_interval_s(g_raw.time)
     gauge = xr.Dataset({"R": g_raw.rainfall_amount.transpose("time", "id")
                         * (3600.0 / g_interval)})
     for c in ("x", "y", "lon", "lat"):
@@ -350,25 +303,9 @@ def build_from_example(dataset: str, resample: str = "5min",
 # coverage analysis
 # --------------------------------------------------------------------------
 def distance_to_network(ds_cml, gx: np.ndarray, gy: np.ndarray) -> np.ndarray:
-    """Shortest distance (km) from each point to any CML path.
-
-    Point-to-segment, not point-to-midpoint: a CML measures along its whole
-    line, so a gauge beside the middle of a long link is well covered even
-    though both endpoints are far away.
-    """
-    x0 = np.asarray(ds_cml.site_0_x)
-    y0 = np.asarray(ds_cml.site_0_y)
-    x1 = np.asarray(ds_cml.site_1_x)
-    y1 = np.asarray(ds_cml.site_1_y)
-    vx, vy = x1 - x0, y1 - y0
-    len2 = vx * vx + vy * vy
-
-    out = np.empty(gx.size)
-    for i, (px, py) in enumerate(zip(gx, gy)):
-        t = np.clip(np.where(len2 > 0, ((px - x0) * vx + (py - y0) * vy)
-                             / np.maximum(len2, 1e-9), 0.0), 0.0, 1.0)
-        out[i] = np.min(np.hypot(px - (x0 + t * vx), py - (y0 + t * vy)))
-    return out / 1000.0
+    """Shortest distance (km) from each gauge to any CML path."""
+    from core.opensense.evaluation import distance_to_network as dist
+    return dist(ds_cml, gx, gy)
 
 
 def coverage_analysis(pooled: dict, ds_cml, ds_gauge, n_times: int,

@@ -95,24 +95,8 @@ def cml_on_radar_grid(ds_rad: xr.Dataset, ds_cml: xr.Dataset,
 
 def distance_to_network(ds_cml, xg: np.ndarray, yg: np.ndarray) -> np.ndarray:
     """Distance (km) from every grid cell to the nearest CML path."""
-    x0 = np.asarray(ds_cml.site_0_x)
-    y0 = np.asarray(ds_cml.site_0_y)
-    x1 = np.asarray(ds_cml.site_1_x)
-    y1 = np.asarray(ds_cml.site_1_y)
-    vx, vy = x1 - x0, y1 - y0
-    len2 = vx * vx + vy * vy
-
-    flat_x, flat_y = xg.ravel(), yg.ravel()
-    best = np.full(flat_x.size, np.inf)
-    for i in range(x0.size):
-        if len2[i] <= 0:
-            continue
-        t = np.clip(((flat_x - x0[i]) * vx[i] + (flat_y - y0[i]) * vy[i])
-                    / len2[i], 0.0, 1.0)
-        d = np.hypot(flat_x - (x0[i] + t * vx[i]),
-                     flat_y - (y0[i] + t * vy[i]))
-        np.minimum(best, d, out=best)
-    return (best / 1000.0).reshape(xg.shape)
+    from core.opensense.evaluation import distance_to_network as dist
+    return dist(ds_cml, xg, yg)
 
 
 # --------------------------------------------------------------------------
@@ -151,7 +135,6 @@ def cml_vs_gauge(ds_cml, ds_gauge, radius_m: float = 3000.0) -> dict:
 def compare(source: str, key: str, label: str, regime: str,
             max_timesteps: int = 40, wet_threshold: float = 0.1) -> dict:
     ds_rad, ds_cml, ds_gauge = load_event(source, key)
-    n_t = ds_rad.sizes["time"]
 
     # Concentrate on the wet part of the event: comparing dry frames measures
     # nothing and drags every correlation toward zero.
