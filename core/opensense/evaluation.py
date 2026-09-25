@@ -265,9 +265,22 @@ def rainfall_metrics(reference, estimate,
     }
 
 
-def aggregate(da: xr.DataArray, freq: str) -> xr.DataArray:
+def aggregate(da: xr.DataArray, freq: str, label: str = "start") -> xr.DataArray:
     """Mean rain rate over ``freq`` bins; NaN only where a bin is all-NaN.
 
     Rates average, accumulations sum - everything in this module is a rate.
+
+    ``label`` says which edge of a bin its timestamp names, and has to match
+    the reference being compared against. ``"start"`` is pandas' default:
+    ``[t, t + freq)`` stamped ``t``. ``"end"`` gives ``(t - freq, t]``
+    stamped ``t``, the convention of OpenRainER's 15-minute gauge and radar
+    accumulations. Aggregating a CML with the wrong one shifts it a whole
+    bin against the reference; on OpenRainER that halves the apparent
+    CML-gauge correlation (0.69 -> 0.35) without any error. Datasets declare
+    theirs as ``example_data.DATASETS[key].accumulation_label``.
     """
-    return da.resample(time=freq).mean(skipna=True)
+    if label == "start":
+        return da.resample(time=freq).mean(skipna=True)
+    if label == "end":
+        return da.resample(time=freq, closed="right", label="right").mean(skipna=True)
+    raise ValueError(f"label must be 'start' or 'end', got {label!r}")

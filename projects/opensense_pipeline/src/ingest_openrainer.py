@@ -45,6 +45,14 @@ PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenRainER_Italy/processed"
 # UTM 32N covers Emilia-Romagna.
 CRS = "EPSG:32632"
 
+# The AWS and RADrain 15-minute accumulations are stamped at the END of their
+# interval: the value at 12:15 is the rain of 12:00-12:15. Not stated in the
+# dataset README; established by lagging the 1-minute CML signals against
+# both (CML-gauge r 0.35 at lag 0, 0.69 one step back, and radar-gauge peak
+# at lag 0). The CML must be aggregated the same way or it sits one whole
+# step out of line with both references.
+ACCUMULATION_LABEL = "end"
+
 
 @dataclass(frozen=True)
 class Event:
@@ -183,9 +191,27 @@ def load_gauges(event: Event) -> xr.Dataset:
     return out
 
 
+def aggregate_like_references(cml: xr.Dataset, freq: str = "15min") -> xr.Dataset:
+    """CML rain averaged over the same windows the references accumulate."""
+    from core.opensense.evaluation import aggregate
+
+    out = xr.Dataset({"R": aggregate(cml.R, freq, label=ACCUMULATION_LABEL)})
+    for name, c in cml.coords.items():
+        if "time" not in c.dims:
+            out.coords[name] = c
+    out.R.attrs.update(cml.R.attrs)
+    return out
+
+
 def build_event(event: Event, resample: str = "15min",
                 cache: bool = True) -> tuple:
-    """Return (radar, cml, gauges) on a common 15-minute axis."""
+    """Return (radar, cml, gauges) on a common 15-minute axis.
+
+    Radar and gauges arrive as 15-minute accumulations stamped at interval
+    end; the 1-minute CML retrieval is averaged over the same (t - 15, t]
+    windows so that every timestamp means the same quarter hour for all
+    three.
+    """
     PROCESSED.mkdir(parents=True, exist_ok=True)
     paths = {n: PROCESSED / f"{event.key}_{n}.nc"
              for n in ("radar", "cml", "gauge")}
@@ -203,7 +229,7 @@ def build_event(event: Event, resample: str = "15min",
     print("  gauges  loading")
     gauge = load_gauges(event)
 
-    cml = cml.resample(time=resample).mean()
+    cml = aggregate_like_references(cml, resample)
     gauge = gauge.resample(time=resample).mean()
     rad = rad.resample(time=resample).mean()
 
@@ -213,7 +239,8 @@ def build_event(event: Event, resample: str = "15min",
     for name, ds in (("radar", rad), ("cml", cml), ("gauge", gauge)):
         ds.attrs.update(event=event.key, label=event.label,
                         source="OpenRainER", doi="10.5281/zenodo.22829808",
-                        license="CC-BY-4.0")
+                        license="CC-BY-4.0",
+                        time_label=f"{ACCUMULATION_LABEL} of {resample} interval")
         if cache:
             ds.to_netcdf(paths[name])
     return rad, cml, gauge

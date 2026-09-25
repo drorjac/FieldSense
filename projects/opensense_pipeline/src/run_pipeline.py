@@ -244,8 +244,12 @@ EXAMPLE_EVENTS = {
                    "OpenRainER 8-day subset"),
 }
 
+# The common time step per example dataset: the coarsest native step of its
+# three sensors, so no reference is upsampled into gaps.
+EXAMPLE_STEP = {"openmrg": "5min", "openrainer": "15min"}
 
-def build_from_example(dataset: str, resample: str = "5min",
+
+def build_from_example(dataset: str, resample: str | None = None,
                        offline: bool = False) -> tuple:
     """(radar, cml, gauge) from a curated example subset.
 
@@ -289,7 +293,16 @@ def build_from_example(dataset: str, resample: str = "5min",
         if c in g_raw.coords:
             gauge.coords[c] = ("id", np.asarray(g_raw[c]))
 
-    cml = cml.resample(time=resample).mean()
+    # The CML is averaged over the windows the references accumulate over -
+    # OpenRainER stamps its 15-minute accumulations at interval end - and
+    # at their native step. This function used to resample OpenRainER to
+    # 5 minutes with start labels, which left the CML one bin out of line.
+    from core.opensense.evaluation import aggregate
+    resample = resample or EXAMPLE_STEP[key]
+    label = example_data.DATASETS[key].accumulation_label
+    cml = xr.Dataset({"R": aggregate(cml.R, resample, label=label)},
+                     coords={c: v for c, v in cml.coords.items()
+                             if "time" not in v.dims})
     gauge = gauge.resample(time=resample).mean()
     rad = rad.resample(time=resample).mean()
     times = np.intersect1d(np.intersect1d(rad.time, cml.time), gauge.time)

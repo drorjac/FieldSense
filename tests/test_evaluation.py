@@ -143,3 +143,19 @@ def test_fill_undecided_keeps_decisions_and_falls_back_elsewhere():
     assert not bool(out.isel(time=slice(0, 100), cml_id=1).any())
     # undecided samples got the rolling-std flag: the rain edges are wet
     assert bool(out.isel(time=slice(595, 606)).any())
+
+
+def test_aggregate_labels_bins_by_the_edge_the_reference_uses():
+    """(t - 15, t] stamped t, for references accumulated to interval end."""
+    t = pd.date_range("2020-01-01T00:01", periods=30, freq="1min").as_unit("ns")
+    da = xr.DataArray(np.r_[np.zeros(14), np.full(16, 4.0)], dims="time",
+                      coords={"time": t})                  # rain from 00:15
+    start = ev.aggregate(da, "15min")
+    end = ev.aggregate(da, "15min", label="end")
+    # start labels: [00:15, 00:30) is stamped 00:15 and is all rain
+    assert float(start.sel(time="2020-01-01T00:15")) == pytest.approx(4.0)
+    # end labels: (00:00, 00:15] is stamped 00:15 and holds one rainy minute
+    assert float(end.sel(time="2020-01-01T00:15")) == pytest.approx(4.0 / 15)
+    assert float(end.sel(time="2020-01-01T00:30")) == pytest.approx(4.0)
+    with pytest.raises(ValueError):
+        ev.aggregate(da, "15min", label="middle")

@@ -64,6 +64,10 @@ class ExampleDataset:
     # subset -> {component: filename template}
     subsets: dict = field(default_factory=dict)
     note: str = ""
+    # Which edge of its interval an accumulation's timestamp names: "start"
+    # or "end". Not declared in the files - established by lagging the 1-min
+    # CML signals against each reference; see evaluation.aggregate.
+    accumulation_label: str = "start"
 
     def files(self, subset: str) -> dict:
         if subset not in self.subsets:
@@ -90,7 +94,9 @@ DATASETS = {
         }),
     "openrainer": ExampleDataset(
         key="openrainer", name="OpenRainER", folder="OpenRainER",
-        crs="EPSG:32632", note="Emilia-Romagna, Italy.",
+        crs="EPSG:32632", accumulation_label="end",
+        note="Emilia-Romagna, Italy. Gauge and radar 15-min accumulations "
+             "are stamped at the END of their interval.",
         subsets={
             "8d": {"cml": "openrainer_cml_8d.nc",
                    "radar": "openrainer_radar_8d.nc",
