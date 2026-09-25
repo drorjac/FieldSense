@@ -81,7 +81,7 @@ def list_record(source: Source) -> list[dict]:
 
 
 def download_url(url: str, dest: Path, force: bool = False,
-                 expected_size: int | None = None) -> Path:
+                 expected_size: int | None = None, verbose: bool = True) -> Path:
     """Download one URL to ``dest``, resumably, skipping verified files.
 
     The generic counterpart to :func:`download`, which needs Zenodo's file
@@ -102,8 +102,9 @@ def download_url(url: str, dest: Path, force: bool = False,
 
     if not force and dest.exists():
         if expected_size is None or dest.stat().st_size == expected_size:
-            print(f"  [skip]  {dest.name}  "
-                  f"({dest.stat().st_size/1e6:.2f} MB, already present)")
+            if verbose:
+                print(f"  [skip]  {dest.name}  "
+                      f"({dest.stat().st_size/1e6:.2f} MB, already present)")
             return dest
         print(f"  [stale] {dest.name} is {dest.stat().st_size/1e6:.2f} MB, "
               f"expected {expected_size/1e6:.2f} MB - refetching")

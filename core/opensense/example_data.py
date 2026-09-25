@@ -121,7 +121,7 @@ DATASETS = {
 
 # --------------------------------------------------------------------------
 def download(dataset: str, subset: str, cache_dir: Path | None = None,
-             force: bool = False) -> dict:
+             force: bool = False, verbose: bool = True) -> dict:
     """Fetch every component of one subset. Returns {component: local path}."""
     spec = DATASETS[dataset]
     files = spec.files(subset)
@@ -131,12 +131,15 @@ def download(dataset: str, subset: str, cache_dir: Path | None = None,
     out = {}
     for component, filename in files.items():
         url = f"{BASE_URL}/raw/{VERSION}/{spec.folder}/{filename}"
-        out[component] = download_url(url, dest / filename, force=force)
+        out[component] = download_url(url, dest / filename, force=force,
+                                      verbose=verbose)
     return out
 
 
 def load(dataset: str, subset: str | None = None,
-         cache_dir: Path | None = None, normalize: bool = True) -> dict:
+         cache_dir: Path | None = None, normalize: bool = True,
+         time: slice | None = None, components=None,
+         verbose: bool = True) -> dict:
     """Download if needed, then open one subset.
 
     Returns a dict keyed by component - ``cml``, ``radar``, ``gauge``,
@@ -145,25 +148,81 @@ def load(dataset: str, subset: str | None = None,
 
     With ``normalize`` (the default), CML datasets gain ``length_km``,
     ``frequency_ghz`` and a normalized ``polarization``, plus projected
-    endpoint coordinates; point datasets gain projected ``x``/``y``.
+    endpoint coordinates; point datasets gain projected ``x``/``y``; radar
+    gains ``x_grid``/``y_grid`` (see ``conventions.project_grid``).
+
+    ``time`` selects a window before anything is read into memory, which
+    matters for the OpenMRG ``8d`` CML file: 1.2 GB once loaded, but a
+    single day of it is 150 MB. ``components`` restricts which files are
+    opened, e.g. ``components=("cml",)``.
+
+    >>> data = load("openmrg", "8d", time=slice("2015-07-28", "2015-07-28"))
+    >>> sorted(data)
+    ['cml', 'gauge_municipal', 'gauge_smhi', 'radar']
     """
     spec = DATASETS[dataset]
     subset = subset or next(iter(spec.subsets))
-    paths = download(dataset, subset, cache_dir)
+    paths = download(dataset, subset, cache_dir, verbose=verbose)
 
     # load_dataset, not open_dataset: these are small files and callers open
     # several in one process, which exhausts netCDF4's handle cache and fails
     # with "NetCDF: HDF error" rather than anything that names the cause.
-    out = {c: xr.load_dataset(p) for c, p in paths.items()}
+    if components is not None:
+        unknown = set(components) - set(paths)
+        if unknown:
+            raise ValueError(f"{spec.name}/{subset} has no {sorted(unknown)}; "
+                             f"available: {sorted(paths)}")
+        paths = {c: p for c, p in paths.items() if c in components}
+    out = {c: _open(p, time) for c, p in paths.items()}
     if not normalize:
         return out
 
     if "cml" in out:
         out["cml"] = normalize_cml(out["cml"], spec.crs)
+    if "radar" in out:
+        out["radar"] = normalize_radar(out["radar"], spec.crs)
     for component in ("gauge", "gauge_municipal", "gauge_smhi", "pws", "asos"):
         if component in out:
             out[component] = _normalize_points(out[component], spec.crs)
     return out
+
+
+def _open(path: Path, time: slice | None) -> xr.Dataset:
+    """Read one file fully into memory, optionally only a time window."""
+    if time is None:
+        return xr.load_dataset(path)
+    with xr.open_dataset(path) as ds:
+        return ds.sel(time=time).load()
+
+
+def normalize_radar(ds: xr.Dataset, crs: str) -> xr.Dataset:
+    """Radar on a projected grid, with the rain variable named ``R``.
+
+    Both subsets call the variable ``R``, but only OpenMRG's is a rate
+    (``mm/h``). OpenRainER's ``R`` is a **15-minute accumulation** declared
+    ``units: mm`` - read as a rate, it is four times too low, silently.
+    Accumulations are converted to mm/h from the declared ``accum_time_h``,
+    or from the time step when that is absent.
+    """
+    from core.opensense.retrieval import sampling_interval_s
+
+    if "R" not in ds.data_vars and "rainfall_amount" in ds.data_vars:
+        ds = ds.rename({"rainfall_amount": "R"})
+    units = str(ds.R.attrs.get("units", "")).strip().lower()
+    if units == "mm":
+        hours = float(ds.R.attrs.get("accum_time_h",
+                                     sampling_interval_s(ds.time) / 3600.0))
+        attrs = dict(ds.R.attrs)
+        ds["R"] = ds.R / hours
+        attrs.pop("valid_max", None)
+        ds.R.attrs.update(attrs, units="mm h-1", long_name="rain rate",
+                          standard_name="rainfall_rate",
+                          comment=f"converted from {hours:g} h accumulation in mm")
+    elif units not in ("mm/h", "mm h-1", "mm hr-1", ""):
+        raise ValueError(f"unexpected radar units {units!r}")
+    lon = next(c for c in ("lon", "longitude") if c in ds.variables)
+    lat = next(c for c in ("lat", "latitude") if c in ds.variables)
+    return cv.project_grid(ds, crs, lon=lon, lat=lat)
 
 
 def normalize_cml(ds: xr.Dataset, crs: str) -> xr.Dataset:

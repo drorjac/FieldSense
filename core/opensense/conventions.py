@@ -130,3 +130,43 @@ def project_points(ds: xr.Dataset, crs: str = "EPSG:32632",
     ds.coords["x"] = (dim, np.asarray(x))
     ds.coords["y"] = (dim, np.asarray(y))
     return ds
+
+
+def project_grid(ds: xr.Dataset, crs: str, lon: str = "lon",
+                 lat: str = "lat") -> xr.Dataset:
+    """Attach the projected grid coordinates mergeplg and poligrain read.
+
+    Adds 2-D ``x_grid``/``y_grid`` (exact, per cell) and 1-D ``x``/``y`` axes,
+    plus 2-D ``lon``/``lat`` if the source had 1-D axes. ``ds`` must be on
+    (..., y, x) dimensions, or on (..., lat, lon), which are renamed.
+
+    The 1-D axes are the centre row and centre column of the projected grid.
+    A lat/lon grid is not exactly rectilinear once projected, so these are
+    bookkeeping only - the same approximation ``mergeplg.io`` makes. The
+    geometry itself is always taken from ``x_grid``/``y_grid``.
+    """
+    import poligrain as plg
+
+    lon2d, lat2d = np.asarray(ds[lon]), np.asarray(ds[lat])
+    if lon2d.ndim == 1:
+        lon2d, lat2d = np.meshgrid(lon2d, lat2d)
+    if lat in ds.dims and lon in ds.dims:
+        ds = ds.rename({lat: "y", lon: "x"})
+        lon, lat = "lon", "lat"
+    # Any existing x/y are in the source's own projection (OpenMRG ships a
+    # polar stereographic grid); they are replaced, not trusted.
+    ds = ds.drop_vars([c for c in (lon, lat, "x", "y") if c in ds.variables])
+    ds.coords["lon"] = (("y", "x"), lon2d)
+    ds.coords["lat"] = (("y", "x"), lat2d)
+    # older code in this repository used these names; keep both
+    ds.coords["longitudes"] = ds.lon
+    ds.coords["latitudes"] = ds.lat
+
+    xs, ys = plg.spatial.project_point_coordinates(ds.lon, ds.lat, crs)
+    xv, yv = np.asarray(xs), np.asarray(ys)
+    ds.coords["x_grid"] = (("y", "x"), xv)
+    ds.coords["y_grid"] = (("y", "x"), yv)
+    ds.coords["x"] = ("x", xv[xv.shape[0] // 2, :])
+    ds.coords["y"] = ("y", yv[:, xv.shape[1] // 2])
+    ds.attrs["crs"] = crs
+    return ds
