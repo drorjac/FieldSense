@@ -25,9 +25,9 @@ Two entry points:
     presence, units, the sublink broadcast of per-link metadata, and the
     sampling interval. Prefer this one.
 ``retrieve_improved(ds_cml)``
-    the same, with nearby-link wet/dry and the Leijnse (2008) wet-antenna
-    model - the variant that beat the default on every score on both
-    benchmarked networks. Not the default, so existing results reproduce.
+    the same, with nearby-link wet/dry, the Leijnse (2008) wet-antenna model
+    and receiver-floor QC - better link-level detection and correlation on
+    both benchmarked networks, not (yet) better merged maps. Opt-in.
 
 The steps are public functions too, so an experiment that varies only one
 step (``retrieval_benchmark.py``) can compute the others once.
@@ -98,6 +98,13 @@ class RetrievalConfig:
     # forced to zero where the mask says dry. Off by default, because the
     # rolling-std classifier misses steady stratiform rain - see ``retrieve``.
     zero_when_dry: bool = False
+
+    # Treat samples at the receiver's sensitivity floor as missing: there the
+    # loss is only a lower bound. See ``core.opensense.quality``. Off by
+    # default so published results reproduce; ``retrieve_improved`` turns it
+    # on, because a wet/dry mask that correctly calls an outage "wet" turns
+    # the outage into extreme rain.
+    mask_censored: bool = False
 
     def __post_init__(self):
         if self.waa_model not in WAA_MODELS:
@@ -395,6 +402,16 @@ def retrieve_dataset(ds: xr.Dataset, cfg: RetrievalConfig | None = None,
     length, freq, pol = link_metadata(ds, rsl.isel(time=0, drop=True))
     cfg = cfg or RetrievalConfig.for_interval(sampling_interval_s(ds.time))
 
+    n_censored = 0
+    if cfg.mask_censored:
+        from core.opensense.quality import censored_at_floor
+        censored = censored_at_floor(rsl.values.reshape(n_t, n_c * n_s),
+                                     sampling_interval_s(ds.time))
+        n_censored = int(censored.sum())
+        loss = loss.reshape(n_t, n_c * n_s)
+        loss[censored] = np.nan                      # -> a gap, R is NaN there
+        loss = loss.reshape(n_t, n_c, n_s)
+
     wet_flat = None
     if wet is not None:
         if isinstance(wet, xr.DataArray):
@@ -413,6 +430,8 @@ def retrieve_dataset(ds: xr.Dataset, cfg: RetrievalConfig | None = None,
         out[name].attrs["units"] = "dB"
     out.attrs.update(retrieval=cfg.describe(),
                      loss="TSL - RSL" if use_tsl else "-RSL (no TSL used)")
+    if cfg.mask_censored:
+        out.attrs["censored_samples"] = n_censored
     if squeeze_sublink:
         out = out.isel(sublink_id=0, drop=True)
     return out
@@ -448,26 +467,34 @@ def retrieve_improved(ds: xr.Dataset, cfg: RetrievalConfig | None = None,
                       radius_km: float = 15.0) -> xr.Dataset:
     """The retrieval that did best across both benchmarked networks.
 
-    Nearby-link wet/dry (Overeem et al. 2016) for the baseline, and the
-    Leijnse et al. (2008) wet-antenna model. In ``retrieval_benchmark.py`` it
-    beats the default on every score on both OpenMRG (dense, 10 s) and
-    OpenRainER (sparse, 1 min): ratio to gauges 2.11 -> 1.30 and
-    1.30 -> 0.85, correlation 0.703 -> 0.726 and 0.700 -> 0.714, wet/dry MCC
-    0.37 -> 0.67 and 0.30 -> 0.57. Pastorek (2021) correlates slightly
-    better on OpenMRG but reads low on both, so it is not the pick.
+    Nearby-link wet/dry (Overeem et al. 2016) for the baseline, the
+    Leijnse et al. (2008) wet-antenna model, and samples at the receiver
+    floor masked as missing (``core.opensense.quality``) - without that last
+    step a single receiver outage under a correctly-wet mask becomes hours
+    of 180 mm/h.
+
+    In ``retrieval_benchmark.py`` it beats the default on every link-level
+    score on both OpenMRG (dense, 10 s) and OpenRainER (sparse, 1 min):
+    ratio to gauges 2.11 -> 1.30 and 1.30 -> 0.85, correlation
+    0.703 -> 0.726 and 0.698 -> 0.703, wet/dry MCC 0.37 -> 0.67 and
+    0.30 -> 0.57.
+
+    It did **not** give better merged rainfall maps on the two validation
+    events (``run_pipeline.py --retrieval improved --val-select gauge``):
+    higher correlation, but a magnitude bias that costs more RMSE than the
+    correlation gains. That, and reproducibility, is why it is not the
+    default of :func:`retrieve_dataset`.
 
     The nearby-link mask needs neighbours within ``radius_km`` and ~24 h of
     history; where it cannot decide, rolling-std fills in. Give it more data
     than the window you care about and cut afterwards.
-
-    Not the default of :func:`retrieve_dataset`, so results computed with the
-    default stay reproducible.
     """
     from core.opensense import wet_dry
 
     cfg = cfg or RetrievalConfig.for_interval(sampling_interval_s(ds.time))
     if cfg.waa_model == "saturating":
         cfg = cfg.with_(waa_model="leijnse2008")
+    cfg = cfg.with_(mask_censored=True)
     mask = wet_dry.nearby_links(ds, radius_km=radius_km)
     out = retrieve_dataset(ds, cfg, wet=wet_dry.fill_undecided(mask, ds, cfg))
     out.attrs["wet_dry"] = (f"nearby links (Overeem 2016, r={radius_km:g} km), "

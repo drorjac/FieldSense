@@ -173,3 +173,39 @@ def test_retrieve_improved_sees_the_steady_rain_rolling_std_misses():
     assert "leijnse2008" in improved.attrs["retrieval"]
     assert "nearby links" in improved.attrs["wet_dry"]
     assert float(improved.R.isel(time=slice(0, 500)).max()) == 0.0
+
+    # raw OpenSense files (length in m, MHz, no projection) work the same
+    raw = make_cml(rain, np.full((6, 2), 23.0), np.full(6, 4.0), noise_db=0.02)
+    np.testing.assert_allclose(rt.retrieve_improved(raw).R.values,
+                               improved.R.values, equal_nan=True)
+
+
+def test_receiver_floor_is_masked_not_retrieved_as_rain():
+    """An outage: RSL drops to the receiver floor and stays there.
+
+    With an external mask calling it wet, the default chain turns the
+    60 dB drop into extreme rain; with ``mask_censored`` those samples are
+    gaps. A brief deep fade in the same series is kept.
+    """
+    from core.opensense.quality import censored_at_floor
+
+    rain = rain_event(n_links=1, rate=0.0)
+    ds = example_data.normalize_cml(
+        make_cml(rain, [[23.0, 23.0]], [4.0], noise_db=0.3), "EPSG:32632")
+    rsl = ds.rsl.values.copy()                           # (time, sublink, cml)
+    rsl[700:800] = -100.0                                # 100-minute outage
+    rsl[300:303] = rsl[300:303] - 35.0                   # 3-minute deep fade
+    ds["rsl"] = (ds.rsl.dims, rsl)
+
+    flat = ds.rsl.transpose("time", "cml_id", "sublink_id").values.reshape(1440, -1)
+    mask = censored_at_floor(flat, 60.0)
+    assert mask[700:800].all() and not mask[:700].any() and not mask[800:].any()
+
+    wet = xr.DataArray(np.ones((1440, 1), bool), dims=("time", "cml_id"),
+                       coords={"time": ds.time, "cml_id": ds.cml_id})
+    naive = _retrieve(ds, wet, **NO_WAA).R
+    qc = _retrieve(ds, wet, mask_censored=True, **NO_WAA)
+    assert float(naive.isel(time=slice(700, 800)).min()) > 100.0
+    assert bool(qc.R.isel(time=slice(700, 800)).isnull().all())
+    assert qc.attrs["censored_samples"] == 200            # both sublinks
+    assert float(qc.R.isel(time=slice(300, 303)).max()) > 0.0

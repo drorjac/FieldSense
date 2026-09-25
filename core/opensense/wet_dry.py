@@ -23,7 +23,8 @@ wet-antenna model - see the project README.
 
 Example
 -------
->>> from core.opensense import retrieval as rt, wet_dry
+>>> from core.opensense import conventions as cv
+from core.opensense import retrieval as rt, wet_dry
 >>> mask = wet_dry.nearby_links(cml)
 >>> out = rt.retrieve_dataset(cml, rt.RetrievalConfig.for_interval(10,
 ...                           waa_model="pastorek2021"),
@@ -38,6 +39,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from core.opensense import conventions as cv
 from core.opensense import retrieval as rt
 
 WET_THRESHOLD_MM_H = 0.1
@@ -75,7 +77,7 @@ def nearby_links(cml: xr.Dataset, radius_km: float = 15.0,
     not. ``kwargs`` pass through to ``pycomlink``'s ``nearby_wetdry``
     (thresholds, ``min_links``).
 
-    Needs ``length_km`` and site lat/lon, i.e. a normalized dataset. NaN
+    Needs site lat/lon and a length in any declared unit. NaN
     during the first 6 hours (the 24 h maximum needs history) and for links
     with too few neighbours. Returned as float on the CML's time axis.
     """
@@ -86,7 +88,12 @@ def nearby_links(cml: xr.Dataset, radius_km: float = 15.0,
         pmin = rx.resample(time=f"{interval_min}min").min().mean("sublink_id")
     else:
         pmin = rx.resample(time=f"{interval_min}min").min()
-    length = cml.length_km
+    # normalized datasets carry length_km; raw OpenSense files only length,
+    # in whatever units they declare
+    if "length_km" in cml.coords:
+        length = cml.length_km
+    else:
+        length = xr.DataArray(cv.to_km(cml.length), dims=cml.length.dims)
     if "sublink_id" in length.dims:
         length = length.isel(sublink_id=0, drop=True)
     pmin = pmin.transpose("cml_id", "time").assign_coords(

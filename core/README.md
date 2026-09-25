@@ -20,6 +20,7 @@ core/
 │   ├── conventions.py           # units, polarization, projected geometry across sources
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
 │   ├── wet_dry.py               # radar and nearby-link wet/dry masks (poligrain, pycomlink)
+│   ├── quality.py               # receiver-floor (outage) detection
 │   └── evaluation.py            # poligrain matching of lines/points/grids + metrics
 ├── radar/
 │   └── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
@@ -67,6 +68,7 @@ ev.rainfall_metrics(ev.radar_along_links(data["radar"].R, cml),
 | `conventions` | m/km, MHz/GHz, polarization spellings, `project_cml`, `project_grid` | `poligrain.spatial` |
 | `retrieval` | `retrieve_dataset`, `retrieve_improved`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
 | `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `fill_undecided` | `poligrain`, `pycomlink` |
+| `quality` | `censored_at_floor`: receiver outages, where loss is only a lower bound | - |
 | `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics`, `aggregate` (start- or end-stamped bins) | `poligrain.spatial`, `poligrain.validation` |
 
 The wrappers exist because calling poligrain directly has three silent traps
