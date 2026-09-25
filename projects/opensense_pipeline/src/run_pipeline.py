@@ -103,7 +103,7 @@ def coarsen_radar(ds_rad, max_cells: int):
 
 
 def validate_over_time(ds_rad, ds_cml, ds_gauge, n_times: int = 20,
-                       max_cells: int = 6000) -> list[dict]:
+                       max_cells: int = 6000, select_by: str = "cml") -> list[dict]:
     """Score every method against the gauges, pooled over several timesteps.
 
     A single timestep gives one value per gauge - ten numbers for OpenMRG -
@@ -114,13 +114,23 @@ def validate_over_time(ds_rad, ds_cml, ds_gauge, n_times: int = 20,
     The gauges are held out of every merge, so this stays an independent
     check rather than a measure of how well each method reproduces its own
     input.
+
+    ``select_by`` picks what "wettest" is judged by. ``cml`` (the default,
+    and what the published results use) ranks timesteps by the CML
+    network's own retrieved rain - so two retrievals get scored on
+    different timesteps, and always where the CML reads highest. To compare
+    retrievals, use ``gauge``: the ranking then comes from the held-out
+    reference and is identical for every retrieval.
     """
     ds_rad, factor = coarsen_radar(ds_rad, max_cells)
     if factor > 1:
         print(f"    grid coarsened {factor}x for validation -> "
               f"{ds_rad.sizes['y']} x {ds_rad.sizes['x']}")
 
-    wetness = np.nansum(np.asarray(ds_cml.R), axis=1)
+    if select_by not in ("cml", "gauge"):
+        raise ValueError(f"select_by must be 'cml' or 'gauge', got {select_by!r}")
+    source = ds_cml if select_by == "cml" else ds_gauge
+    wetness = np.nansum(np.asarray(source.R), axis=1)
     order = np.argsort(wetness)[::-1]
     chosen = sorted(int(t) for t in order[:n_times] if wetness[order[0]] > 0)
 
@@ -147,30 +157,38 @@ def validate_over_time(ds_rad, ds_cml, ds_gauge, n_times: int = 20,
 # --------------------------------------------------------------------------
 def run_dataset(name: str, module, event_key: str,
                 n_val: int = 20, max_cells: int = 6000,
-                source: str = "raw", offline: bool = False) -> dict:
+                source: str = "raw", offline: bool = False,
+                retrieval: str = "default", select_by: str = "cml") -> dict:
     """Ingest one event, apply every method, write maps and validation.
 
     ``source`` picks where the data comes from - the full local Zenodo
     archives (``raw``) or the curated example subsets (``example``). Both
     produce the same (radar, cml, gauge) triple, so nothing downstream cares.
+
+    ``retrieval`` picks the CML chain: ``default`` or ``improved``
+    (``retrieval.retrieve_improved``). Only the CML input changes; radar,
+    gauges, merge methods and the validation are identical.
     """
-    # Results from the two sources must not overwrite each other: the example
-    # subsets cover a different period from the curated events.
-    tag = "" if source == "raw" else f"_{source}"
+    # Results from the two sources, and the two retrievals, must not
+    # overwrite each other.
+    tag = ("" if source == "raw" else f"_{source}") + \
+          ("" if retrieval == "default" else f"_{retrieval}") + \
+          ("" if select_by == "cml" else f"_by{select_by}")
 
     if source == "example":
         key = name.lower()
         _, subset, _, label = EXAMPLE_EVENTS[key]
         print(f"\n{'=' * 74}\n{name}: {label}\n"
               f"  curated example subset '{subset}'\n{'=' * 74}")
-        ds_rad, ds_cml, ds_gauge = build_from_example(key, offline=offline)
+        ds_rad, ds_cml, ds_gauge = build_from_example(key, offline=offline,
+                                                      retrieval=retrieval)
         event_key_used, event_label = subset, label
     else:
         event = module.EVENTS[event_key]
         print(f"\n{'=' * 74}\n{name}: {event.label}\n  {event.note}\n{'=' * 74}")
         # The ingest modules already emit gauges on an "id" dimension carrying
         # x/y and lon/lat, which is what mergeplg and poligrain need.
-        ds_rad, ds_cml, ds_gauge = module.build_event(event)
+        ds_rad, ds_cml, ds_gauge = module.build_event(event, retrieval=retrieval)
         event_key_used, event_label = event.key, event.label
 
     t = peak_timestep(ds_cml)
@@ -193,7 +211,7 @@ def run_dataset(name: str, module, event_key: str,
 
     print(f"  validating against gauges over the {n_val} wettest timesteps")
     rows, pooled, chosen = validate_over_time(ds_rad, ds_cml, ds_gauge,
-                                              n_val, max_cells)
+                                              n_val, max_cells, select_by)
     label_map = {m.key: {"label": m.label, "family": m.family} for m in METHODS}
     plots.fig_gauge_validation(
         {k: np.concatenate(v["est"]) for k, v in pooled.items()},
@@ -229,7 +247,9 @@ def run_dataset(name: str, module, event_key: str,
                   f"{best['rmse']:6.2f}   {radar['rmse']:6.2f}")
 
     return {"dataset": name, "event": event_key_used,
-            "label": event_label,
+            "label": event_label, "retrieval": retrieval,
+            "val_select": select_by,
+            "val_timesteps": [str(ds_cml.time.values[t])[:16] for t in chosen],
             "timestep": stamp, "gauge_validation": rows,
             "coverage_analysis": coverage}
 
@@ -250,7 +270,7 @@ EXAMPLE_STEP = {"openmrg": "5min", "openrainer": "15min"}
 
 
 def build_from_example(dataset: str, resample: str | None = None,
-                       offline: bool = False) -> tuple:
+                       offline: bool = False, retrieval: str = "default") -> tuple:
     """(radar, cml, gauge) from a curated example subset.
 
     The same triple ``ingest_*.build_event`` returns from the full Zenodo
@@ -264,7 +284,7 @@ def build_from_example(dataset: str, resample: str | None = None,
     """
     from core.opensense import example_data
     from core.opensense.retrieval import (combine_sublinks, retrieve_dataset,
-                                          sampling_interval_s)
+                                          retrieve_improved, sampling_interval_s)
 
     key, subset, gauge_component, label = EXAMPLE_EVENTS[dataset]
     cache = example_data.CACHE / example_data.DATASETS[key].folder
@@ -277,7 +297,8 @@ def build_from_example(dataset: str, resample: str | None = None,
     data = example_data.load(key, subset)
 
     # --- CML: the shared retrieval chain on the subset's raw signals ---
-    cml = combine_sublinks(retrieve_dataset(data["cml"]))
+    chain = retrieve_improved if retrieval == "improved" else retrieve_dataset
+    cml = combine_sublinks(chain(data["cml"]))
     cml.coords["length"] = cml.length_km
     cml.coords["frequency"] = cml.frequency_ghz
 
@@ -364,6 +385,15 @@ def main() -> None:
                          "downloaded on first use (~57 MB).")
     ap.add_argument("--offline", action="store_true",
                     help="never download; fail if the data is not local")
+    ap.add_argument("--retrieval", choices=["default", "improved"],
+                    default="default",
+                    help="CML chain: the default, or retrieve_improved "
+                         "(nearby-link wet/dry + Leijnse 2008). Outputs are "
+                         "tagged _improved and never overwrite the default's.")
+    ap.add_argument("--val-select", choices=["cml", "gauge"], default="cml",
+                    help="rank the validation timesteps by CML rain (default, "
+                         "as published) or by gauge rain - the same timesteps "
+                         "for every retrieval, so use this to compare them")
     ap.add_argument("--skip-benchmark", action="store_true")
     ap.add_argument("--seeds", type=int, default=3)
     ap.add_argument("--val-timesteps", type=int, default=20,
@@ -375,7 +405,7 @@ def main() -> None:
 
     vs.use_style()
     RESULTS.mkdir(parents=True, exist_ok=True)
-    summary = {"source": args.source}
+    summary = {"source": args.source, "retrieval": args.retrieval}
     print(f"data source: {args.source}"
           + ("  (offline)" if args.offline else ""))
 
@@ -404,15 +434,19 @@ def main() -> None:
     if args.dataset in ("openmrg", "both"):
         runs.append(run_dataset("OpenMRG", omrg, args.openmrg_event,
                                 args.val_timesteps, args.val_max_cells,
-                                args.source, args.offline))
+                                args.source, args.offline, args.retrieval,
+                                args.val_select))
     if args.dataset in ("openrainer", "both"):
         runs.append(run_dataset("OpenRainER", orain, args.openrainer_event,
                                 args.val_timesteps, args.val_max_cells,
-                                args.source, args.offline))
+                                args.source, args.offline, args.retrieval,
+                                args.val_select))
     summary["applications"] = runs
 
-    out = RESULTS / ("summary.json" if args.source == "raw"
-                     else f"summary_{args.source}.json")
+    suffix = ("" if args.source == "raw" else f"_{args.source}") + \
+             ("" if args.retrieval == "default" else f"_{args.retrieval}") + \
+             ("" if args.val_select == "cml" else f"_by{args.val_select}")
+    out = RESULTS / f"summary{suffix}.json"
     out.write_text(json.dumps(summary, indent=1, default=float))
     print(f"\nwrote {out.relative_to(REPO_ROOT)}")
     for p in sorted(RESULTS.glob("*.png")):

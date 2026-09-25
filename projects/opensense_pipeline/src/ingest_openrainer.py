@@ -36,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from core.opensense import conventions as cv  # noqa: E402
 from core.opensense.retrieval import (RetrievalConfig, combine_sublinks,  # noqa: E402
-                                      retrieve_dataset)
+                                      retrieve_dataset, retrieve_improved)
 
 RAW = REPO_ROOT / "dataset/open_datasets/OpenRainER_Italy/raw"
 EXTRACTED = RAW / "extracted"
@@ -121,7 +121,8 @@ def _per_link(da: xr.DataArray) -> xr.DataArray:
     return da.isel(sublink_id=0, drop=True) if "sublink_id" in da.dims else da
 
 
-def load_cml(event: Event, cfg: RetrievalConfig | None = None) -> xr.Dataset:
+def load_cml(event: Event, cfg: RetrievalConfig | None = None,
+             retrieval: str = "default") -> xr.Dataset:
     """Retrieve path rain rate from raw RSL/TSL for one event window.
 
     The files are already OpenSense-1.0, so this is ``retrieve_dataset`` on
@@ -132,16 +133,27 @@ def load_cml(event: Event, cfg: RetrievalConfig | None = None) -> xr.Dataset:
     where OpenMRG uses km and GHz. Fed straight into ``k*L`` and the ITU-R
     table they retrieve zero rain everywhere, silently. ``retrieve_dataset``
     reads the declared units through ``conventions.py``.
+
+    ``retrieval="improved"`` runs ``retrieve_improved`` on a 24-hour margin
+    instead, since the nearby-link reference level needs a day of history.
     """
     path = _cml_file(event.month)
-    pad = pd.Timedelta(hours=4)
+    pad = pd.Timedelta(hours=24 if retrieval == "improved" else 4)
     with xr.open_dataset(path) as raw:
         ds = raw.sel(time=slice(str(pd.Timestamp(event.start) - pad),
                                 str(pd.Timestamp(event.end) + pad))).load()
 
     # 1-minute sampling here against 10 s for OpenMRG, so the windows that
     # mean 5 minutes and 3 hours are scaled from the data, not hardcoded.
-    res = retrieve_dataset(ds, cfg)
+    # The raw files skip minutes; the rolling windows count samples.
+    step = pd.Timedelta(minutes=1)
+    ds = ds.reindex(time=pd.date_range(ds.time.values[0], ds.time.values[-1],
+                                       freq=step))
+    if retrieval == "improved":
+        res = retrieve_improved(ds, cfg)
+        print(f"          {res.attrs['wet_dry']}")
+    else:
+        res = retrieve_dataset(ds, cfg)
     out = combine_sublinks(res)
     out = cv.project_cml(out, CRS)
     # downstream (mergeplg, the synthetic benchmark) reads km and GHz per link
@@ -204,24 +216,30 @@ def aggregate_like_references(cml: xr.Dataset, freq: str = "15min") -> xr.Datase
 
 
 def build_event(event: Event, resample: str = "15min",
-                cache: bool = True) -> tuple:
+                cache: bool = True, retrieval: str = "default") -> tuple:
     """Return (radar, cml, gauges) on a common 15-minute axis.
 
     Radar and gauges arrive as 15-minute accumulations stamped at interval
     end; the 1-minute CML retrieval is averaged over the same (t - 15, t]
     windows so that every timestamp means the same quarter hour for all
     three.
+
+    ``retrieval="improved"`` uses ``retrieve_improved``; cached separately
+    as ``<event>_improved_*.nc``.
     """
+    if retrieval not in ("default", "improved"):
+        raise ValueError(f"retrieval must be 'default' or 'improved', got {retrieval!r}")
     PROCESSED.mkdir(parents=True, exist_ok=True)
-    paths = {n: PROCESSED / f"{event.key}_{n}.nc"
+    stem = event.key if retrieval == "default" else f"{event.key}_improved"
+    paths = {n: PROCESSED / f"{stem}_{n}.nc"
              for n in ("radar", "cml", "gauge")}
     if cache and all(p.exists() for p in paths.values()):
-        print(f"  [cache] {event.key}")
+        print(f"  [cache] {stem}")
         return tuple(xr.open_dataset(paths[n])
                      for n in ("radar", "cml", "gauge"))
 
     print(f"  cml     {event.start} .. {event.end}")
-    cml = load_cml(event)
+    cml = load_cml(event, retrieval=retrieval)
     print(f"          {cml.sizes['cml_id']} links")
     print("  radar   loading")
     rad = load_radar(event, cml_ds=cml)
@@ -239,7 +257,7 @@ def build_event(event: Event, resample: str = "15min",
     for name, ds in (("radar", rad), ("cml", cml), ("gauge", gauge)):
         ds.attrs.update(event=event.key, label=event.label,
                         source="OpenRainER", doi="10.5281/zenodo.22829808",
-                        license="CC-BY-4.0",
+                        license="CC-BY-4.0", retrieval=retrieval,
                         time_label=f"{ACCUMULATION_LABEL} of {resample} interval")
         if cache:
             ds.to_netcdf(paths[name])

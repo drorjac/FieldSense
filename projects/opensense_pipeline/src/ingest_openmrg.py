@@ -27,7 +27,9 @@ import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
-from core.opensense.retrieval import (RetrievalConfig, retrieve,  # noqa: E402
+from core.opensense import conventions as cv  # noqa: E402
+from core.opensense.retrieval import (RetrievalConfig, combine_sublinks,  # noqa: E402
+                                      retrieve, retrieve_improved,
                                       total_loss_from)
 
 RAW = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/raw/extracted"
@@ -130,6 +132,44 @@ def retrieve_cml_rain(ds_raw: xr.Dataset, meta: pd.DataFrame,
                       ("FarLongitude_DecDeg", "site_1_lon")]:
         out.coords[name] = ("sublink", m[col].to_numpy())
     return out
+
+
+def raw_to_opensense(ds_raw: xr.Dataset, meta: pd.DataFrame) -> xr.Dataset:
+    """The archive's flat (time, sublink) layout -> OpenSense-1.0.
+
+    Every link has exactly two sublinks, directions A and B, which become
+    ``sublink_id``. Geometry is taken from direction A (its Near site is
+    ``site_0``). Needed by anything that works per link rather than per
+    sublink - the nearby-link wet/dry method compares neighbouring *links*,
+    and would count a link's own reverse direction as a neighbour otherwise.
+    """
+    m = meta.reset_index()
+    m = m[m.Sublink.isin(ds_raw.sublink.values.astype(int))]
+    pairs = m.pivot(index="Link", columns="Direction", values="Sublink")
+    pairs = pairs.dropna().astype(int)                   # both directions present
+    order = [pairs[d].to_numpy() for d in ("A", "B")]
+
+    def stack(var):
+        return np.stack([ds_raw[var].sel(sublink=s).to_numpy() for s in order],
+                        axis=-1).astype(float)           # (time, cml_id, sublink_id)
+
+    a = meta.loc[order[0]]
+    freq = np.stack([meta.loc[s, "Frequency_GHz"].to_numpy() for s in order], -1)
+    pol = np.stack([meta.loc[s, "Polarization"].to_numpy() for s in order], -1)
+    dims = ("time", "cml_id", "sublink_id")
+    ds = xr.Dataset(
+        {"tsl": (dims, stack("tsl")), "rsl": (dims, stack("rsl"))},
+        coords={"time": ds_raw.time.to_numpy(), "cml_id": pairs.index.to_numpy(),
+                "sublink_id": ["A", "B"],
+                "site_0_lat": ("cml_id", a.NearLatitude_DecDeg.to_numpy()),
+                "site_0_lon": ("cml_id", a.NearLongitude_DecDeg.to_numpy()),
+                "site_1_lat": ("cml_id", a.FarLatitude_DecDeg.to_numpy()),
+                "site_1_lon": ("cml_id", a.FarLongitude_DecDeg.to_numpy()),
+                "length": ("cml_id", a.Length_km.to_numpy(), {"units": "km"}),
+                "frequency": (("cml_id", "sublink_id"), freq, {"units": "GHz"}),
+                "polarization": (("cml_id", "sublink_id"), pol)})
+    from core.opensense.example_data import normalize_cml
+    return normalize_cml(ds, CRS)
 
 
 def sublinks_to_cmls(ds_sub: xr.Dataset) -> xr.Dataset:
@@ -260,17 +300,28 @@ def load_city_gauges(start: str, end: str) -> xr.Dataset:
 # assembly
 # --------------------------------------------------------------------------
 def build_event(event: Event, resample: str = "5min",
-                cache: bool = True, baseline_margin_h: float = 4.0) -> tuple:
+                cache: bool = True, baseline_margin_h: float = 4.0,
+                retrieval: str = "default") -> tuple:
     """Return (radar, cml, gauges) for one event, all on a common time axis.
 
     Everything is resampled to the radar's native 5-minute step, which is the
     coarsest of the three and the grid the merge runs on.
+
+    ``retrieval="improved"`` uses ``retrieval.retrieve_improved`` (nearby-link
+    wet/dry + Leijnse 2008) instead of the default chain, with a 24-hour
+    margin because the nearby-link reference level needs a day of history.
+    Cached separately, as ``<event>_improved_*.nc``.
     """
+    if retrieval not in ("default", "improved"):
+        raise ValueError(f"retrieval must be 'default' or 'improved', got {retrieval!r}")
+    if retrieval == "improved":
+        baseline_margin_h = max(baseline_margin_h, 24.0)
     PROCESSED.mkdir(parents=True, exist_ok=True)
-    paths = {n: PROCESSED / f"{event.key}_{n}.nc"
+    stem = event.key if retrieval == "default" else f"{event.key}_improved"
+    paths = {n: PROCESSED / f"{stem}_{n}.nc"
              for n in ("radar", "cml", "gauge")}
     if cache and all(p.exists() for p in paths.values()):
-        print(f"  [cache] {event.key}")
+        print(f"  [cache] {stem}")
         return tuple(xr.open_dataset(paths[n]) for n in ("radar", "cml", "gauge"))
 
     print(f"  radar   {event.start} .. {event.end}")
@@ -285,9 +336,19 @@ def build_event(event: Event, resample: str = "5min",
                    str(pd.Timestamp(event.end) + pad))).load()
     meta = load_cml_metadata()
     print(f"          {raw.sizes['time']} samples x {raw.sizes['sublink']} sublinks")
-    sub = retrieve_cml_rain(raw, meta)
-    sub = sub.sel(time=slice(event.start, event.end))
-    cml = sublinks_to_cmls(sub)
+    if retrieval == "default":
+        sub = retrieve_cml_rain(raw, meta)
+        sub = sub.sel(time=slice(event.start, event.end))
+        cml = sublinks_to_cmls(sub)
+    else:
+        ds = raw_to_opensense(raw, meta)
+        res = retrieve_improved(ds)
+        print(f"          {res.attrs['wet_dry']}")
+        cml = cv.project_cml(combine_sublinks(res), CRS)
+        cml = cml.sel(time=slice(event.start, event.end))
+        cml.coords["length"] = cml.length_km
+        cml.coords["frequency"] = cml.frequency_ghz
+        cml.R.attrs["units"] = "mm h-1"
 
     print("  gauges  loading")
     gauge = load_city_gauges(event.start, event.end)
@@ -304,7 +365,7 @@ def build_event(event: Event, resample: str = "5min",
     for name, ds in (("radar", rad), ("cml", cml), ("gauge", gauge)):
         ds.attrs.update(event=event.key, label=event.label,
                         source="OpenMRG", doi="10.5281/zenodo.7107689",
-                        license="CC-BY-SA-4.0")
+                        license="CC-BY-SA-4.0", retrieval=retrieval)
         if cache:
             ds.to_netcdf(paths[name])
     return rad, cml, gauge

@@ -69,6 +69,7 @@ from core.opensense import evaluation as ev  # noqa: E402
 from core.opensense import example_data  # noqa: E402
 from core.opensense import retrieval as rt  # noqa: E402
 from core.opensense import wet_dry  # noqa: E402
+from core.opensense.quality import censored_at_floor  # noqa: E402
 
 RESULTS = HERE.parent / "results"
 
@@ -83,6 +84,7 @@ class Variant:
     label: str
     wet: str = "rolling_std"            # rolling_std | radar | nearby
     changes: dict = field(default_factory=dict)
+    qc: bool = False                    # mask samples at the receiver floor
 
 
 VARIANTS = (
@@ -104,6 +106,9 @@ VARIANTS = (
             wet="nearby", changes=dict(waa_model="leijnse2008")),
     Variant("wet_nearby_zero", "nearby-link wet/dry, zero when dry",
             wet="nearby", changes=dict(zero_when_dry=True)),
+    Variant("default_qc", "default + receiver-floor QC", qc=True),
+    Variant("improved", "retrieve_improved: nearby + Leijnse + QC",
+            wet="nearby", changes=dict(waa_model="leijnse2008"), qc=True),
 )
 VARIANTS_BY_KEY = {v.key: v for v in VARIANTS}
 
@@ -196,26 +201,30 @@ def run_variants(cml: xr.Dataset, variants, masks: dict,
     for start in range(0, cml_ids.size, LINK_CHUNK):
         chunk = cml.isel(cml_id=slice(start, start + LINK_CHUNK))
         d = chunk.transpose("time", "cml_id", "sublink_id")
-        loss = rt.total_loss_from(d.rsl.values, d.tsl.values)
-        n_t, n_c, n_s = loss.shape
-        loss = loss.reshape(n_t, n_c * n_s)
-        gaps = ~np.isfinite(loss)
-        loss = pd.DataFrame(loss).ffill().bfill().to_numpy()
+        raw_loss = rt.total_loss_from(d.rsl.values, d.tsl.values)
+        n_t, n_c, n_s = raw_loss.shape
+        raw_loss = raw_loss.reshape(n_t, n_c * n_s)
+        censored = censored_at_floor(d.rsl.values.reshape(n_t, n_c * n_s), interval)
+        prepared = {}
+        for qc in dict.fromkeys(v.qc for v in variants):
+            lo = np.where(censored, np.nan, raw_loss) if qc else raw_loss
+            prepared[qc] = (~np.isfinite(lo), pd.DataFrame(lo).ffill().bfill().to_numpy())
         length, freq, pol = (a.ravel() for a in rt.link_metadata(
             chunk, d.rsl.isel(time=0, drop=True)))
 
-        rs_wet = rt.wet_dry_rolling_std(loss, base_cfg.wet_window,
-                                        base_cfg.wet_threshold_db)
         baselines = {}
         for v in variants:
             cfg = base_cfg.with_(**v.changes)
-            if v.wet not in baselines:
+            gaps, loss = prepared[v.qc]
+            if (v.wet, v.qc) not in baselines:
+                rs_wet = rt.wet_dry_rolling_std(loss, base_cfg.wet_window,
+                                                base_cfg.wet_threshold_db)
                 m = masks.get(v.wet)
                 wet = rs_wet if m is None else _flat_mask(
                     m.isel(cml_id=slice(start, start + LINK_CHUNK)), rs_wet, n_s)
-                baselines[v.wet] = (wet, rt.baseline_from_dry(
+                baselines[(v.wet, v.qc)] = (wet, rt.baseline_from_dry(
                     loss, wet, cfg.baseline_window))
-            wet, baseline = baselines[v.wet]
+            wet, baseline = baselines[(v.wet, v.qc)]
 
             a_obs = np.clip(loss - baseline, 0.0, None)
             a_obs[a_obs < cfg.min_attenuation_db] = 0.0
