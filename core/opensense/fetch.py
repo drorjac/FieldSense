@@ -6,9 +6,9 @@ publishes, and idempotent - an already-complete, verified file is skipped. Raw
 archives land under ``dataset/open_datasets/<dataset>/raw/`` and are excluded
 from git by the root ``.gitignore`` (``*.zip``, ``*.tar``, ``*.nc``).
 
-    python -m fetch --dataset openmrg
-    python -m fetch --dataset openrainer --files CML.tar AWS.tar RADrain.tar
-    python -m fetch --list
+    python -m core.opensense.fetch --dataset openmrg
+    python -m core.opensense.fetch --dataset openrainer --files CML.tar AWS.tar RADrain.tar
+    python -m core.opensense.fetch --list
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import requests
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 DATA_ROOT = REPO_ROOT / "dataset" / "open_datasets"
 
 CHUNK = 1 << 20  # 1 MiB

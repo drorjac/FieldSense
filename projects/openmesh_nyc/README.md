@@ -35,8 +35,7 @@ openmesh_nyc/
 │   ├── mop.py                  # strips \blue{} markup, camera_ready → *_clean
 │   └── fetch/                  # the collection pipelines the notebooks drive
 │       ├── asos_functions.py   asos_plotting.py
-│       ├── wu_functions.py     wu_plotting.py
-│       └── nexrad.py           # KOKX radar for the network's rain and snow days
+│       └── wu_functions.py     wu_plotting.py
 ├── requirements.txt
 └── README.md
 ```
@@ -57,14 +56,15 @@ run from anywhere inside this project without path fiddling.
 
 OpenMesh ships CMLs, PWS and ASOS but **no radar**, so there is no gridded
 reference to score a CML-derived field against — the one thing OpenMRG and
-OpenRainER both have. `src/fetch/nexrad.py` supplies one from **KOKX**
+OpenRainER both have. `core/radar/nexrad.py` (shared, since `opensense_pipeline`
+uses it too) supplies one from **KOKX**
 (Upton, NY), the NEXRAD covering New York City, through the Iowa
 Environmental Mesonet archive.
 
 ```bash
-python projects/openmesh_nyc/src/fetch/nexrad.py --classify        # which days
-python projects/openmesh_nyc/src/fetch/nexrad.py --date 2024-01-16 # fetch one
-python projects/openmesh_nyc/src/fetch/nexrad.py --best 3 --kind snow
+python -m core.radar.nexrad --classify        # which days
+python -m core.radar.nexrad --date 2024-01-16 # fetch one
+python -m core.radar.nexrad --best 3 --kind snow
 ```
 
 Days are classified from METAR present-weather codes at the four NYC ASOS

@@ -58,9 +58,12 @@ git remote -v
 ### Step 4: Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt                        # installs core/ in editable mode
 pip install -r projects/YOUR_PROJECT/requirements.txt
 ```
+
+The first line runs `pip install -e ".[notebooks]"`, which makes `import core`
+work from any folder, whether it's a script, a notebook or the terminal.
 
 ---
 
@@ -201,6 +204,18 @@ projects/your-project/
 source, its results and its manuscript live together. The only things that
 belong outside it are the raw published data (`dataset/`) and code that other
 projects import too (`core/`).
+
+**Imports:**
+
+```python
+from core.itu_p838 import get_k_alpha             # shared code: always via core
+from core.simulation.rain_fields import Grid
+import my_module                                  # your own src/: fine
+```
+
+Never put another project's folder on `sys.path`. If you need a module from
+another project, that module is shared by definition: propose moving it into
+`core/` (see Type B above).
 
 ---
 

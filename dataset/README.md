@@ -11,16 +11,13 @@ dataset/
 │   ├── OpenMRG_Sweden/     # Swedish microwave link, radar, and gauge data
 │   ├── CML_Netherlands/    # Netherlands commercial microwave link data
 │   └── OpenRainER_Italy/   # Italian precipitation dataset
-├── our_datasets/           # Processed datasets, ready for analysis (placeholder)
-├── processing/             # Data processing scripts and pipelines (placeholder)
-├── examples/               # Example notebooks and tutorials
-└── main.py                 # Dataset module entry point
+└── README.md
 ```
 
-> **Note:** `our_datasets/` and `processing/` are placeholders for the workflow described
-> below — they are empty until conversion scripts and processed outputs are added. Large
-> data files are git-ignored (see the root `.gitignore`); only metadata, small samples and
-> reader scripts are tracked.
+> **Note:** This folder holds the published data only. Large data files are git-ignored
+> (see the root `.gitignore`); only metadata, small samples and reader scripts are tracked.
+> Downloads and conversion are code, and live elsewhere - see
+> [Data Processing Workflow](#-data-processing-workflow).
 
 ## 🌐 Available Datasets
 
@@ -166,18 +163,15 @@ See individual dataset folders for specific example notebooks.
 
 ## 🔄 Data Processing Workflow
 
-1. **Raw Data** → Stored in `open_datasets/` with original format
-2. **Processing** → Scripts in `processing/` convert to standardized format
-3. **Processed Data** → Saved in `our_datasets/` ready for analysis
+1. **Fetch** → `core/opensense/fetch.py` downloads the full archives into
+   `open_datasets/<dataset>/raw/` (resumable, size-checked).
+   `core/opensense/example_data.py` fetches the small OpenSense example subsets into
+   `open_datasets/_example_subsets/`.
+2. **Ingest** → `projects/opensense_pipeline/src/ingest_*.py` convert raw archives to
+   OpenSense-1.0 netCDFs under `open_datasets/<dataset>/processed/`.
 
-### Processing Scripts
-
-*Not yet populated.* Planned contents:
-
-- Dataset-specific conversion scripts
-- Format standardization tools
-- Quality control and validation
-- Metadata extraction and enrichment
+`raw/`, `processed/` and `_example_subsets/` are git-ignored and can be rebuilt
+from those scripts.
 
 ---
 
@@ -239,7 +233,7 @@ Each dataset maintains its original license:
 
 - **Sample data** is included in this repository
 - **Complete datasets** may require download from original sources
-- **Processing scripts** are provided for data conversion
+- **Fetch and ingest scripts** are provided for data conversion (see above)
 
 ---
 
@@ -253,7 +247,7 @@ To add a new dataset:
    - Original source links and citations
    - Data format and structure
    - Example usage code
-3. Add processing scripts in `processing/` if needed
+3. Add a fetch entry in `core/opensense/fetch.py` if the data is downloadable
 4. Update this main README with dataset information
 
 ---
@@ -277,8 +271,8 @@ For questions about datasets or data processing:
 
 ## 📖 Additional Documentation
 
-- **Processing Guide:** See `processing/` directory (placeholder)
-- **Examples:** See `examples/` directory
+- **Fetch & ingest:** `core/opensense/` and `projects/opensense_pipeline/`
+- **Example notebooks:** in the projects that use the data (see above)
 - **Dataset-Specific Docs:** See individual dataset folders
 
 ---

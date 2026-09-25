@@ -10,8 +10,12 @@ This project explores multi-sensor data fusion for physical field sensing, inclu
 
 ```
 FieldSense/
-├── core/                 # Genuinely shared code (protected)
-│   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation, used by several projects
+├── core/                 # Genuinely shared code (protected), installed as a package
+│   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
+│   ├── viz_style.py          # shared palette and matplotlib defaults
+│   ├── simulation/           # synthetic rain fields + CML network sampling
+│   ├── opensense/            # OpenSense data: fetch, conventions, retrieval
+│   ├── radar/                # KOKX NEXRAD
 │   └── scientific_packages/  # PySINDy / PySR / PyNNcml reference notes + wrapper
 ├── dataset/              # Shared open datasets (protected)
 │   └── open_datasets/        # OpenMRG, OpenRainER, OpenMesh NYC, CML Netherlands
@@ -24,21 +28,25 @@ FieldSense/
 │   ├── physics_ml/             # Hybrid retrieval + equation discovery on CML data
 │   ├── rainfall_field_sim/     # Synthetic rain fields + CML sampling/retrieval
 │   └── spatial_interpolation/  # Rainfall nowcasting from CML networks
+├── pyproject.toml        # makes core/ importable: pip install -e .
 ├── requirements.txt
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
 
 Every project owns its own notebooks, source and results. `core/` holds only
-code that more than one project imports; `dataset/` holds the published data
-itself, not the analysis of it.
+code that more than one project imports (see [core/README.md](core/README.md));
+`dataset/` holds the published data itself, not the analysis of it. Projects
+import shared code as `from core... import`, and never from each other.
 
 ## Installation
 
 ```bash
 git clone https://github.com/USERNAME/FieldSense.git
 cd FieldSense
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt          # = pip install -e ".[notebooks]"
+pip install -r projects/<project>/requirements.txt   # the project you work on
 ```
 
 ## Contributing

@@ -18,14 +18,13 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))        # this project's modules
-sys.path.insert(0, str(REPO_ROOT))   # core.*
 
 import figures                                            # noqa: E402
-import viz_style as vs                                     # noqa: E402
-from cml_network import (SensorConfig, forward_model,      # noqa: E402
-                         path_averaging_bias, synthesize_network)
-from rain_fields import (MODELS, Grid, field_stats)        # noqa: E402
-from reconstruct import decompose, idw_path, score         # noqa: E402
+from core import viz_style as vs  # noqa: E402
+from core.simulation.cml_network import (SensorConfig, forward_model,  # noqa: E402
+                                         path_averaging_bias, synthesize_network)
+from core.simulation.rain_fields import (MODELS, Grid, field_stats)  # noqa: E402
+from core.simulation.reconstruct import decompose, idw_path, score  # noqa: E402
 
 RESULTS = HERE.parent / "results"
 SWEEP_DENSITIES = (25, 50, 90, 160, 280)

@@ -32,12 +32,11 @@ import poligrain as plg
 import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import conventions as cv                                             # noqa: E402
+from core.opensense import conventions as cv  # noqa: E402
 from ingest_openmrg import _baseline_from_dry, _wet_dry_rolling_std  # noqa: E402
-from core.itu_p838 import get_k_alpha                                # noqa: E402
+from core.itu_p838 import get_k_alpha  # noqa: E402
 
 RAW = REPO_ROOT / "dataset/open_datasets/OpenRainER_Italy/raw"
 EXTRACTED = RAW / "extracted"

@@ -30,26 +30,22 @@ Ported from ``poligrain.example_data``, with four changes:
 * **Normalized on load.** Units and polarization spellings differ between
   sources and are sometimes undeclared - see ``conventions.py``.
 
-    python -m example_data --list
-    python -m example_data --dataset openmrg --subset 8d
+    python -m core.opensense.example_data --list
+    python -m core.opensense.example_data --dataset openmrg --subset 8d
 """
 
 from __future__ import annotations
 
 import argparse
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import xarray as xr
 
-HERE = Path(__file__).resolve().parent
-REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(HERE))
+from core.opensense import conventions as cv
+from core.opensense.fetch import download_url
 
-import conventions as cv                       # noqa: E402
-from fetch import download_url                 # noqa: E402
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 BASE_URL = "https://github.com/OpenSenseAction/opensense_example_data"
 VERSION = "main"

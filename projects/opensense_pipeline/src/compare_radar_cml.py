@@ -34,8 +34,6 @@ import xarray as xr
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
-sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(HERE))
 
 RESULTS = HERE.parent / "results"
@@ -296,7 +294,7 @@ def main() -> None:
 
     if len(out) > 1:
         import plots_radar_cml
-        import viz_style as vs
+        from core import viz_style as vs
         vs.use_style()
         fig_path = RESULTS / ("radar_vs_cml_nyc.png" if args.nyc
                               else "radar_vs_cml.png")

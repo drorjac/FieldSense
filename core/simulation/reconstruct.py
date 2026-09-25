@@ -25,8 +25,8 @@ from typing import Optional
 
 import numpy as np
 
-from cml_network import CMLNetwork
-from rain_fields import WET_THRESHOLD_MM_H, Grid
+from core.simulation.cml_network import CMLNetwork
+from core.simulation.rain_fields import WET_THRESHOLD_MM_H, Grid
 
 
 def idw_midpoint(net: CMLNetwork, values: np.ndarray, grid: Grid,

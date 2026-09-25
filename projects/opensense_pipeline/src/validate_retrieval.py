@@ -29,13 +29,11 @@ import xarray as xr
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
-sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(HERE))
 
-import conventions as cv                                  # noqa: E402
-import example_data                                       # noqa: E402
-from retrieval import RetrievalConfig, retrieve           # noqa: E402
+from core.opensense import conventions as cv  # noqa: E402
+from core.opensense import example_data  # noqa: E402
+from core.opensense.retrieval import RetrievalConfig, retrieve  # noqa: E402
 
 RESULTS = HERE.parent / "results"
 
@@ -135,7 +133,7 @@ def sweep_waa(ds: xr.Dataset, ref: np.ndarray,
     ratio to the reference is strongly event-dependent, so a value calibrated
     on one event does not transfer to the next.
     """
-    from retrieval import RetrievalConfig, retrieve
+    from core.opensense.retrieval import RetrievalConfig, retrieve
 
     d = ds.transpose("time", "cml_id", "sublink_id")
     loss = np.asarray(d.tsl - d.rsl, dtype=float)
@@ -207,7 +205,7 @@ def main() -> None:
 
     if not args.no_figure:
         import plots
-        import viz_style as vs
+        from core import viz_style as vs
         vs.use_style()
         RESULTS.mkdir(parents=True, exist_ok=True)
         path = RESULTS / f"retrieval_vs_reference_{args.window}.png"

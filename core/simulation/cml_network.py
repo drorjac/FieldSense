@@ -34,7 +34,7 @@ from typing import Optional, Tuple
 import numpy as np
 from scipy.ndimage import map_coordinates
 
-from rain_fields import Grid
+from core.simulation.rain_fields import Grid
 
 # Typical backhaul allocations. Longer hops use lower frequencies because the
 # rain-fade margin has to cover more kilometres.

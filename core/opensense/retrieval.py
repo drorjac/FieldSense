@@ -24,7 +24,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-import conventions as cv
+from core.opensense import conventions as cv
 
 
 @dataclass(frozen=True)

@@ -36,12 +36,10 @@ import xarray as xr
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
 
-from core.itu_p838 import get_k_alpha              # noqa: E402
+from core.itu_p838 import get_k_alpha  # noqa: E402
 from merging import METHODS, run, score            # noqa: E402
-from rain_fields import MODELS, Grid               # noqa: E402
+from core.simulation.rain_fields import MODELS, Grid  # noqa: E402
 
 N_PATH_SAMPLES = 96
 
@@ -246,7 +244,7 @@ def benchmark_models(sim: Grid) -> tuple:
     5-15 km across, a squall line with a several-km convective ribbon and a
     tens-of-km stratiform tail.
     """
-    from rain_fields import ConvectiveField, FrontalBandField, StratiformField
+    from core.simulation.rain_fields import ConvectiveField, FrontalBandField, StratiformField
 
     # The spectral model is scale-free, so stratiform needs no adjustment
     # beyond the grid it is generated on.

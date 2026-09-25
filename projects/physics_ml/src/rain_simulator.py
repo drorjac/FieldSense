@@ -8,10 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional, Tuple, List
 
-from pathlib import Path as _Path
-import sys as _sys
-_sys.path.insert(0, str(_Path(__file__).resolve().parents[3]))
-from core import itu_p838 as _itu  # noqa: E402
+from core import itu_p838 as _itu
 from sklearn.model_selection import train_test_split
 
 

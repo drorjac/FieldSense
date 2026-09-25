@@ -32,10 +32,10 @@ day from METAR present-weather codes and applies:
 
 Both give a liquid-water-equivalent rate in mm/h.
 
-    python -m nexrad --classify
-    python -m nexrad --date 2024-01-16          # a snow day
-    python -m nexrad --date 2024-03-23          # a strong rain day
-    python -m nexrad --best 2 --kind snow
+    python -m core.radar.nexrad --classify
+    python -m core.radar.nexrad --date 2024-01-16          # a snow day
+    python -m core.radar.nexrad --date 2024-03-23          # a strong rain day
+    python -m core.radar.nexrad --best 2 --kind snow
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ import requests
 import xarray as xr
 
 HERE = Path(__file__).resolve().parent
-REPO_ROOT = HERE.parents[3]
+REPO_ROOT = HERE.parents[1]
 CACHE = REPO_ROOT / "dataset" / "open_datasets" / "OpenMesh_NYC" / "radar"
 
 IEM_ARCHIVE = "https://mesonet.agron.iastate.edu/archive/data"

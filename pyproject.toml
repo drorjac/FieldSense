@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldsense"
+version = "0.1.0"
+description = "Environmental sensing with physics-informed AI and wireless communication networks"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+dependencies = [
+    # Core scientific
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "scikit-learn==1.5.2",
+    "xarray",
+    "requests",
+    # Dynamics & symbolic regression
+    "pysindy",
+    "pysr",
+    "sympy",
+    # Utilities
+    "tqdm",
+]
+
+[project.optional-dependencies]
+notebooks = ["jupyter", "ipykernel"]
+
+# Only core/ is a package. Projects are scripts and notebooks that import it.
+[tool.setuptools.packages.find]
+include = ["core*"]

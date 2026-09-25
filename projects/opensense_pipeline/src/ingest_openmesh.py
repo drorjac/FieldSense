@@ -37,13 +37,11 @@ import xarray as xr
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(REPO_ROOT / "projects/openmesh_nyc/src/fetch"))
 
-import conventions as cv                                   # noqa: E402
-from retrieval import (RetrievalConfig, retrieve,          # noqa: E402
-                       total_loss_from)
+from core.opensense import conventions as cv  # noqa: E402
+from core.opensense.retrieval import (RetrievalConfig, retrieve,  # noqa: E402
+                                      total_loss_from)
 
 PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenMesh_NYC/processed"
 
@@ -104,7 +102,7 @@ def load_cml(event: Event, subset: str = "20d", pad_hours: float = 6.0,
     ``min_sensitivity_db`` is the attenuation a sublink must develop at
     5 mm/h to be used at all - twice the 0.3 dB quantization step.
     """
-    import example_data
+    from core.opensense import example_data
     import pandas as pd
 
     cml = example_data.load("openmesh", subset)["cml"]
@@ -181,7 +179,7 @@ def load_cml(event: Event, subset: str = "20d", pad_hours: float = 6.0,
 
 def load_radar(event: Event) -> xr.Dataset:
     """KOKX reflectivity for the day, as a rate, on a projected grid."""
-    import nexrad
+    from core.radar import nexrad
     import poligrain as plg
 
     ds = nexrad.build_day(event.date, event.kind)
@@ -204,7 +202,7 @@ def load_radar(event: Event) -> xr.Dataset:
 
 def load_pws(event: Event, subset: str = "20d") -> xr.Dataset:
     """Personal weather stations as rain rate."""
-    import example_data
+    from core.opensense import example_data
     import pandas as pd
 
     pws = example_data.load("openmesh", subset)["pws"]

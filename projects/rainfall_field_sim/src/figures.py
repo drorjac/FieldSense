@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-import viz_style as vs
-from rain_fields import (WET_THRESHOLD_MM_H, exceedance_curve,
-                         radial_autocorrelation)
+from core import viz_style as vs
+from core.simulation.rain_fields import (WET_THRESHOLD_MM_H, exceedance_curve,
+                                         radial_autocorrelation)
 
 
 def _rain_map(ax, rain, grid, vmax, cmap=None):

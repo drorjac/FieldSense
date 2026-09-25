@@ -27,9 +27,9 @@ The curated subsets the OpenSense community publishes. Already on the
 OpenSense-1.0 convention, so no retrieval chain is needed to look at them.
 
 ```bash
-.venv/bin/python projects/opensense_pipeline/src/example_data.py --list
-.venv/bin/python projects/opensense_pipeline/src/example_data.py --dataset openmrg --subset 8d
-.venv/bin/python projects/opensense_pipeline/src/example_data.py --all
+.venv/bin/python -m core.opensense.example_data --list
+.venv/bin/python -m core.opensense.example_data --dataset openmrg --subset 8d
+.venv/bin/python -m core.opensense.example_data --all
 ```
 
 ```python
@@ -51,8 +51,8 @@ datasets and plotting them with `poligrain`, including the units trap below.
 ### Full records — 8.4 GB, the actual experiments
 
 ```bash
-.venv/bin/python projects/opensense_pipeline/src/fetch.py --list        # look, don't fetch
-.venv/bin/python projects/opensense_pipeline/src/fetch.py --dataset openmrg
+.venv/bin/python -m core.opensense.fetch --list        # look, don't fetch
+.venv/bin/python -m core.opensense.fetch --dataset openmrg
 .venv/bin/python projects/opensense_pipeline/src/run_pipeline.py
 ```
 
@@ -135,7 +135,7 @@ table retrieves exactly zero rain everywhere — no error, no warning. Worse,
 the *example subsets* ship MHz with **no units attribute at all**, and
 polarization is spelled `Vertical`, `vertical` or `v` depending on the file.
 
-`conventions.py` holds the full table of who disagrees with whom, reads the
+`core/opensense/conventions.py` holds the full table of who disagrees with whom, reads the
 declared units where present, and falls back on magnitude where absent —
 nothing terrestrial transmits at 7,456 GHz, so that value is MHz.
 
@@ -447,10 +447,6 @@ Relative sensor skill, not network geometry, is what decides this.
 ```
 opensense_pipeline/
 ├── src/
-│   ├── fetch.py                # Zenodo full records, resumable + verified
-│   ├── example_data.py         # curated OpenSense subsets (ported from poligrain)
-│   ├── conventions.py          # unit / polarization normalization across sources
-│   ├── retrieval.py            # the CML retrieval chain, source-independent
 │   ├── validate_retrieval.py   # ours vs the OpenSense reference retrieval
 │   ├── compare_radar_cml.py    # radar vs CML maps through events
 │   ├── ingest_openmesh.py      # NYC: RSL-only retrieval, band selection
@@ -467,9 +463,22 @@ opensense_pipeline/
 └── README.md
 ```
 
+Shared with other projects, so kept in `core/` (see `core/README.md`):
+
+```
+core/opensense/
+├── fetch.py            # Zenodo full records, resumable + verified
+├── example_data.py     # curated OpenSense subsets (ported from poligrain)
+├── conventions.py      # unit / polarization normalization across sources
+└── retrieval.py        # the CML retrieval chain, source-independent
+core/simulation/        # synthetic fields + CML network (synthetic_benchmark)
+core/radar/nexrad.py    # KOKX radar (ingest_openmesh)
+core/viz_style.py       # palette and matplotlib defaults
+```
+
 ## Notes
 
-- Raw archives and derived netCDFs are gitignored; `fetch.py` and the ingest
+- Raw archives and derived netCDFs are gitignored; `core/opensense/fetch.py` and the ingest
   modules reproduce them.
 - This project uses an isolated `.venv` at the repo root. The pre-existing
   venv at `~/enviorments/FieldSense` sets

@@ -1,18 +1,3 @@
-# Core scientific
-numpy
-scipy
-pandas
-matplotlib
-scikit-learn==1.5.2
-
-# Dynamics & symbolic regression
-pysindy
-pysr
-sympy
-
-# Notebooks
-jupyter
-ipykernel
-
-# Utilities
-tqdm
+# Installs core/ as the editable package `fieldsense`, so every project can
+# `from core... import` without sys.path tricks. Dependencies live in pyproject.toml.
+-e .[notebooks]

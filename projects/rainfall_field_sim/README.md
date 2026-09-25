@@ -145,15 +145,23 @@ so geometry keeps dominating.
 ```
 rainfall_field_sim/
 ├── src/
-│   ├── rain_fields.py    # the three models, advection, field statistics
-│   ├── cml_network.py    # topology, forward model, impairments, retrieval
-│   ├── reconstruct.py    # IDW variants, scoring, error decomposition
 │   ├── figures.py        # figure builders
-│   ├── viz_style.py      # palette and matplotlib defaults
 │   └── run_demo.py       # entry point
 ├── results/              # generated figures
 ├── requirements.txt
 └── README.md
+```
+
+The models themselves are shared by `opensense_pipeline` and `physics_ml`, so
+they live in `core/`:
+
+```
+core/
+├── simulation/
+│   ├── rain_fields.py    # the three models, advection, field statistics
+│   ├── cml_network.py    # topology, forward model, impairments, retrieval
+│   └── reconstruct.py    # IDW variants, scoring, error decomposition
+└── viz_style.py          # palette and matplotlib defaults
 ```
 
 Figures: `fig1` the three fields, `fig2` their proportions, `fig3` the network

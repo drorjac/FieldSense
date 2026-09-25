@@ -1,116 +1,84 @@
 # Data Fetching
 
-Scripts and notebooks for fetching weather data from various sources.
+Collection pipelines for the weather observations that sit alongside the
+OpenMesh links. The notebooks in `../../notebooks/` drive them. KOKX radar is
+used by other projects too, so its fetcher lives in `core/radar/nexrad.py`.
 
-**Last Updated:** 2025-11-16 - Added complete pipeline notebooks with modular functions
+## 📁 Files
 
-## 📁 Folder Structure
 ```
 src/fetch/
-├── noaa_asos/
-│   ├── asos_complete_pipeline.ipynb    # Main notebook
-│   ├── asos_functions.py               # Fetch & process functions
-│   └── asos_plotting.py                # Visualization functions
-│
-├── weather_underground/
-│   ├── wu_complete_pipeline.ipynb      # Main notebook
-│   ├── wu_functions.py                 # Fetch & process functions
-│   └── (merged into wu_functions.py)
-│
-└── openmesh/
-    └── download_and_read_openmesh.ipynb  # Download & extract
+├── asos_functions.py    # NOAA ASOS 1-minute fetch, processing, save_data()
+├── asos_plotting.py     # ASOS figures
+├── wu_functions.py      # Weather Underground PWS fetch, cleaning, run_wu_pipeline()
+└── wu_plotting.py       # PWS figures
 
-data/                                   # All outputs saved here
-├── noaa_asos/
-├── wu_pws/
-└── openmesh/
+../../notebooks/
+├── asos_pipeline.ipynb                 # ASOS end to end
+├── wu_pipeline.ipynb                   # Weather Underground end to end
+└── download_and_read_openmesh.ipynb    # the published OpenMesh dataset from Zenodo
 ```
+
+Output goes wherever you point `output_dir` in the notebook. Data files are
+git-ignored by the root `.gitignore` (`*.csv`, `*.nc`, ...).
 
 ## 📊 Data Sources
 
-### 1. NOAA ASOS (`noaa_asos/`)
-**Source:** Iowa Environmental Mesonet (IEM) ASOS API  
-**Data:** Airport weather stations (temp, wind, precip, pressure)  
-**Resolution:** 5-minute or hourly  
-**API Key:** Not required ✓  
-**Manual Download:** https://mesonet.agron.iastate.edu/request/download.phtml
+### 1. NOAA ASOS (`asos_*.py`)
+**Source:** Iowa Environmental Mesonet (IEM), 1-minute ASOS archive
+**Data:** Airport weather stations: temperature, wind, visibility, precipitation type and amount
+**Resolution:** 1 minute
+**API Key:** Not required ✓
+
+This uses the **1-minute archive** (`asos1min.py`), not METAR (`asos.py`), which
+reports only hourly. NCEI collects the 1-minute data directly from the stations
+twice a day; IEM parses NCEI's raw format into a clean download. Data therefore
+lags 18-36 hours and isn't real-time. Coverage goes back to 2000 for US sites.
+
+| Variable | Unit | Description |
+|----------|------|-------------|
+| `temp_c` | °C | Temperature |
+| `dewpoint_c` | °C | Dewpoint |
+| `wind_speed_ms` | m/s | Wind speed |
+| `wind_gust_ms` | m/s | Wind gust |
+| `wind_dir_deg` | ° | Wind direction |
+| `visibility_km` | km | Visibility |
+| `precip_type` | - | Precipitation type (rain, snow, etc.) |
+| `precip_mm` | mm | Precipitation |
+
+**Quick Start:** open `notebooks/asos_pipeline.ipynb`, set the date period and
+stations, and run all cells. Stations use 4-letter ICAO codes (e.g. KJFK,
+KLGA, KNYC). The NYC list is `ASOS_stations.csv` in the published dataset's
+`weather stations/` folder. You can also browse the
+[IEM network list](https://mesonet.agron.iastate.edu/sites/networks.php?network=ASOS).
+
+- **Endpoint:** https://mesonet.agron.iastate.edu/cgi-bin/request/asos1min.py
+- **Docs:** https://mesonet.agron.iastate.edu/request/asos/1min.phtml
+- **IEM parser:** https://github.com/akrherz/iem/blob/main/scripts/ingestors/asos_1minute/parse_ncei_asos1minute.py
+
+### 2. Weather Underground (`wu_*.py`)
+**Source:** Weather Underground Personal Weather Stations API
+**Data:** Community weather stations
+**Resolution:** 5 minutes (historical)
+**API Key:** Required ⚠️. Get one at https://www.wunderground.com/member/api-keys
 
 **Quick Start:**
-1. Open `asos_complete_pipeline.ipynb`
-2. Configure date period and stations in cell 2:
-```python
-   START_DATE = datetime(2024, 1, 1)
-   END_DATE = datetime(2024, 1, 30)
-   DATA_RESOLUTION = '5min'  # or 'hourly'
-   STATION_IDS = ['KJFK', 'KLGA', 'KNYC']  # Any US airport codes
-```
-3. Run all cells
+1. `export WU_API_KEY="your_key_here"`
+2. Open `notebooks/wu_pipeline.ipynb`, set the date period and station IDs
+   (e.g. `KNYNEWYO1805`), and run all cells.
 
-**Station Selection:**
-- Use 4-letter ICAO codes (e.g., KJFK, KLGA, KNYC)
-- NYC stations metadata: See `the published dataset's `weather stations/` folder: ASOS_stations.csv`
-- Or find stations manually at: https://mesonet.agron.iastate.edu/sites/networks.php?network=ASOS
+The NYC station list is `pws_metadata.csv` in the published dataset's
+`weather stations/` folder. You can also search the
+[WunderMap](https://www.wunderground.com/wundermap).
 
-### 2. Weather Underground (`weather_underground/`)
-**Source:** Weather Underground Personal Weather Stations API  
-**Data:** Community weather stations  
-**Resolution:** Variable (typically 5-30 minutes)  
-**API Key:** Required ⚠️  
-**Get Key:** https://www.wunderground.com/member/api-keys
+### 3. OpenMesh (Zenodo)
+**Source:** https://zenodo.org/records/15287692 (links, PWS and metadata, 2023-2024)
+**API Key:** Not required ✓
 
-**Quick Start:**
-1. Set environment variable: `export WU_API_KEY="your_key_here"`
-2. Open `wu_complete_pipeline.ipynb`
-3. Configure date period and stations:
-```python
-   START_DATE = "20240101"
-   END_DATE = "20240130"
-   STATION_IDS = ["KNYNEWYO1805", "KNYNEWYO1850"]
-```
-4. Run all cells
-
-**Station Selection:**
-- Pre-selected NYC PWS stations available in pipeline
-- NYC stations metadata: See `the published dataset's `weather stations/` folder: pws_metadata.csv`
-- Or search manually at: https://www.wunderground.com/wundermap
-
-### 3. OpenMesh (`openmesh/`)
-**Source:** Zenodo repository (NYC Mesh Network data)  
-**Data:** Pre-collected weather & network data (2023-2024)  
-**API Key:** Not required ✓  
-**Repository:** https://zenodo.org/records/15287692
-
-**Quick Start:**
-1. Open `download_and_read_openmesh.ipynb`
-2. Run all cells (auto-downloads and extracts)
-3. Data extracts to `data/openmesh/extracted/dataset/`
-
-**Included Data:**
-- Commercial Microwave Links (CML) weather data
-- Personal Weather Stations (PWS) data
-- Station metadata and network topology
-
-## 🎯 Output Location
-
-All fetched data saves to: `src/data/<source_name>/`
-
-Examples:
-- `data/noaa_asos/KJFK_20240101_20240130_5min.csv`
-- `data/wu_pws/weather_clean_20240101_20240130.csv`
-- `data/openmesh/extracted/dataset/`
+Open `notebooks/download_and_read_openmesh.ipynb` and run all cells. It downloads
+and extracts the dataset.
 
 ## 📋 Requirements
 
-- Python 3.8+
-- pandas, numpy, matplotlib, requests
-- **Weather Underground only:** API key required
-
-## 📍 Station Metadata
-
-Station metadata files are located in `the published dataset's `weather stations/` folder: `:
-- `ASOS_stations.csv` - NOAA airport weather stations (NYC area)
-- `pws_metadata.csv` - Weather Underground personal weather stations (NYC)
-
-Use these files to find station IDs for your area of interest.
-
-
+pandas, numpy, matplotlib, requests (see `../../requirements.txt`). You only need
+an API key for Weather Underground.

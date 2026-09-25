@@ -40,7 +40,6 @@ Three experiments, in the order that makes the result interpretable:
 from __future__ import annotations
 
 import argparse
-import sys
 import warnings
 from pathlib import Path
 
@@ -48,10 +47,8 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
 
-from rain_fields import Grid, StratiformField, spectral_grf   # noqa: E402
+from core.simulation.rain_fields import Grid, StratiformField, spectral_grf
 
 RESULTS = HERE.parent / "results"
 
@@ -255,9 +252,8 @@ def _cml_sampled(seq: np.ndarray, grid: Grid, n_links: int) -> np.ndarray:
     This is the field a nowcast actually sees: not the rain, but an
     interpolation of path averages over a sparse network.
     """
-    sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
-    from cml_network import sample_along_paths, synthesize_network
-    from reconstruct import idw_path
+    from core.simulation.cml_network import sample_along_paths, synthesize_network
+    from core.simulation.reconstruct import idw_path
 
     net = synthesize_network(grid, n_links=n_links)
     out = []
@@ -305,9 +301,7 @@ if __name__ == "__main__":
 def figure(runs: list[dict], path: Path) -> None:
     """Recovered velocity per experiment, against the truth."""
     import matplotlib.pyplot as plt
-
-    sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
-    import viz_style as vs
+    from core import viz_style as vs
     vs.use_style()
 
     fig, axes = plt.subplots(1, 2, figsize=(11.6, 4.6))

@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import matplotlib as mpl
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]
-                       / "rainfall_field_sim/src"))
-import viz_style as vs                                  # noqa: E402
+from core import viz_style as vs
 
 # One colour per method family, so the eye groups by what the method *uses*
 # rather than by its name. Slots follow the documented categorical order.

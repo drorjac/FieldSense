@@ -31,7 +31,6 @@ most where links are long and rain is patchy.
 
 from __future__ import annotations
 
-import sys
 import warnings
 from pathlib import Path
 
@@ -40,8 +39,6 @@ import xarray as xr
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "projects/opensense_pipeline/src"))
 
 # UTM zone covering Gothenburg, which OpenMRG sits in.
 UTM_ZONE_NUMBER, UTM_ZONE_LETTER = 32, "V"
@@ -55,7 +52,7 @@ def load_cml_rain(subset: str = "8d", time_index: int | None = None,
     Uses the reference retrieval the example subset ships, so the maps
     compare *reconstruction* methods rather than retrieval choices.
     """
-    import example_data
+    from core.opensense import example_data
 
     ds = example_data.load("openmrg", subset)
     cml = ds["cml"]

@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]
-                       / "rainfall_field_sim/src"))
-import viz_style as vs  # noqa: E402
+from core import viz_style as vs
 
 RADAR_C, CML_C = "#2a78d6", "#eb6834"
 

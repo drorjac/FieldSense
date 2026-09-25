@@ -23,7 +23,6 @@ Retrieval chain, per sublink:
 
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,9 +32,8 @@ import poligrain as plg
 import xarray as xr
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(REPO_ROOT))
 
-from core.itu_p838 import get_k_alpha  # noqa: E402
+from core.itu_p838 import get_k_alpha
 
 RAW = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/raw/extracted"
 PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/processed"

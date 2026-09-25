@@ -36,7 +36,6 @@ Three experiments, deliberately in this order:
 from __future__ import annotations
 
 import argparse
-import sys
 import warnings
 from pathlib import Path
 
@@ -45,10 +44,8 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-sys.path.insert(0, str(REPO_ROOT))
-sys.path.insert(0, str(REPO_ROOT / "projects/opensense_pipeline/src"))
 
-from core.itu_p838 import get_k_alpha            # noqa: E402
+from core.itu_p838 import get_k_alpha
 
 RESULTS = HERE.parent / "results"
 
@@ -149,9 +146,9 @@ def _openmrg_pairs(band: int, target: str, min_rain: float = 0.5):
     band. ``gamma`` is baseline-subtracted rain attenuation divided by path
     length, which is the quantity ITU-R P.838-3 actually describes.
     """
-    import example_data
-    import conventions as cv
-    from retrieval import RetrievalConfig, baseline_from_dry, wet_dry_rolling_std
+    from core.opensense import example_data
+    from core.opensense import conventions as cv
+    from core.opensense.retrieval import RetrievalConfig, baseline_from_dry, wet_dry_rolling_std
 
     ds = example_data.load("openmrg", "8d")
     cml = ds["cml"].transpose("time", "cml_id", "sublink_id")
@@ -318,9 +315,7 @@ if __name__ == "__main__":
 def figure(runs: list[dict], path: Path) -> None:
     """Recovered power laws against the ITU table, one panel per experiment."""
     import matplotlib.pyplot as plt
-
-    sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
-    import viz_style as vs
+    from core import viz_style as vs
     vs.use_style()
 
     fig, axes = plt.subplots(1, len(runs) + 1,

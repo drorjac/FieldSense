@@ -24,14 +24,12 @@ REPO_ROOT = HERE.parents[2]
 # Order matters: this project's modules must win over same-named modules in
 # rainfall_field_sim (both have plotting helpers), so HERE is inserted last
 # and therefore searched first.
-sys.path.insert(0, str(REPO_ROOT / "projects/rainfall_field_sim/src"))
-sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(HERE))
 
 import plots                                                # noqa: E402
 import ingest_openmrg as omrg                               # noqa: E402
 import ingest_openrainer as orain                           # noqa: E402
-import viz_style as vs                                      # noqa: E402
+from core import viz_style as vs  # noqa: E402
 from merging import METHODS, run, score                     # noqa: E402
 from synthetic_benchmark import run_benchmark               # noqa: E402
 
@@ -258,8 +256,8 @@ def build_from_example(dataset: str, resample: str = "5min",
     Radar in these subsets is already rain rate on a lat/lon grid, so it needs
     projecting but not a Z-R step.
     """
-    import example_data
-    from retrieval import RetrievalConfig, retrieve
+    from core.opensense import example_data
+    from core.opensense.retrieval import RetrievalConfig, retrieve
 
     key, subset, gauge_component, label = EXAMPLE_EVENTS[dataset]
     cache = example_data.CACHE / example_data.DATASETS[key].folder
