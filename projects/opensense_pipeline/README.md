@@ -203,6 +203,17 @@ normalized OpenSense files carry it, that radius shrinks from 3 km to 1.002 km
 for a 4 km link. On OpenMRG it matches 43 links to gauges where 86 are within
 1 km of a path. `evaluation.closest_gauges` always passes metres.
 
+**A receiver at its floor is not a measurement.** When a link loses signal,
+RSL clips at the receiver's sensitivity (−90 dBm on OpenMRG and OpenMesh,
+−100 to −103 dBm on OpenRainER) and the recorded loss becomes a lower bound.
+Retrieved as rain, one outage produced 4,270 mm on a single link. The
+detector in `core/opensense/quality.py` flags a sublink sitting within 1 dB
+of its own minimum, at least 20 dB below its median level, for 10 minutes
+or more. A real fade touches its deepest point briefly; a clipped receiver
+lingers. That flags 3 of 728 OpenMRG sublinks, 24 of 302 OpenRainER and none
+of OpenMesh's. It is off in the default chain so published results
+reproduce, and on in `retrieve_improved`.
+
 **Zeroing rain on the dry flag deletes steady rain.** The rolling-standard-
 deviation classifier keys on *fluctuation*, and widespread stratiform rain
 attenuates steadily, so hours of real rain get labelled dry. Subtracting the
@@ -322,6 +333,8 @@ matched with `poligrain`:
 | **nearby-link wet/dry + Pastorek 2021** | **0.84** | **0.745** | 0.675 | 0.588 | **1.09×** |
 | nearby-link wet/dry + Leijnse 2008 | 1.30 | 0.726 | 0.671 | 0.564 | 1.10× |
 | nearby-link wet/dry, zero when dry | 2.45 | 0.703 | 0.679 | 0.596 | 1.21× |
+| default + receiver-floor QC | 2.11 | 0.703 | 0.373 | 0.321 | 1.26× |
+| **`retrieve_improved`: nearby + Leijnse + QC** | 1.30 | 0.726 | 0.671 | 0.564 | 1.10× |
 | *OpenSense reference retrieval* | *1.12* | *0.713* | *0.621* | *0.626* | *1.18×* |
 
 ![Retrieval benchmark](results/retrieval_benchmark.png)
@@ -356,13 +369,15 @@ The same ten variants on the OpenRainER 8-day subset (Emilia-Romagna, August
 
 | variant | ratio to gauges | r (gauges) | MCC (gauges) | MCC (radar) |
 |---|---|---|---|---|
-| default: rolling-std, saturating 0.5 dB | 1.30 | 0.700 | 0.299 | 0.291 |
-| saturating 2.3 dB | 0.92 | 0.700 | 0.403 | 0.391 |
-| Pastorek 2021 | 0.71 | 0.702 | 0.504 | 0.476 |
-| Leijnse 2008 | 0.81 | 0.704 | 0.570 | 0.527 |
-| nearby-link wet/dry | 1.37 | 0.706 | 0.300 | 0.300 |
-| nearby-link wet/dry + Pastorek 2021 | 0.74 | **0.714** | 0.504 | 0.489 |
-| **nearby-link wet/dry + Leijnse 2008** | **0.85** | **0.714** | **0.568** | **0.538** |
+| default: rolling-std, saturating 0.5 dB | 1.30 | 0.698 | 0.299 | 0.292 |
+| saturating 2.3 dB | 0.92 | 0.698 | 0.403 | 0.393 |
+| Pastorek 2021 | 0.71 | 0.699 | 0.504 | 0.478 |
+| Leijnse 2008 | 0.81 | 0.701 | 0.570 | 0.529 |
+| nearby-link wet/dry | 1.37 | 0.704 | 0.300 | 0.302 |
+| nearby-link wet/dry + Pastorek 2021 | 0.74 | 0.712 | 0.503 | 0.491 |
+| nearby-link wet/dry + Leijnse 2008 | 0.86 | 0.712 | 0.567 | 0.540 |
+| default + receiver-floor QC | 1.30 | 0.691 | 0.300 | 0.292 |
+| **`retrieve_improved`: nearby + Leijnse + QC** | **0.85** | **0.703** | **0.568** | **0.540** |
 
 ![Retrieval benchmark, OpenRainER](results/retrieval_benchmark_openrainer.png)
 
@@ -374,22 +389,23 @@ gives the best correlation on both.
 and 0.74. On OpenRainER that is further from 1 than the default's 1.30 in
 log terms, so it does not beat the default everywhere.
 
-**Nearby-link + Leijnse is the one variant that beats the default on every
-score on both networks.** Ratio to gauges 2.11 → 1.30 and 1.30 → 0.85,
-correlation 0.703 → 0.726 and 0.700 → 0.714, gauge MCC 0.37 → 0.67 and
-0.30 → 0.57, radar MCC 0.32 → 0.56 and 0.29 → 0.54. Leijnse is the physically
+**Nearby-link + Leijnse, with receiver-floor QC, beats the default on every
+score in these tables on both networks.** Ratio to gauges 2.11 → 1.30 and
+1.30 → 0.85, correlation 0.703 → 0.726 and 0.698 → 0.703, gauge MCC
+0.37 → 0.67 and 0.30 → 0.57, radar MCC 0.32 → 0.56 and 0.29 → 0.54. The
+correlation gain on OpenRainER is marginal; the detection gain is not. Leijnse is the physically
 based model, a water film on the radome with no free magnitude parameter,
 which is a plausible reason it transfers where a fitted constant does not.
 It is available in one call:
 
 ```python
 from core.opensense import retrieval as rt
-out = rt.retrieve_improved(cml)     # nearby-link wet/dry + Leijnse 2008
+out = rt.retrieve_improved(cml)     # nearby-link wet/dry + Leijnse 2008 + floor QC
 ```
 
-It is deliberately **not** the default of `retrieve_dataset`, because every
-downstream number in this README (merge rankings, radar comparisons) was
-computed with the default and should stay reproducible.
+It is **not** the default of `retrieve_dataset`. Partly so the numbers in this
+README reproduce, and mainly because of the next section: better detection
+and correlation did not turn into better rainfall maps.
 
 Caveats, stated plainly. Two networks, one summer week each. On OpenRainER
 only two days reach 1 mm at the matched links, so its day-to-day spread (not
@@ -397,6 +413,55 @@ tabulated) carries no information. The nearby-link method decides only 53% of
 OpenRainER link-samples, against 97% on OpenMRG, because a sparse network
 often has too few neighbours within 15 km; rolling-std fills the rest. On a
 network sparser still, the mask would add little.
+
+### Does the improved retrieval improve the maps? Not on these events
+
+The whole merge validation (the seven methods, held-out gauges, the same
+events) was re-run with `retrieve_improved` as the CML input, changing
+nothing else:
+
+```bash
+.venv/bin/python projects/opensense_pipeline/src/run_pipeline.py --offline --skip-benchmark --val-select gauge
+.venv/bin/python projects/opensense_pipeline/src/run_pipeline.py --offline --skip-benchmark --val-select gauge --retrieval improved
+```
+
+`--val-select gauge` matters. The published validation pools the 20 wettest
+timesteps *as judged by the CML retrieval*, so two retrievals get scored on
+different timesteps. That showed up as radar-only, whose input does not
+change, scoring differently in the two runs (RMSE 6.16 against 7.18 on
+OpenMRG). Ranking by gauge rain gives both runs the same timesteps, and
+radar-only then scores identically.
+
+| event | best method | default retrieval | improved retrieval |
+|---|---|---|---|
+| OpenMRG, 25 Aug 2015 | CML only, block kriging | RMSE **4.73**, r 0.668, bias −0.81 | RMSE 5.26, r **0.747**, bias +3.08 |
+| OpenRainER, 26 Sep 2021 | merge: difference kriging | RMSE **8.01**, r 0.722, bias −0.66 | RMSE 8.10, r 0.719, bias −0.93 |
+
+On OpenMRG the improved chain raises correlation for every method that uses
+the CMLs (+0.05 to +0.08) and adds a +3 mm/h bias that costs more RMSE than
+the correlation gains. On OpenRainER it is a tie. Two things qualify the
+OpenMRG row: the default's 0.5 dB wet-antenna value and 3-hour baseline were
+tuned **on this event against these gauges**, so the default is scored
+in-sample; and the benchmark's July week put the improved chain's ratio to
+gauges at 1.30. A single event cannot say which is closer to the truth in
+general, only that the magnitude calibration, not the wet/dry mask, is what
+decides a map's RMSE.
+
+**What is robust:** the merge ranking. Under both retrievals and both
+timestep selections, CML-only kriging wins on OpenMRG and difference kriging
+on OpenRainER, so the conclusions of *Results* do not hinge on the
+retrieval.
+
+**The outage behind the first attempt.** The first improved run, before QC,
+scored OpenRainER CML-only IDW at RMSE 19.4 against 9.9. One link, 54, fell
+to its receiver floor at −100 dBm for ~16 hours. The default chain's
+rolling-std mask called that flat plateau dry and the baseline climbed onto
+it, so it returned ~0, right by accident. The nearby-link mask saw wet
+neighbours, called it wet, and retrieved 60 dB of outage as 180 mm/h for
+seven hours: 4,270 mm on one link against a nearby gauge's 191. The better
+mask did not cause the error, it removed the accident hiding it.
+`core.opensense.quality.censored_at_floor` now masks samples at a sublink's
+floor (see *Traps*), and `retrieve_improved` applies it.
 
 ## Radar against CML maps, through precipitation events
 
@@ -623,7 +688,8 @@ again.
 | `*_2_maps.png` | one rainfall map per method |
 | `*_3_gauge_validation.png` | each method against held-out gauges |
 | `*_4_coverage.png` | RMSE by gauge distance to the link network |
-| `retrieval_benchmark.png` | retrieval variants against gauges and radar |
+| `retrieval_benchmark*.png` | retrieval variants against gauges and radar, per network |
+| `*_bygauge.png`, `summary*_bygauge.json` | merge validation on gauge-selected timesteps, default and `_improved` retrieval |
 | `retrieval_vs_reference_*.png` | our chain against the OpenSense reference |
 | `radar_vs_cml*.png` | radar vs CML maps through eight events |
 
@@ -661,6 +727,7 @@ core/opensense/
 ├── conventions.py      # units, polarization, projected geometry across sources
 ├── retrieval.py        # the CML retrieval chain, arrays or xarray in
 ├── wet_dry.py          # radar and nearby-link wet/dry masks
+├── quality.py          # receiver-floor (outage) detection
 └── evaluation.py       # poligrain matching (lines, points, grids) + metrics
 tests/                  # at the repo root: python -m pytest
 core/simulation/        # synthetic fields + CML network (synthetic_benchmark)
