@@ -1,0 +1,340 @@
+"""
+Rank CML retrieval variants against independent sensors, over 8 days.
+
+``validate_retrieval.py`` established that this chain has the right skill and
+the wrong magnitude: it over-reads the OpenSense reference by ~1.8x and the
+municipal gauges by ~2x, and a single static wet-antenna constant cannot fix
+both. This script asks which *algorithmic* change does, using the tools the
+OpenSense ecosystem already provides:
+
+wet-antenna model   (pycomlink)
+    ``saturating``    the current default, 0.5 dB and the 2.3 dB literature
+                      magnitude
+    ``pastorek2021``  KR-alt, Pastorek et al. (2021)
+    ``leijnse2008``   physical water-film model, Leijnse et al. (2008)
+wet/dry mask        which samples the baseline is allowed to learn from
+    ``rolling_std``   Schleiss & Berne (2010), the current default
+    ``radar``         radar path-averaged along each link
+                      (``poligrain.spatial.GridAtLines``)
+    ``nearby``        the nearby-link approach of Overeem et al. (2016)
+                      (``pycomlink``)
+
+Every variant is scored against three references that do not share its
+errors, all matched with poligrain:
+
+* **gauges** - the 10 municipal gauges, paired with every link whose *path*
+  passes within 1 km (``get_closest_points_to_line``), at 15 minutes. The
+  primary criterion: it is the only reference that is itself a direct
+  measurement.
+* **radar along the path** - 5 minutes, every link. Radar has its own bias
+  here (see ``compare_radar_cml``), so this is read for correlation and
+  wet/dry skill, not for magnitude.
+* **the OpenSense reference retrieval** shipped with the subset - context,
+  not truth.
+
+And one robustness check the README asked for: the **per-day ratio to
+gauges** over the wet days of the record. A calibration that is right on
+average but swings 2x day to day is not transferable.
+
+    python projects/opensense_pipeline/src/retrieval_benchmark.py
+    python projects/opensense_pipeline/src/retrieval_benchmark.py --quick   # one day
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+import warnings
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parents[2]
+sys.path.insert(0, str(HERE))
+
+from core.opensense import evaluation as ev  # noqa: E402
+from core.opensense import example_data  # noqa: E402
+from core.opensense import retrieval as rt  # noqa: E402
+from core.opensense import wet_dry  # noqa: E402
+
+RESULTS = HERE.parent / "results"
+
+GAUGE_MATCH_M = 1000.0
+LINK_CHUNK = 48
+
+
+@dataclass(frozen=True)
+class Variant:
+    """One retrieval configuration: a wet/dry mask and config overrides."""
+
+    key: str
+    label: str
+    wet: str = "rolling_std"            # rolling_std | radar | nearby
+    changes: dict = field(default_factory=dict)
+
+
+VARIANTS = (
+    Variant("default", "default: rolling-std, saturating WAA 0.5 dB"),
+    Variant("waa_none", "no wet-antenna correction",
+            changes=dict(waa_model="none")),
+    Variant("waa_sat_2.3", "saturating WAA 2.3 dB (Schleiss 2013 magnitude)",
+            changes=dict(waa_max_db=2.3)),
+    Variant("waa_pastorek", "WAA Pastorek 2021",
+            changes=dict(waa_model="pastorek2021")),
+    Variant("waa_leijnse", "WAA Leijnse 2008",
+            changes=dict(waa_model="leijnse2008")),
+    Variant("wet_radar", "radar wet/dry, saturating WAA 0.5 dB", wet="radar"),
+    Variant("wet_nearby", "nearby-link wet/dry, saturating WAA 0.5 dB",
+            wet="nearby"),
+    Variant("wet_nearby_pastorek", "nearby-link wet/dry + WAA Pastorek 2021",
+            wet="nearby", changes=dict(waa_model="pastorek2021")),
+    Variant("wet_nearby_leijnse", "nearby-link wet/dry + WAA Leijnse 2008",
+            wet="nearby", changes=dict(waa_model="leijnse2008")),
+    Variant("wet_nearby_zero", "nearby-link wet/dry, zero when dry",
+            wet="nearby", changes=dict(zero_when_dry=True)),
+)
+VARIANTS_BY_KEY = {v.key: v for v in VARIANTS}
+
+
+# --------------------------------------------------------------------------
+# data
+# --------------------------------------------------------------------------
+def load(window: slice | None) -> dict:
+    """OpenMRG 8d: raw CML signals + reference R, radar, municipal gauges."""
+    data = example_data.load("openmrg", "8d", time=window)
+    g = data["gauge_municipal"]
+    # 1-minute accumulations in mm -> mm/h
+    data["gauge_R"] = (g.rainfall_amount * 60.0).transpose("time", "id")
+    data["gauge_R"].attrs["units"] = "mm h-1"
+    return data
+
+
+# --------------------------------------------------------------------------
+# external wet/dry masks come from core.opensense.wet_dry
+# --------------------------------------------------------------------------
+def _flat_mask(mask: xr.DataArray | None, fallback: np.ndarray, n_sub: int):
+    """Link mask (time, cml) -> sublink mask (time, cml*sub), NaN -> fallback."""
+    if mask is None:
+        return None
+    m = np.repeat(np.asarray(mask, dtype=float)[:, :, None], n_sub, axis=2)
+    m = m.reshape(fallback.shape)
+    return np.where(np.isfinite(m), m > 0.5, fallback)
+
+
+# --------------------------------------------------------------------------
+# running the variants
+# --------------------------------------------------------------------------
+def run_variants(cml: xr.Dataset, variants, masks: dict,
+                 aggregate=("5min", "15min")) -> dict:
+    """Every variant over every link, chunked by link to bound memory.
+
+    Variants sharing a wet mask share its baseline, so the expensive rolling
+    median is computed once per mask per chunk rather than once per variant.
+    Returns {variant key: {freq: DataArray (time, cml_id)}}.
+    """
+    interval = rt.sampling_interval_s(cml.time)
+    base_cfg = rt.RetrievalConfig.for_interval(interval)
+    cml_ids = cml.cml_id.values
+    out = {v.key: {f: [] for f in aggregate} for v in variants}
+
+    for start in range(0, cml_ids.size, LINK_CHUNK):
+        chunk = cml.isel(cml_id=slice(start, start + LINK_CHUNK))
+        d = chunk.transpose("time", "cml_id", "sublink_id")
+        loss = rt.total_loss_from(d.rsl.values, d.tsl.values)
+        n_t, n_c, n_s = loss.shape
+        loss = loss.reshape(n_t, n_c * n_s)
+        gaps = ~np.isfinite(loss)
+        loss = pd.DataFrame(loss).ffill().bfill().to_numpy()
+        length, freq, pol = (a.ravel() for a in rt.link_metadata(
+            chunk, d.rsl.isel(time=0, drop=True)))
+
+        rs_wet = rt.wet_dry_rolling_std(loss, base_cfg.wet_window,
+                                        base_cfg.wet_threshold_db)
+        baselines = {}
+        for v in variants:
+            cfg = base_cfg.with_(**v.changes)
+            if v.wet not in baselines:
+                m = masks.get(v.wet)
+                wet = rs_wet if m is None else _flat_mask(
+                    m.isel(cml_id=slice(start, start + LINK_CHUNK)), rs_wet, n_s)
+                baselines[v.wet] = (wet, rt.baseline_from_dry(
+                    loss, wet, cfg.baseline_window))
+            wet, baseline = baselines[v.wet]
+
+            a_obs = np.clip(loss - baseline, 0.0, None)
+            a_obs[a_obs < cfg.min_attenuation_db] = 0.0
+            if cfg.zero_when_dry:
+                a_obs[~wet] = 0.0
+            rain, _ = rt.rain_from_attenuation(a_obs, length, freq, pol, cfg)
+            rain[gaps] = np.nan
+            with np.errstate(invalid="ignore"), warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                per_link = np.nanmean(rain.reshape(n_t, n_c, n_s), axis=2)
+            da = xr.DataArray(per_link, dims=("time", "cml_id"),
+                              coords={"time": chunk.time,
+                                      "cml_id": chunk.cml_id.values})
+            for f in aggregate:
+                out[v.key][f].append(ev.aggregate(da, f))
+        print(f"    links {start + n_c:4d}/{cml_ids.size}", flush=True)
+
+    return {k: {f: xr.concat(parts, "cml_id") for f, parts in by_f.items()}
+            for k, by_f in out.items()}
+
+
+# --------------------------------------------------------------------------
+# scoring
+# --------------------------------------------------------------------------
+def per_day_ratio(gauge_at_links: xr.DataArray, est: xr.DataArray,
+                  min_gauge_mm: float = 1.0) -> dict:
+    """Ratio of estimate to gauge totals, day by day, over matched pairs."""
+    g, e = xr.align(gauge_at_links, est.transpose(*gauge_at_links.dims))
+    both = np.isfinite(g) & np.isfinite(e)
+    g, e = g.where(both), e.where(both)
+    # 15-min mean rates -> mm per day, averaged over matched links
+    g_day = (g.resample(time="1D").sum() * 0.25).mean("cml_id")
+    e_day = (e.resample(time="1D").sum() * 0.25).mean("cml_id")
+    wet = g_day >= min_gauge_mm
+    ratios = (e_day / g_day).where(wet).dropna("time")
+    return {str(t)[:10]: float(r) for t, r in
+            zip(ratios.time.values, ratios.values)}
+
+
+def common_support(series: dict, refs: dict) -> tuple[dict, dict]:
+    """Restrict every series and reference to the pairs all of them have.
+
+    Without this the rows are not comparable: this chain masks links under
+    0.5 km as unusable while the OpenSense reference fills them, so scoring
+    each on its own valid pairs compares different samples.
+    """
+    keep = {}
+    for f, ref_keys in (("15min", ("gauge_15",)), ("5min", ("radar_5",))):
+        m = None
+        for s in series.values():
+            ok = np.isfinite(s[f])
+            m = ok if m is None else m & ok
+        for rk in ref_keys:
+            m = m & np.isfinite(refs[rk].transpose(*m.dims))
+        keep[f] = m
+    series = {k: {f: s[f].where(keep[f]) for f in s} for k, s in series.items()}
+    refs = {"gauge_15": refs["gauge_15"].where(keep["15min"]),
+            "radar_5": refs["radar_5"].transpose("time", "cml_id").where(keep["5min"]),
+            "opensense_5": series["opensense_reference"]["5min"]}
+    return series, refs
+
+
+def score_all(series: dict, refs: dict) -> list[dict]:
+    series, refs = common_support(series, refs)
+    rows = []
+    for key, s in series.items():
+        g = ev.rainfall_metrics(refs["gauge_15"], s["15min"])
+        r = ev.rainfall_metrics(refs["radar_5"], s["5min"])
+        o = (ev.rainfall_metrics(refs["opensense_5"], s["5min"])
+             if key != "opensense_reference" else {})
+        days = per_day_ratio(refs["gauge_15"], s["15min"])
+        logs = np.log(np.array(list(days.values()))) if days else np.array([np.nan])
+        label = (VARIANTS_BY_KEY[key].label if key in VARIANTS_BY_KEY
+                 else "OpenSense reference retrieval (shipped R)")
+        rows.append({
+            "key": key, "label": label,
+            "gauge": g, "radar": r, "opensense_ref": o,
+            "daily_ratio": days,
+            # spread of the daily ratio, as a factor: exp(std(log ratio))
+            "daily_ratio_spread": float(np.exp(np.nanstd(logs))),
+        })
+    return rows
+
+
+def print_table(rows: list[dict]) -> None:
+    print(f"\n{'variant':52s} {'-- gauges, 15 min --':>22s}   "
+          f"{'- radar path, 5 min -':>22s}  {'daily':>6s}")
+    print(f"{'':52s} {'ratio':>7s}{'r':>7s}{'MCC':>7s}   "
+          f"{'ratio':>7s}{'r':>7s}{'MCC':>7s}   {'spread':>6s}")
+    for row in rows:
+        g, r = row["gauge"], row["radar"]
+        print(f"{row['label'][:52]:52s} {g['ratio']:7.2f}{g['r']:7.3f}{g['mcc']:7.3f}   "
+              f"{r['ratio']:7.2f}{r['r']:7.3f}{r['mcc']:7.3f}   "
+              f"{row['daily_ratio_spread']:6.2f}x")
+
+
+# --------------------------------------------------------------------------
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--quick", action="store_true",
+                    help="one day (2015-07-28, Torslanda) instead of all 8")
+    ap.add_argument("--variants", nargs="*", choices=sorted(VARIANTS_BY_KEY),
+                    help="default: all")
+    ap.add_argument("--no-figure", action="store_true")
+    args = ap.parse_args()
+
+    window = slice("2015-07-28", "2015-07-28") if args.quick else None
+    variants = ([VARIANTS_BY_KEY[k] for k in args.variants]
+                if args.variants else list(VARIANTS))
+
+    t0 = time.time()
+    print("Loading OpenMRG 8d (CML signals + reference R, radar, gauges)")
+    data = load(window)
+    cml, radar = data["cml"], data["radar"]
+    print(f"  {cml.sizes['cml_id']} links x {cml.sizes['sublink_id']} sublinks, "
+          f"{cml.sizes['time']:,} steps at {rt.sampling_interval_s(cml.time):g} s")
+
+    print("Matching sensors with poligrain")
+    radar_path = ev.radar_along_links(radar.R, cml)
+    closest = ev.closest_gauges(cml, data["gauge_municipal"], GAUGE_MATCH_M)
+    gauge_15 = ev.gauge_series_at_links(ev.aggregate(data["gauge_R"], "15min"),
+                                        closest)
+    n_matched = int(np.isfinite(closest.distance.isel(n_closest=0)).sum())
+    print(f"  radar along {radar_path.sizes['cml_id']} link paths; "
+          f"{n_matched} links within {GAUGE_MATCH_M:g} m of a gauge")
+
+    masks = {}
+    if any(v.wet == "radar" for v in variants):
+        masks["radar"] = wet_dry.from_radar(radar_path, cml.time)
+    if any(v.wet == "nearby" for v in variants):
+        print("  nearby-link wet/dry (Overeem 2016)")
+        masks["nearby"] = wet_dry.nearby_links(cml)
+
+    print(f"Running {len(variants)} variants")
+    series = run_variants(cml, variants, masks)
+
+    ref = cml.R.mean("sublink_id").transpose("time", "cml_id")
+    series["opensense_reference"] = {f: ev.aggregate(ref, f)
+                                     for f in ("5min", "15min")}
+    refs = {"gauge_15": gauge_15, "radar_5": radar_path,
+            "opensense_5": series["opensense_reference"]["5min"]}
+
+    rows = score_all(series, refs)
+    print_table(rows)
+
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    tag = "_quick" if args.quick else ""
+    summary = {
+        "dataset": "OpenMRG example subset 8d",
+        "window": "2015-07-28" if args.quick else "2015-07-22 .. 2015-07-29",
+        "links": int(cml.sizes["cml_id"]),
+        "links_matched_to_gauges": n_matched,
+        "gauge_match_m": GAUGE_MATCH_M,
+        "wet_threshold_mm_h": ev.WET_THRESHOLD_MM_H,
+        "rows": rows,
+    }
+    out = RESULTS / f"retrieval_benchmark{tag}.json"
+    out.write_text(json.dumps(summary, indent=1, default=float))
+    print(f"\nwrote {out.relative_to(REPO_ROOT)}  ({time.time() - t0:.0f} s)")
+
+    if not args.no_figure:
+        import plots_retrieval
+        from core import viz_style as vs
+        vs.use_style()
+        fig = RESULTS / f"retrieval_benchmark{tag}.png"
+        plots_retrieval.figure(rows, fig)
+        print(f"wrote {fig.relative_to(REPO_ROOT)}")
+
+
+if __name__ == "__main__":
+    main()
