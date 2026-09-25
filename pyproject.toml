@@ -27,7 +27,27 @@ dependencies = [
 
 [project.optional-dependencies]
 notebooks = ["jupyter", "ipykernel"]
+# core.opensense: reading, retrieving and scoring OpenSense CML data
+opensense = [
+    "netCDF4",
+    "pyproj",
+    "poligrain>=0.3.1",
+    "pycomlink>=0.6",      # wet-antenna models, nearby-link wet/dry
+    "mergeplg==0.1.0",     # 0.0.2 on PyPI is a stub; pin the real API
+]
+dev = ["pytest"]
 
 # Only core/ is a package. Projects are scripts and notebooks that import it.
 [tool.setuptools.packages.find]
 include = ["core*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = [
+    # poligrain's wet/dry metrics take the mean of an empty slice when a
+    # category is empty; the result is NaN and handled
+    "ignore:Mean of empty slice:RuntimeWarning",
+    "ignore:invalid value encountered in scalar divide:RuntimeWarning",
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]
