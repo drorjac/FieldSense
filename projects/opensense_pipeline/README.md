@@ -317,7 +317,7 @@ matched with `poligrain`:
 | saturating 2.3 dB | 0.91 | 0.685 | 0.510 | 0.421 | 1.58× |
 | Pastorek 2021 | 0.64 | 0.718 | 0.603 | 0.511 | 1.46× |
 | Leijnse 2008 | 0.97 | 0.703 | 0.584 | 0.476 | 1.58× |
-| radar wet/dry | 2.72 | 0.703 | 0.392 | 0.400 | 1.10× |
+| radar wet/dry | 2.72 | 0.703 | 0.392 | 0.399 | 1.10× |
 | nearby-link wet/dry | 2.85 | 0.701 | 0.395 | 0.374 | 1.18× |
 | **nearby-link wet/dry + Pastorek 2021** | **0.84** | **0.745** | 0.675 | 0.588 | **1.09×** |
 | nearby-link wet/dry + Leijnse 2008 | 1.30 | 0.726 | 0.671 | 0.564 | 1.10× |
@@ -343,13 +343,60 @@ a mask that stops the leak, the wet-antenna model is left correcting only the
 wet antenna, and it transfers. This is also why no static `waa_max_db` could
 satisfy both the reference and the gauges above.
 
-Caveats, stated plainly: one network, one summer week, 10 gauges. Four wet
-days is enough to show the spread, not to estimate it well. Pastorek reads
-16% low where Leijnse reads 30% high, so the model's magnitude is still an
-open parameter. And the nearby-link method needs neighbours within 15 km and
-24 hours of history, which a dense urban network like OpenMRG has and a sparse
-one like OpenRainER may not. It should be re-run there before it becomes the
-default.
+### On a second network: OpenRainER
+
+The same ten variants on the OpenRainER 8-day subset (Emilia-Romagna, August
+2022) test whether any of this transfers. It is a very different network:
+151 links across ~300 km instead of 364 in one city, 1-minute sampling with
+1 dB quantization, 319 gauges (88 links within 2 km of one), 15-minute radar.
+
+```bash
+.venv/bin/python projects/opensense_pipeline/src/retrieval_benchmark.py --dataset openrainer   # ~30 s
+```
+
+| variant | ratio to gauges | r (gauges) | MCC (gauges) | MCC (radar) |
+|---|---|---|---|---|
+| default: rolling-std, saturating 0.5 dB | 1.30 | 0.700 | 0.299 | 0.291 |
+| saturating 2.3 dB | 0.92 | 0.700 | 0.403 | 0.391 |
+| Pastorek 2021 | 0.71 | 0.702 | 0.504 | 0.476 |
+| Leijnse 2008 | 0.81 | 0.704 | 0.570 | 0.527 |
+| nearby-link wet/dry | 1.37 | 0.706 | 0.300 | 0.300 |
+| nearby-link wet/dry + Pastorek 2021 | 0.74 | **0.714** | 0.504 | 0.489 |
+| **nearby-link wet/dry + Leijnse 2008** | **0.85** | **0.714** | **0.568** | **0.538** |
+
+![Retrieval benchmark, OpenRainER](results/retrieval_benchmark_openrainer.png)
+
+**What transfers:** a wet-antenna model sharply improves wet/dry skill on both
+networks (MCC +0.2 to +0.3), and the nearby-link mask with a wet-antenna model
+gives the best correlation on both.
+
+**What does not:** Pastorek's magnitude. It reads low on both networks, 0.84
+and 0.74. On OpenRainER that is further from 1 than the default's 1.30 in
+log terms, so it does not beat the default everywhere.
+
+**Nearby-link + Leijnse is the one variant that beats the default on every
+score on both networks.** Ratio to gauges 2.11 → 1.30 and 1.30 → 0.85,
+correlation 0.703 → 0.726 and 0.700 → 0.714, gauge MCC 0.37 → 0.67 and
+0.30 → 0.57, radar MCC 0.32 → 0.56 and 0.29 → 0.54. Leijnse is the physically
+based model, a water film on the radome with no free magnitude parameter,
+which is a plausible reason it transfers where a fitted constant does not.
+It is available in one call:
+
+```python
+from core.opensense import retrieval as rt
+out = rt.retrieve_improved(cml)     # nearby-link wet/dry + Leijnse 2008
+```
+
+It is deliberately **not** the default of `retrieve_dataset`, because every
+downstream number in this README (merge rankings, radar comparisons) was
+computed with the default and should stay reproducible.
+
+Caveats, stated plainly. Two networks, one summer week each. On OpenRainER
+only two days reach 1 mm at the matched links, so its day-to-day spread (not
+tabulated) carries no information. The nearby-link method decides only 53% of
+OpenRainER link-samples, against 97% on OpenMRG, because a sparse network
+often has too few neighbours within 15 km; rolling-std fills the rest. On a
+network sparser still, the mask would add little.
 
 ## Radar against CML maps, through precipitation events
 
@@ -371,7 +418,7 @@ fault, and the control separates them.
 | Torslanda 2015-07-28 | convective cell | +0.25 | **+0.76** | 1.79 |
 | 25 August 2015 | mixed | +0.54 | **+0.79** | 0.62 |
 | 17 June 2015 | widespread frontal | +0.11 | **+0.35** | 1.27 |
-| 26 September 2021 | widespread, Italy | +0.36 | **+0.39** | 1.15 |
+| 26 September 2021 | widespread, Italy | +0.42 | **+0.90** | 1.19 |
 | NYC 13 Jan 2024 | rain | +0.07 | **+0.53** | 0.67 |
 | NYC 28 Jan 2024 | rain | +0.08 | **+0.39** | 0.15 |
 | NYC 16 Jan 2024 | snow + rain | -0.05 | **-0.00** | 0.61 |
@@ -384,6 +431,12 @@ measuring the same rain, concurring on a quarter to a half of the spatial
 variance. The accumulation ratio swings 0.62 to 1.79 with no consistent sign,
 which is the same conclusion the wet-antenna sweep reaches from the other
 direction: whatever bias each carries is event-dependent.
+
+The Italian control is the strongest in the table: the sparse OpenRainER
+network correlates **+0.90** with co-located gauges on 26 September (it read
++0.39 before the timestamp correction described under *Real data*), while the
+same links agree with the radar at +0.42. On that day the disagreement with
+radar is mostly the radar's.
 
 Agreement generally falls with distance from the link network — 25 August
 runs 0.91 at 0–2 km down to 0.68 beyond 10 km, and 17 June goes negative.
@@ -497,62 +550,69 @@ pixels physically impossible. It divides by the radar field, so one near-zero
 radar pixel under a raining link sends the estimate to five figures. The
 artifacts are visible as dark blotches in its panel of `openmrg_2_maps.png`.
 
-### Real data — the ranking does not hold
+### Real data — it depends on which sensor is weaker
 
 Scored against held-out gauges, pooled over the 20 wettest timesteps:
 
 | | radar only | best CML-only | best merged | winner |
 |---|---|---|---|---|
 | **OpenMRG** (n=200) | RMSE 6.16, r=0.35 | RMSE **4.45**, r=0.66 | RMSE 4.69, r=0.64 | CML |
-| **OpenRainER** (n=4,642) | RMSE **8.62**, r=0.72 | RMSE 10.50, r=0.35 | RMSE 8.98, r=0.58 | radar |
+| **OpenRainER** (n≈5,600) | RMSE 8.81, r=0.72 | RMSE 9.81, r=0.47 | RMSE **7.90**, r=0.71 | merge |
 
-On real data **merging never beat the better single sensor**. It landed between
-its two inputs in both cases — which is what a hedge does.
+In Sweden the dense 364-link network is much better than the radar
+(r=0.66 against 0.35), and merging lands between its two inputs: it dilutes
+the good sensor with the poor one. In Italy the two are closer, and merging
+wins. Difference kriging cuts RMSE 10% below radar-only at essentially the
+same correlation.
 
-The two datasets are near mirror images. The Swedish radar is poor against
-gauges (r=0.35) while its dense 364-link network is good (r=0.66); the Italian
-radar is good (r=0.72) while its sparse 151-link network is poor (r=0.35). The
-correlation gap is −0.31 one way and +0.37 the other, and in both cases the
-better sensor wins outright.
+**The practical answer: merge when the sensors are comparable, and not when
+one is clearly better.** Merging corrects the weaker sensor's errors where
+the stronger one has information. When one sensor dominates, there is little
+left to correct and the weaker one's noise comes along.
 
-**So the practical answer is: find out which of your sensors is better before
-merging.** Merging is insurance against the possibility that it is the other
-one, not a free improvement. That is a different claim from the one the
-synthetic benchmark supports, and the disagreement is the most useful thing
-this pipeline produced.
+> **Correction (September 2026).** An earlier version of this section had
+> OpenRainER's radar winning outright (RMSE 8.62 against 8.98 merged, CML-only
+> r=0.35) and concluded that merging never beats the better sensor. That came
+> from a timestamp error. OpenRainER stamps its 15-minute gauge and radar
+> accumulations at the **end** of the interval, and the CML was averaged over
+> windows stamped at the start, so it sat one step out of line with both
+> references. Lagging the 1-minute CML against each reference shows it: at
+> lag 0 the CML-gauge correlation was 0.35, one step back 0.69, while radar
+> and gauges agreed at lag 0. `ACCUMULATION_LABEL` in `ingest_openrainer.py`
+> and `evaluation.aggregate(..., label="end")` now align them. OpenMRG was
+> checked the same way and is unaffected.
 
-### Why synthetic and real disagree
+### Why synthetic and real still differ
 
 The synthetic benchmark imposed a ~35% low radar bias with a relatively clean
-CML retrieval — errors that are *complementary*, which is the situation
-merging is designed for and where it duly wins. Real error structure is less
-obliging: the Italian radar has little bias to correct (−1.05 mm/h), so
-merging mostly injects CML noise into an already-good field.
+CML retrieval. Those errors are *complementary*, the situation merging is
+designed for, and merging duly wins every regime. OpenRainER is closer to that
+situation than it first appeared, and merging now wins there too. OpenMRG
+is not: its radar is not merely biased but poorly correlated with the gauges,
+so a merge that trusts it anywhere pays for it.
 
-This is a caveat on synthetic benchmarking generally, this one included: **its
-ranking is only as good as the error model you assume.** The synthetic result
-here describes the OpenMRG regime well and the OpenRainER regime not at all.
+The general caveat still holds: **a synthetic ranking is only as good as the
+error model you assume.** It describes OpenRainER reasonably and OpenMRG only
+partly.
 
-### A hypothesis that turned out to be wrong
+### Merge gain falls with distance from the links
 
-The obvious explanation for OpenRainER was geometry: only 22% of its gauges
-lie within 2 km of a link (median 5.9 km, max 30.5 km), against 100% within
-0.7 km for OpenMRG. So merging should help near the network and hurt far from
-it.
+Only 22% of OpenRainER gauges lie within 2 km of a link (median 5.9 km, max
+30.5 km), against 100% within 0.7 km for OpenMRG. So merging should help most
+near the network. Stratified by gauge distance to the nearest link path
+(`openrainer_4_coverage.png`):
 
-It does not. Stratifying the OpenRainER gauges by distance to the nearest link
-path (`openrainer_4_coverage.png`), radar-only wins in **every** band,
-including 0–2 km where 1,420 gauge-timesteps sit right beside links:
+| band | n | best method, RMSE | radar-only RMSE | gain |
+|---|---|---|---|---|
+| 0–2 km | 1,420 | difference kriging, 7.31 | 9.06 | −19% |
+| 2–5 km | 1,380 | difference kriging, 7.15 | 8.33 | −14% |
+| 5–10 km | 1,740 | kriging with external drift, 5.84 | 6.36 | −8% |
+| >10 km | 1,840 | difference kriging, 10.16 | 10.70 | −5% |
 
-| band | n | best method | radar-only RMSE |
-|---|---|---|---|
-| 0–2 km | 1,420 | Radar only, 8.85 | 8.85 |
-| 2–5 km | 1,380 | Radar only, 8.53 | 8.53 |
-| 5–10 km | 1,740 | Radar only, 6.67 | 6.67 |
-| >10 km | 1,840 | Radar only, 9.99 | 9.99 |
-
-The figure is kept because it is the evidence that ruled the explanation out.
-Relative sensor skill, not network geometry, is what decides this.
+The gain falls steadily with distance, as the geometry argument predicts.
+The earlier version of this table showed radar-only winning every band and
+was presented as ruling that explanation out; it was the timestamp error
+again.
 
 ## Figures
 
@@ -625,10 +685,16 @@ core/viz_style.py       # palette and matplotlib defaults
 - The OpenRainER ingest now runs through the shared retrieval, which masks
   signal gaps (the old private copy retrieved rain from forward-filled values)
   and links under 0.5 km. Against the old output: r = 0.99, event total +3%.
-  The cached `processed/sep26_*.nc` hold the old retrieval, so the OpenRainER
-  numbers in this README are from it; rebuild with `ingest_openrainer.py
-  --no-cache`. The OpenMRG and OpenMesh ingests are unchanged: the OpenMRG one
-  differs only in float32 vs float64 arithmetic (event total 5e-9).
+  The OpenMRG and OpenMesh ingests are unchanged: the OpenMRG one differs only
+  in float32 vs float64 arithmetic (event total 5e-9).
+- Delete `processed/<event>_*.nc` to rebuild an event. `--no-cache` recomputes
+  without reading the cache, and also without writing it.
+- Timestamp conventions were checked by lagging the 1-minute CML against each
+  reference. OpenRainER accumulations are stamped at interval end (a whole
+  15-minute step; corrected). OpenMRG's radar correlates best with the CML
+  shifted one 5-minute step later (0.39 → 0.46 on 28 July). That is consistent
+  with rain observed aloft reaching the ground minutes later, and is not
+  treated as a labelling error.
 - Every number here comes from `run_pipeline.py`; all randomness is seeded.
 - Runtime is dominated by block kriging, which scales with grid cells x links.
   OpenRainER's full 160 x 285 grid takes ~35 min for a 20-timestep

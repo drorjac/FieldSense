@@ -65,9 +65,9 @@ ev.rainfall_metrics(ev.radar_along_links(data["radar"].R, cml),
 | `fetch` | full Zenodo records, md5-verified, resumable | `requests` |
 | `example_data` | curated subsets; `time=` and `components=` select before reading | ported from `poligrain.example_data` |
 | `conventions` | m/km, MHz/GHz, polarization spellings, `project_cml`, `project_grid` | `poligrain.spatial` |
-| `retrieval` | `retrieve_dataset`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
+| `retrieval` | `retrieve_dataset`, `retrieve_improved`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
 | `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `fill_undecided` | `poligrain`, `pycomlink` |
-| `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics` | `poligrain.spatial`, `poligrain.validation` |
+| `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics`, `aggregate` (start- or end-stamped bins) | `poligrain.spatial`, `poligrain.validation` |
 
 The wrappers exist because calling poligrain directly has three silent traps
 in this setting, each covered by a test in `tests/`: `get_closest_points_to_line`
