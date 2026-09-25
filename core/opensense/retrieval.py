@@ -24,6 +24,10 @@ Two entry points:
     an OpenSense-1.0 CML dataset in, an xarray Dataset out. Handles TSL
     presence, units, the sublink broadcast of per-link metadata, and the
     sampling interval. Prefer this one.
+``retrieve_improved(ds_cml)``
+    the same, with nearby-link wet/dry and the Leijnse (2008) wet-antenna
+    model - the variant that beat the default on every score on both
+    benchmarked networks. Not the default, so existing results reproduce.
 
 The steps are public functions too, so an experiment that varies only one
 step (``retrieval_benchmark.py``) can compute the others once.
@@ -437,4 +441,36 @@ def combine_sublinks(ds: xr.Dataset, var: str = "R") -> xr.Dataset:
             out.coords[name] = c.isel(sublink_id=0, drop=True)
         elif "cml_id" in c.dims:
             out.coords[name] = c
+    return out
+
+
+def retrieve_improved(ds: xr.Dataset, cfg: RetrievalConfig | None = None,
+                      radius_km: float = 15.0) -> xr.Dataset:
+    """The retrieval that did best across both benchmarked networks.
+
+    Nearby-link wet/dry (Overeem et al. 2016) for the baseline, and the
+    Leijnse et al. (2008) wet-antenna model. In ``retrieval_benchmark.py`` it
+    beats the default on every score on both OpenMRG (dense, 10 s) and
+    OpenRainER (sparse, 1 min): ratio to gauges 2.11 -> 1.30 and
+    1.30 -> 0.85, correlation 0.703 -> 0.726 and 0.700 -> 0.714, wet/dry MCC
+    0.37 -> 0.67 and 0.30 -> 0.57. Pastorek (2021) correlates slightly
+    better on OpenMRG but reads low on both, so it is not the pick.
+
+    The nearby-link mask needs neighbours within ``radius_km`` and ~24 h of
+    history; where it cannot decide, rolling-std fills in. Give it more data
+    than the window you care about and cut afterwards.
+
+    Not the default of :func:`retrieve_dataset`, so results computed with the
+    default stay reproducible.
+    """
+    from core.opensense import wet_dry
+
+    cfg = cfg or RetrievalConfig.for_interval(sampling_interval_s(ds.time))
+    if cfg.waa_model == "saturating":
+        cfg = cfg.with_(waa_model="leijnse2008")
+    mask = wet_dry.nearby_links(ds, radius_km=radius_km)
+    out = retrieve_dataset(ds, cfg, wet=wet_dry.fill_undecided(mask, ds, cfg))
+    out.attrs["wet_dry"] = (f"nearby links (Overeem 2016, r={radius_km:g} km), "
+                            f"{float(np.isfinite(mask).mean()):.0%} decided, "
+                            f"rolling-std elsewhere")
     return out

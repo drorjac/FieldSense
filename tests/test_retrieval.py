@@ -151,3 +151,25 @@ def test_rolling_std_classifier_misses_steady_rain(steady_event):
     blind = _retrieve(ds, **NO_WAA).R.isel(time=slice(630, 690))
     seeing = _retrieve(ds, _perfect_wet(ds, rain), **NO_WAA).R.isel(time=slice(630, 690))
     assert float(blind.mean()) < 0.1 * float(seeing.mean())
+
+
+def test_retrieve_improved_sees_the_steady_rain_rolling_std_misses():
+    """Six neighbouring links under the same steady rain.
+
+    Rolling-std calls it dry and returns nothing (see the blind-spot test);
+    the nearby-link mask sees all six drop together and keeps the baseline
+    dry, so the rain comes back, less the wet-antenna share.
+    """
+    rain = rain_event(n_links=6, rate=10.0)
+    ds = example_data.normalize_cml(
+        make_cml(rain, np.full((6, 2), 23.0), np.full(6, 4.0), noise_db=0.02),
+        "EPSG:32632")
+    inside = slice(630, 690)
+    default = rt.retrieve_dataset(ds).R.isel(time=inside)
+    improved = rt.retrieve_improved(ds)
+
+    assert float(default.mean()) < 1.0
+    assert 5.0 < float(improved.R.isel(time=inside).mean()) < 10.0
+    assert "leijnse2008" in improved.attrs["retrieval"]
+    assert "nearby links" in improved.attrs["wet_dry"]
+    assert float(improved.R.isel(time=slice(0, 500)).max()) == 0.0

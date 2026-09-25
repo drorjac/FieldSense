@@ -11,7 +11,9 @@ GAUGE = vs.SERIES["stratiform"]     # slot 1
 RADAR = vs.SERIES["convective"]     # slot 2
 
 
-def figure(rows: list[dict], path, highlight=("default", "wet_nearby_pastorek")):
+def figure(rows: list[dict], path, highlight=("default", "wet_nearby_pastorek"),
+           title: str = "OpenMRG 22-29 July 2015", gauge_step: str = "15min",
+           radar_step: str = "5min"):
     """Three dot-plot panels sharing one variant axis.
 
     Ratio of totals is on a log axis, because 0.5x and 2x are equally wrong;
@@ -35,9 +37,9 @@ def figure(rows: list[dict], path, highlight=("default", "wet_nearby_pastorek"))
         for yi, a, b in zip(y, g, rd):
             ax.plot([a, b], [yi, yi], color=vs.GRIDLINE, lw=2, zorder=1)
         ax.scatter(g, y, s=64, color=GAUGE, edgecolor=vs.SURFACE, lw=2,
-                   zorder=3, label="vs gauges, 15 min")
+                   zorder=3, label=f"vs gauges, {gauge_step}")
         ax.scatter(rd, y, s=64, color=RADAR, edgecolor=vs.SURFACE, lw=2,
-                   zorder=3, label="vs radar along path, 5 min")
+                   zorder=3, label=f"vs radar along path, {radar_step}")
         if key == "ratio":
             ax.set_xscale("log")
             ax.set_xticks([0.5, 1, 2, 3])
@@ -58,7 +60,7 @@ def figure(rows: list[dict], path, highlight=("default", "wet_nearby_pastorek"))
             tick.set_color(vs.INK_SECONDARY)
     axes[0].legend(loc="upper center", bbox_to_anchor=(1.55, -0.045),
                    ncol=2)
-    fig.suptitle("CML retrieval variants, OpenMRG 22-29 July 2015: "
+    fig.suptitle(f"CML retrieval variants, {title}: "
                  "same links, same pairs, scored against independent sensors",
                  x=0.12, ha="left", fontsize=11.5, fontweight="bold")
     fig.savefig(path)
