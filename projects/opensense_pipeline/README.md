@@ -8,14 +8,51 @@ independent datasets from two countries.
 
 ```
 fetch  →  ingest  →  CML retrieval  →  [synthetic benchmark]  →  merge  →  maps
+                          ↑
+             scored against radar and gauges with poligrain
 ```
 
 The bracketed stage is the point of the design. See *Why a synthetic stage*.
 
+**Start with `notebooks/02_end_to_end.ipynb`.** It takes one day of OpenMRG
+through every stage (pull, look, retrieve, score, improve, map) in about a
+minute, using only the functions below.
+
 ## Running it
 
 ```bash
-python -m venv .venv && .venv/bin/pip install -r projects/opensense_pipeline/requirements.txt
+python -m venv .venv
+.venv/bin/pip install -e ".[opensense,notebooks,dev]"       # core + OpenSense stack
+.venv/bin/pip install -r projects/opensense_pipeline/requirements.txt
+.venv/bin/python -m pytest                                   # 35 tests, ~1 s, no downloads
+```
+
+### The library in ten lines
+
+Everything reusable lives in `core/opensense/`; the scripts in `src/` are
+experiments built on it.
+
+```python
+from core.opensense import example_data, retrieval as rt, wet_dry, evaluation as ev
+
+data = example_data.load("openmrg", "8d", time=slice("2015-07-28", "2015-07-28"))
+cml, radar, gauges = data["cml"], data["radar"], data["gauge_municipal"]
+
+out = rt.retrieve_dataset(cml)                            # R, A_obs, waa, baseline, wet
+rain = rt.combine_sublinks(out).R                         # (time, cml_id), mm/h
+
+radar_path = ev.radar_along_links(radar.R, cml)           # poligrain GridAtLines
+ev.rainfall_metrics(radar_path, ev.aggregate(rain, "5min"))   # r, pbias, ratio, mcc, ...
+```
+
+The improved retrieval (see *Improving the retrieval*) is one more line.
+`nearby_links` needs about a day of history, so give it more than the window
+you score:
+
+```python
+mask = wet_dry.fill_undecided(wet_dry.nearby_links(cml), cml)
+out = rt.retrieve_dataset(cml, rt.RetrievalConfig.for_interval(10, waa_model="pastorek2021"),
+                          wet=mask)
 ```
 
 There are **two tiers of data acquisition**, and which you want depends on
@@ -33,9 +70,11 @@ OpenSense-1.0 convention, so no retrieval chain is needed to look at them.
 ```
 
 ```python
-from example_data import load
-data = load("openmesh", "20d")     # dict: cml, pws, asos
-data["cml"].frequency_ghz          # normalized on load
+from core.opensense import example_data
+data = example_data.load("openmesh", "20d")     # dict: cml, pws, asos
+data["cml"].frequency_ghz                       # normalized on load
+example_data.load("openmrg", "8d", time=slice("2015-07-28", "2015-07-28"),
+                  components=("cml", "radar"))  # a window, before reading
 ```
 
 `notebooks/01_read_opensense_data.ipynb` walks through reading all four
@@ -117,9 +156,11 @@ directions of each link.
 On both datasets the CML retrieval tracks the gauges **better than the radar
 does**, which is the entire premise of opportunistic sensing.
 
-### Three traps worth recording
+### Traps worth recording
 
-These each produced a silently wrong answer rather than an error.
+Each of these produced a silently wrong answer rather than an error. The last
+three were found while consolidating the code, and each now has a test in
+`tests/`.
 
 **Radar was being scaled twice.** OpenMRG stores pseudo-dBZ with
 `scale_factor=0.4`, `add_offset=-30`, and the dataset readme documents the
@@ -138,6 +179,29 @@ polarization is spelled `Vertical`, `vertical` or `v` depending on the file.
 `core/opensense/conventions.py` holds the full table of who disagrees with whom, reads the
 declared units where present, and falls back on magnitude where absent —
 nothing terrestrial transmits at 7,456 GHz, so that value is MHz.
+
+**Per-sublink metadata was matched to the wrong sublink.** The OpenSense
+files store `frequency` and `polarization` as `(sublink_id, cml_id)` and the
+signals as `(time, sublink_id, cml_id)`. Two scripts flattened the signals as
+(link, sublink) and the metadata as stored, so on the example subsets **every
+one of the 364 OpenMRG links** had its second sublink retrieved with another
+link's frequency (link 10001: 29.2 GHz treated as 38.5 GHz). Retrieved totals
+came out 13% high. `retrieval.retrieve_dataset` now broadcasts metadata by
+dimension *name*, and `validate_retrieval.py` and `run_pipeline.py --source
+example` both go through it. The raw-archive ingests were never affected.
+
+**OpenRainER's example radar `R` is an accumulation.** The subset names the
+variable `R`, the name OpenMRG uses for a rate, but declares `units: mm` and
+`accum_time_h: 0.25`. Read as mm/h it is 4x too low. `example_data` now
+converts from the declared units, so `--source example` results for OpenRainER
+change; the raw-archive ingest always did the ×4.
+
+**poligrain reads `length` in the units of the coordinates.**
+`get_closest_points_to_line` searches `length/2 + max_distance` around each
+link midpoint, in metres. With `length` in km, as this pipeline and the
+normalized OpenSense files carry it, that radius shrinks from 3 km to 1.002 km
+for a 4 km link. On OpenMRG it matches 43 links to gauges where 86 are within
+1 km of a path. `evaluation.closest_gauges` always passes metres.
 
 **Zeroing rain on the dry flag deletes steady rain.** The rolling-standard-
 deviation classifier keys on *fluctuation*, and widespread stratiform rain
@@ -175,59 +239,117 @@ average, so a disagreement could not be attributed to either side.
 
 The OpenMRG `8d` subset closes that gap. It ships raw `tsl`/`rsl` **and** a
 reference rain rate `R` that the OpenSense community retrieved from exactly
-those signals — 364 links at 10 s over 2015-07-22 to 07-29, a window that
+those signals: 364 links at 10 s over 2015-07-22 to 07-29, a window that
 contains the Torslanda event. Both retrievals see identical input.
 
 ```bash
 .venv/bin/python projects/opensense_pipeline/src/validate_retrieval.py --offline
-.venv/bin/python projects/opensense_pipeline/src/validate_retrieval.py --sweep
+.venv/bin/python projects/opensense_pipeline/src/validate_retrieval.py --offline --sweep
 ```
 
 **The chain has the right skill and the wrong magnitude.** Over the full 8 days
 (22.5 M link-timesteps):
 
-| | ours | reference |
+| | full 8 days | Torslanda window |
 |---|---|---|
-| correlation with each other | 0.878 | — |
-| wet/dry agreement | 82.7% | — |
-| mean rain | 0.490 mm/h | 0.266 mm/h |
-| ratio to municipal gauges, matched pairs | **2.28** | **1.05** |
-| correlation with gauges | 0.72 | 0.74 |
+| correlation with the reference | 0.939 | 0.958 |
+| wet/dry agreement | 81.0% | 81.0% |
+| mean rain, ours / reference | 0.441 / 0.266 mm/h | 1.171 / 0.713 mm/h |
+| ratio of totals | **1.66** | **1.64** |
 
-The reference is essentially unbiased against gauges; ours over-reads by a
-factor of ~2, with the same correlation. `retrieval_vs_reference_torslanda.png`
-shows why: the time series have the same shape and timing, uniformly scaled up,
-and the exceedance curves run parallel. That is a calibration error, not a
-skill error.
+An earlier version of this table read correlation 0.878 and ratio 1.75. Both
+came from the sublink-ordering bug above, which scrambled half of every
+link's frequencies; fixed, the two retrievals agree more closely than they
+appeared to. The magnitude gap remains, and
+`retrieval_vs_reference_torslanda.png` shows its shape: the same timing, the
+same peaks, uniformly scaled up. That is a calibration error, not a skill
+error.
 
 ### The wet-antenna default is not transferable
 
-`--sweep` varies the wet-antenna term against the reference. On the Torslanda
-window correlation *peaks* at 1.5–2.0 dB and the ratio reaches 1.0 at 2.3 dB —
-the Schleiss et al. (2013) literature value:
+`--sweep` varies the saturating wet-antenna term against the reference:
 
-| waa_max_db | ratio to reference (8d) | ratio (Torslanda) | corr |
+| waa_max_db | ratio to reference (8d) | ratio (Torslanda) | corr (8d) |
 |---|---|---|---|
-| 0.5 *(current default)* | 1.75 | 1.74 | 0.896 |
-| 1.5 | 1.11 | 1.25 | 0.907 |
-| 2.3 *(literature)* | 0.78 | 0.98 | 0.906 |
+| 0.0 | 1.93 | 1.79 | 0.920 |
+| 0.5 *(current default)* | 1.58 | 1.54 | 0.939 |
+| 1.5 | 1.04 | 1.13 | 0.954 |
+| 2.3 *(Schleiss et al. 2013)* | 0.74 | 0.88 | 0.948 |
 
-But the same sweep against the aug25 **gauges** pulls the other way: 0.5 dB
-gives 0.79 and 1.5 dB gives 0.53. No single static value satisfies both, and
-the spread across events is about 2× (aug25 0.79, Torslanda 1.48, 8-day 2.28
-at the current default).
+Against the reference, 1.5 dB fits. Against the aug25 **gauges**, 0.5 dB gives
+0.79 and 1.5 dB gives 0.53. No single static value satisfies both, and the
+next section shows why: the constant was compensating for a baseline error.
+**The default is left at 0.5 dB** so the results elsewhere in this README
+stay reproducible.
 
-Two things are worth saying plainly. The 0.5 dB default was fitted to one
-event against 10 gauges — 200 paired values — and does not generalise; the
-reference comparison is 22.5 M paired values and favours 1.5–2.3 dB, which is
-also where the literature sits. And a static saturating wet-antenna model
-cannot track an effect that depends on the wetting and drying history of the
-radome, which is the likely reason no constant works everywhere.
+## Improving the retrieval with the OpenSense ecosystem
 
-**The default is left at 0.5 dB** so the results elsewhere in this README stay
-reproducible. Treat the magnitude as uncertain to a factor of ~2 and the
-ranking of merge methods — which is what the pipeline exists to establish — as
-unaffected, since every method receives the same CML input.
+`src/retrieval_benchmark.py` asks which *algorithmic* change fixes the
+magnitude without losing skill, using methods the OpenSense ecosystem already
+provides, not a retuned constant:
+
+| step | options | from |
+|---|---|---|
+| wet/dry mask | rolling std *(default)*, radar along the path, nearby links (Overeem et al. 2016) | `poligrain`, `pycomlink` |
+| wet-antenna | saturating 0.5 dB *(default)* or 2.3 dB, Pastorek et al. 2021, Leijnse et al. 2008 | `pycomlink` |
+
+Every variant runs on the same 364 links over all 8 days and is scored on
+**the same pairs** against references that do not share its errors, all
+matched with `poligrain`:
+
+- **gauges**: every link whose *path* passes within 1 km of a municipal
+  gauge (86 links), at 15 minutes. The primary criterion, since it is the
+  only direct measurement.
+- **radar along the path**: `GridAtLines`, every link, 5 minutes. The radar
+  has its own bias here, so read it for correlation and wet/dry skill.
+- **day-to-day stability**: the ratio to gauges on each of the four days
+  with at least 1 mm, reported as a spread factor.
+
+```bash
+.venv/bin/python projects/opensense_pipeline/src/retrieval_benchmark.py            # 8 days, ~2 min
+.venv/bin/python projects/opensense_pipeline/src/retrieval_benchmark.py --quick    # one day
+```
+
+| variant | ratio to gauges | r (gauges) | MCC (gauges) | MCC (radar) | daily spread |
+|---|---|---|---|---|---|
+| default: rolling-std, saturating 0.5 dB | 2.11 | 0.703 | 0.373 | 0.321 | 1.26× |
+| no wet-antenna correction | 2.69 | 0.691 | 0.329 | 0.290 | 1.20× |
+| saturating 2.3 dB | 0.91 | 0.685 | 0.510 | 0.421 | 1.58× |
+| Pastorek 2021 | 0.64 | 0.718 | 0.603 | 0.511 | 1.46× |
+| Leijnse 2008 | 0.97 | 0.703 | 0.584 | 0.476 | 1.58× |
+| radar wet/dry | 2.72 | 0.703 | 0.392 | 0.400 | 1.10× |
+| nearby-link wet/dry | 2.85 | 0.701 | 0.395 | 0.374 | 1.18× |
+| **nearby-link wet/dry + Pastorek 2021** | **0.84** | **0.745** | 0.675 | 0.588 | **1.09×** |
+| nearby-link wet/dry + Leijnse 2008 | 1.30 | 0.726 | 0.671 | 0.564 | 1.10× |
+| nearby-link wet/dry, zero when dry | 2.45 | 0.703 | 0.679 | 0.596 | 1.21× |
+| *OpenSense reference retrieval* | *1.12* | *0.713* | *0.621* | *0.626* | *1.18×* |
+
+![Retrieval benchmark](results/retrieval_benchmark.png)
+
+**One combination improves every axis at once.** The nearby-link mask with
+the Pastorek wet-antenna model moves the ratio from 2.11 to 0.84, correlation
+with gauges from 0.703 to 0.745 (above the OpenSense reference's 0.713),
+wet/dry skill from 0.37 to 0.68, and holds 0.73-0.90 across the four wet days.
+Its retrieval agrees with the reference at r = 0.98.
+
+**Neither half works alone, and the reason is the useful result.** A better
+wet/dry mask on its own makes the over-read *worse*, 2.11 to 2.85. The
+rolling-std mask calls steady rain dry, the baseline learns it, and that leak
+had been partly cancelling the missing wet-antenna correction. A wet-antenna
+model on its own fixes the 8-day average but becomes *less* transferable,
+spread 1.46-1.58×: on 25 July Leijnse reads 0.38 of the gauges, on 29 July
+1.22, because it is correcting a baseline error that differs day to day. With
+a mask that stops the leak, the wet-antenna model is left correcting only the
+wet antenna, and it transfers. This is also why no static `waa_max_db` could
+satisfy both the reference and the gauges above.
+
+Caveats, stated plainly: one network, one summer week, 10 gauges. Four wet
+days is enough to show the spread, not to estimate it well. Pastorek reads
+16% low where Leijnse reads 30% high, so the model's magnitude is still an
+open parameter. And the nearby-link method needs neighbours within 15 km and
+24 hours of history, which a dense urban network like OpenMRG has and a sparse
+one like OpenRainER may not. It should be re-run there before it becomes the
+default.
 
 ## Radar against CML maps, through precipitation events
 
@@ -441,12 +563,16 @@ Relative sensor skill, not network geometry, is what decides this.
 | `*_2_maps.png` | one rainfall map per method |
 | `*_3_gauge_validation.png` | each method against held-out gauges |
 | `*_4_coverage.png` | RMSE by gauge distance to the link network |
+| `retrieval_benchmark.png` | retrieval variants against gauges and radar |
+| `retrieval_vs_reference_*.png` | our chain against the OpenSense reference |
+| `radar_vs_cml*.png` | radar vs CML maps through eight events |
 
 ## Layout
 
 ```
 opensense_pipeline/
 ├── src/
+│   ├── retrieval_benchmark.py  # rank retrieval variants against gauges + radar
 │   ├── validate_retrieval.py   # ours vs the OpenSense reference retrieval
 │   ├── compare_radar_cml.py    # radar vs CML maps through events
 │   ├── ingest_openmesh.py      # NYC: RSL-only retrieval, band selection
@@ -455,9 +581,12 @@ opensense_pipeline/
 │   ├── merging.py              # uniform wrapper over mergeplg + baselines
 │   ├── synthetic_benchmark.py  # real geometry, synthetic truth
 │   ├── plots.py                # figures
+│   ├── plots_radar_cml.py      #   ... for compare_radar_cml
+│   ├── plots_retrieval.py      #   ... for retrieval_benchmark
 │   └── run_pipeline.py         # entry point
 ├── notebooks/
-│   └── 01_read_opensense_data.ipynb   # reading all four datasets
+│   ├── 01_read_opensense_data.ipynb   # reading all four datasets
+│   └── 02_end_to_end.ipynb            # one day through every stage
 ├── results/
 ├── PLAN.md
 └── README.md
@@ -469,8 +598,11 @@ Shared with other projects, so kept in `core/` (see `core/README.md`):
 core/opensense/
 ├── fetch.py            # Zenodo full records, resumable + verified
 ├── example_data.py     # curated OpenSense subsets (ported from poligrain)
-├── conventions.py      # unit / polarization normalization across sources
-└── retrieval.py        # the CML retrieval chain, source-independent
+├── conventions.py      # units, polarization, projected geometry across sources
+├── retrieval.py        # the CML retrieval chain, arrays or xarray in
+├── wet_dry.py          # radar and nearby-link wet/dry masks
+└── evaluation.py       # poligrain matching (lines, points, grids) + metrics
+tests/                  # at the repo root: python -m pytest
 core/simulation/        # synthetic fields + CML network (synthetic_benchmark)
 core/radar/nexrad.py    # KOKX radar (ingest_openmesh)
 core/viz_style.py       # palette and matplotlib defaults
@@ -488,6 +620,15 @@ core/viz_style.py       # palette and matplotlib defaults
 - `poligrain`'s `GridAtPoints.__call__` reads `da_point_data.lon`
   unconditionally, even when constructed for projected coordinates, so gauge
   arrays must carry lon/lat even though nothing reads them numerically.
+  `GridAtLines` does the same with `site_*_lon/lat`; `evaluation` fills
+  placeholders when only projected coordinates exist.
+- The OpenRainER ingest now runs through the shared retrieval, which masks
+  signal gaps (the old private copy retrieved rain from forward-filled values)
+  and links under 0.5 km. Against the old output: r = 0.99, event total +3%.
+  The cached `processed/sep26_*.nc` hold the old retrieval, so the OpenRainER
+  numbers in this README are from it; rebuild with `ingest_openrainer.py
+  --no-cache`. The OpenMRG and OpenMesh ingests are unchanged: the OpenMRG one
+  differs only in float32 vs float64 arithmetic (event total 5e-9).
 - Every number here comes from `run_pipeline.py`; all randomness is seeded.
 - Runtime is dominated by block kriging, which scales with grid cells x links.
   OpenRainER's full 160 x 285 grid takes ~35 min for a 20-timestep

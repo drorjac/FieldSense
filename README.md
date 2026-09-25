@@ -17,6 +17,7 @@ FieldSense/
 │   ├── opensense/            # OpenSense data: fetch, conventions, retrieval
 │   ├── radar/                # KOKX NEXRAD
 │   └── scientific_packages/  # PySINDy / PySR / PyNNcml reference notes + wrapper
+├── tests/                # pytest suite for core/ (synthetic data, no downloads)
 ├── dataset/              # Shared open datasets (protected)
 │   └── open_datasets/        # OpenMRG, OpenRainER, OpenMesh NYC, CML Netherlands
 ├── projects/             # Research projects — each self-contained, notebooks included
@@ -47,7 +48,11 @@ cd FieldSense
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt          # = pip install -e ".[notebooks]"
 pip install -r projects/<project>/requirements.txt   # the project you work on
+pip install -e ".[opensense,dev]" && python -m pytest  # core.opensense + its tests
 ```
+
+New to the OpenSense side? `projects/opensense_pipeline/notebooks/02_end_to_end.ipynb`
+takes one day of real CML data from download to a merged rainfall map.
 
 ## Contributing
 

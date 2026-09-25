@@ -14,11 +14,13 @@ core/
 │   ├── rain_fields.py           # stratiform / convective / frontal models, advection
 │   ├── cml_network.py           # topology, forward model, impairments, retrieval
 │   └── reconstruct.py           # IDW variants, scoring, error decomposition
-├── opensense/               # OpenSense data: download, conventions, retrieval
+├── opensense/               # OpenSense data: pull, normalize, retrieve, score
 │   ├── fetch.py                 # Zenodo full records, resumable + verified
-│   ├── example_data.py          # curated OpenSense example subsets
-│   ├── conventions.py           # unit / polarization normalization across sources
-│   └── retrieval.py             # CML attenuation -> rain rate chain
+│   ├── example_data.py          # curated OpenSense example subsets, normalized on load
+│   ├── conventions.py           # units, polarization, projected geometry across sources
+│   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
+│   ├── wet_dry.py               # radar and nearby-link wet/dry masks (poligrain, pycomlink)
+│   └── evaluation.py            # poligrain matching of lines/points/grids + metrics
 ├── radar/
 │   └── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
 └── scientific_packages/
@@ -41,6 +43,42 @@ python -m core.opensense.fetch --list
 python -m core.opensense.example_data --dataset openmrg --subset 8d
 python -m core.radar.nexrad --classify
 ```
+
+## `opensense/`
+
+The path from a published CML dataset to a scored rain-rate estimate. Each
+module does one stage, and every stage takes and returns OpenSense-1.0
+`xarray` objects, so they compose:
+
+```python
+from core.opensense import example_data, retrieval as rt, wet_dry, evaluation as ev
+
+data = example_data.load("openmrg", "8d", time=slice("2015-07-28", "2015-07-28"))
+cml = data["cml"]                                   # km, GHz, projected endpoints
+rain = rt.combine_sublinks(rt.retrieve_dataset(cml)).R
+ev.rainfall_metrics(ev.radar_along_links(data["radar"].R, cml),
+                    ev.aggregate(rain, "5min"))
+```
+
+| module | stage | built on |
+|---|---|---|
+| `fetch` | full Zenodo records, md5-verified, resumable | `requests` |
+| `example_data` | curated subsets; `time=` and `components=` select before reading | ported from `poligrain.example_data` |
+| `conventions` | m/km, MHz/GHz, polarization spellings, `project_cml`, `project_grid` | `poligrain.spatial` |
+| `retrieval` | `retrieve_dataset`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
+| `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `fill_undecided` | `poligrain`, `pycomlink` |
+| `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics` | `poligrain.spatial`, `poligrain.validation` |
+
+The wrappers exist because calling poligrain directly has three silent traps
+in this setting, each covered by a test in `tests/`: `get_closest_points_to_line`
+reads `length` in coordinate units (metres, not the km the files carry),
+`GridAtLines`/`GridAtPoints` require lon/lat even in projected mode, and
+flattening two DataArrays with different dimension order before scoring
+pairs the wrong values. See `projects/opensense_pipeline/README.md` for what
+the retrieval variants achieve.
+
+`pycomlink` is imported lazily, only by the non-default wet-antenna models and
+the nearby-link mask.
 
 ## `itu_p838.py`
 
