@@ -154,13 +154,25 @@ def forecasts(cfg: NowcastConfig, inp: dict, est: dict, cml: dict) -> dict:
                 histories[f"{model_name}_{map_type}"] = grid["histories"]
             sindy = fc.PODSindy(cfg.sindy_modes, seed=cfg.seed).fit(splits["train"])
             out[f"sindy_{map_type}"] = sindy.predict(splits["test"], lb, hs)
-        try:
-            out["pysteps"] = fc.pysteps_forecasts(radar_splits["test"], lb, hs,
-                                                  faithful=cfg.faithful)
-        except ImportError:
-            pass                        # pySTEPS not installed: baseline skipped
         return {"forecasts": out, "histories": histories}
-    return _stage(cfg, "forecasts", build)
+    result = _stage(cfg, "forecasts", build)
+    # pySTEPS is cached on its own: it trains nothing, and a run without it
+    # installed must not leave a cache that skips it once it is
+    result["forecasts"].pop("pysteps", None)
+    try:
+        result["forecasts"]["pysteps"] = pysteps(cfg, inp)
+    except ImportError as e:            # pySTEPS or OpenCV missing: baseline skipped
+        print(f"pySTEPS baseline skipped ({e}); pip install pysteps opencv-python-headless")
+    return result
+
+
+def pysteps(cfg: NowcastConfig, inp: dict) -> dict:
+    """Lucas-Kanade extrapolation of the radar test split, ``{h: (N_h, H, W)}``."""
+    def build():
+        rad = inp["radar"]
+        test = _splits(cfg, rad["times"], rad["R"])[0]["test"]
+        return fc.pysteps_forecasts(test, cfg.lookback, cfg.horizons, faithful=cfg.faithful)
+    return _stage(cfg, "pysteps", build)
 
 
 def evaluate(cfg: NowcastConfig, inp: dict, fcs: dict):

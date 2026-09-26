@@ -83,8 +83,12 @@ res = pipeline.run(NowcastConfig.smoke())           # three weeks, few epochs: m
 `faithful=True` reproduces the notebook's choices; `faithful=False` applies
 the corrections below. The committed `nowcasting.ipynb` is a **smoke run** -
 enough to show every stage works and which way each fix pushes, not to rank
-the models or reproduce the paper. pySTEPS is optional (it did not build on
-the machine this was written on).
+the models or reproduce the paper. pySTEPS is optional and needs OpenCV for
+its Lucas-Kanade motion field; without either, the baseline is skipped with a
+message, never replaced by persistence. On macOS, Apple clang rejects the
+bare `-fopenmp` pySTEPS' build passes: with `brew install libomp`, build it
+through a compiler wrapper that rewrites the flag to `-Xpreprocessor -fopenmp`
+and links `-lomp` (how it was built here), or with Homebrew's LLVM clang.
 
 ## Issues found in the original pipeline
 
@@ -96,6 +100,11 @@ switchable in `config.py`, and the smoke run measures its direction.
    extrapolated from frame `i + lookback`, which at h = 15 min *is* the
    frame it is scored against. Persistence of that frame alone scores HSS
    1.00 at 15 min in the smoke run, against 0.73 for honest persistence.
+   pySTEPS itself does not profit: it moves the target frame one step
+   further, so it overshoots and scores lower (HSS 0.76 at 15 min, against
+   0.85 aligned). Aligned, it is the strongest model in the smoke run by a
+   wide margin (mean HSS 0.72 vs radar; no learned model exceeds 0.42) -
+   the baseline every learned model has to beat.
 2. **GMZ ran with pynncml 0.3.7's interpolation bug** (a bilinear corner
    read from the wrong cell; see `core/scientific_packages/pynncml_compat.py`)
    **and was misregistered**: its grid is normalized to `(utm - min)/scale`,

@@ -238,20 +238,30 @@ def pysteps_forecasts(radar_test: np.ndarray, lookback: int, horizons,
     pySTEPS and can be replaced (tests, or where pySTEPS will not build).
     """
     if extrapolate is None:
-        import pysteps  # noqa: F401 - fail loudly here, not per sample below
+        # fail loudly here, not per sample below: without OpenCV, pySTEPS'
+        # Lucas-Kanade raises, and a fallback would score persistence as pySTEPS
+        import cv2  # noqa: F401
+        import pysteps  # noqa: F401
         extrapolate = _pysteps_extrapolate
     n = len(radar_test) - lookback - max(horizons) + 1
     shift = 1 if faithful else 0
     out = {h: np.zeros((n, *radar_test.shape[1:]), dtype=np.float32) for h in horizons}
+    failed = 0
     for i in range(n):
         last = i + lookback - 1 + shift
         frames = radar_test[max(0, last - 2):last + 1]
         try:
             fc = extrapolate(frames, max(horizons))
+        except ImportError:
+            raise
         except Exception:                                      # noqa: BLE001
+            failed += 1
             fc = np.repeat(frames[-1:], max(horizons), axis=0)
         for h in horizons:
             out[h][i] = fc[h - 1]
+    if failed:
+        warnings.warn(f"pySTEPS failed on {failed} of {n} samples; those are persistence",
+                      stacklevel=2)
     return out
 
 
@@ -262,9 +272,14 @@ def _pysteps_extrapolate(frames: np.ndarray, n_steps: int) -> np.ndarray:
     safe = np.where(np.isfinite(frames), frames, 0.0).astype(np.float64)
     dbr, _ = conversion.to_reflectivity(safe, metadata={
         "accutime": 15, "unit": "mm/h", "transform": None, "threshold": 0.1, "zerovalue": 0.0})
+    from pysteps.exceptions import MissingOptionalDependency
+
     try:
         velocity = motion.get_method("lucaskanade")(dbr)
+    except MissingOptionalDependency:
+        raise
     except Exception:                                          # noqa: BLE001
+        # no trackable features (dry frames): no motion is the right answer
         velocity = np.zeros((2, *safe.shape[1:]))
     fc = nowcasts.get_method("extrapolation")(safe[-1], velocity, n_steps)
     return np.nan_to_num(fc, nan=0.0).astype(np.float32)

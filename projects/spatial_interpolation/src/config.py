@@ -99,6 +99,8 @@ class NowcastConfig:
         "forecasts": ("faithful", "idw_power", "gmz_roi", "gmz_points_per_link",
                       "est_epochs", "est_hparams", "lookback", "horizons",
                       "forecast_epochs", "transformer", "gru", "sindy_modes", "seed"),
+        "pysteps": ("train", "val", "test", "lat_range", "lon_range", "faithful",
+                    "lookback", "horizons"),
     }
 
     def stage_key(self, stage: str) -> str:
