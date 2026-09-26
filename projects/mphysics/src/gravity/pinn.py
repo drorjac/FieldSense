@@ -1,7 +1,7 @@
 """
 A body thrown upward, fitted from noisy heights: plain network vs PINN.
 
-One module for what ``pinn_vs_nn_comparison.ipynb``, ``pinn_main.py`` and
+One module for what ``notebooks/archive/pinn_vs_nn_comparison.ipynb``, ``pinn_main.py`` and
 ``pinn_learning.py`` each wrote out separately.
 
 The physics can enter the loss two ways, and the difference matters:

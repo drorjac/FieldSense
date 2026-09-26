@@ -30,7 +30,7 @@ spatial_interpolation/
 ├── notebooks/
 │   ├── nowcasting.ipynb                # the pipeline from src/, faithful vs corrected (concise)
 │   ├── advanced_models_colab_v2.ipynb  # Main working notebook — source of truth for all results
-│   └── version_v1.ipynb                # Earlier iteration, kept for provenance
+│   └── archive/version_v1.ipynb        # Earlier iteration, kept for provenance
 ├── paper/
 │   ├── paper.tex                       # 5-page IEEE conference paper (IEEEtran) — target artifact
 │   └── full_report.tex                 # Long-form report, earlier experiment scope

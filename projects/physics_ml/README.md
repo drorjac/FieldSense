@@ -51,7 +51,7 @@ where it is valid and the network absorbs what the power law cannot explain.
 | `src/hybrid_training.py` | Staged vs joint training of the hybrid model, tracking gate, loss and learned (k, α). |
 | `src/plots.py` | The figures `hybrid_retrieval.ipynb` draws. |
 | `notebooks/hybrid_retrieval.ipynb` | **Start here.** Both experiments in ~20 lines of calls, every number computed. |
-| `notebooks/Simulation_MBML.ipynb` | The original working notebook, kept as the record (see below). |
+| `notebooks/archive/Simulation_MBML.ipynb` | The original working notebook, kept as the record (see below). |
 | `results/training_curves.png` | Training curves from the last recorded run. |
 
 ## Structure
@@ -71,10 +71,10 @@ physics_ml/
 │   └── discover_advection.py # SINDy: recover rain-field advection
 ├── notebooks/
 │   ├── hybrid_retrieval.ipynb         # the hybrid experiments, concise
-│   ├── Simulation_MBML.ipynb          # the original working notebook, kept
 │   ├── TUTORIALS.md                   # guide to the two method tutorials
 │   ├── 01_sindy_basics.ipynb          # SINDy on the Lorenz system
-│   └── 02_pysr_basics.ipynb           # symbolic regression basics
+│   ├── 02_pysr_basics.ipynb           # symbolic regression basics
+│   └── archive/Simulation_MBML.ipynb  # the original working notebook, kept
 ├── tests/test_physics_ml.py  # mixing + staged/joint training
 ├── results/
 │   └── training_curves.png  # Outputs and figures
@@ -131,7 +131,7 @@ cause is the input: `prepare_sequences` builds each GRU "sequence" as random
 noise around one attenuation value, so the network has no temporal
 information to learn from.
 
-### About `Simulation_MBML.ipynb`
+### About `archive/Simulation_MBML.ipynb`
 
 Kept unchanged as the working record, but it is not a reliable source of
 results: it defines the hybrid model three times, calls a
@@ -272,6 +272,6 @@ splitting and baselines, and Matplotlib/Seaborn for figures. See
 ## References
 
 - ITU-R P.838-3: Specific attenuation model for rain for use in prediction methods
-- Physics-Informed Neural Networks (PINNs) literature — see `src/gravity/` and `notebooks/pinn_vs_nn_comparison.ipynb` for a worked PINN example
+- Physics-Informed Neural Networks (PINNs) literature — see `projects/mphysics/src/gravity/` and `projects/mphysics/notebooks/pinn_gravity.ipynb` for a worked PINN example
 - PDE-constrained optimization
 - Domain-informed machine learning

@@ -99,7 +99,7 @@ Imported by `projects/rainfall_field_sim/`, `projects/opensense_pipeline/` and
 different interpolation, and now re-exports from here.
 
 One copy remains outside this module: the table is pasted inline in
-`projects/physics_ml/notebooks/Simulation_MBML.ipynb`. That is a working
+`projects/physics_ml/notebooks/archive/Simulation_MBML.ipynb`. That is a working
 experiment rather than library code, so it is left as it is; anything new
 should import from here.
 

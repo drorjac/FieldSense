@@ -14,7 +14,7 @@ the test split:
 ``fc``        a tiny MLP on ``[r_phys, r_mlp]``
 ``residual``  physics plus an MLP trained on the physics residual
 
-Consolidated from ``notebooks/Simulation_MBML.ipynb`` (cells 29-31, 36, 38),
+Consolidated from ``notebooks/archive/Simulation_MBML.ipynb`` (cells 29-31, 36, 38),
 which wrote the generator, the mixers and the sweep out three times. Its
 coefficient table matched ITU-R P.838-3 *horizontal*; here they come from
 ``core.itu_p838`` with the polarization a parameter.

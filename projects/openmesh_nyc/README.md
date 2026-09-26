@@ -26,12 +26,10 @@ openmesh_nyc/
 │   └── camera_ready_clean.tex  # Generated: same text, markup stripped
 ├── notebooks/
 │   ├── openmesh_data.ipynb               # START HERE: pull, format check, links, PWS, ASOS (concise)
-│   ├── download_and_read_openmesh.ipynb  # fetch the published dataset and open it
-│   ├── openmesh_dataset_example.ipynb    # explore the link data
-│   ├── read_pws_sample.ipynb             # personal weather station sample
 │   ├── asos_pipeline.ipynb               # NOAA ASOS collection pipeline
 │   ├── wu_pipeline.ipynb                 # Weather Underground collection pipeline
-│   └── nexrad_rain_vs_snow.ipynb         # radar over the network, rain vs snow
+│   ├── nexrad_rain_vs_snow.ipynb         # radar over the network, rain vs snow
+│   └── archive/                          # the three notebooks openmesh_data.ipynb replaces
 ├── src/
 │   ├── mop.py                  # strips \blue{} markup, camera_ready → *_clean
 │   ├── stations.py             # PWS / ASOS totals, accumulation, dead-station check
@@ -42,7 +40,7 @@ openmesh_nyc/
 ├── requirements.txt
 └── README.md
 
-`openmesh_data.ipynb` covers what the first three notebooks did, in ~25 lines
+`openmesh_data.ipynb` covers what the three archived notebooks did, in ~25 lines
 of calls into `core.opensense` and `src/stations.py`, and runs offline on the
 curated 20-day subset. The full records: `python -m core.opensense.fetch
 --dataset openmesh` (CML, CC-BY-4.0) and `--dataset openmesh_pws` (PWS,
@@ -62,7 +60,7 @@ alongside the other open datasets — see *Data* below.
 
 Network maps and the dataset description live in
 `dataset/open_datasets/OpenMesh_NYC/`. The measurement files are not in git;
-`notebooks/download_and_read_openmesh.ipynb` fetches them from Zenodo.
+`python -m core.opensense.fetch --dataset openmesh` fetches them from Zenodo.
 
 The notebooks locate `src/` by walking up from their own directory, so they
 run from anywhere inside this project without path fiddling.

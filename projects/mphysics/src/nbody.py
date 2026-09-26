@@ -1,7 +1,7 @@
 """
 N-body gravity: simulate, measure, and try to rediscover the law.
 
-The code behind ``03_nbody_full_pipeline.ipynb``, which kept all of it inline:
+The code behind ``notebooks/archive/03_nbody_full_pipeline.ipynb``, which kept all of it inline:
 
 ``simulate``           integrate Newtonian gravity (DOP853, rtol 1e-10, atol 1e-12)
 ``two_body``           a planet on a circular or elliptical orbit

@@ -9,8 +9,7 @@ mphysics/
 ├── notebooks/
 │   ├── nbody_discovery.ipynb          # simulate, measure, rediscover gravity  (concise)
 │   ├── pinn_gravity.ipynb             # PINN vs plain network, two residuals    (concise)
-│   ├── 03_nbody_full_pipeline.ipynb   # the original, kept
-│   └── pinn_vs_nn_comparison.ipynb    # the original, kept
+│   └── archive/                       # the two original notebooks, as they were
 ├── src/
 │   ├── nbody.py                       # simulator, initial conditions, measurements, PySR/SINDy
 │   ├── plots.py                       # every figure the notebooks draw

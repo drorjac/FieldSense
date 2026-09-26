@@ -20,7 +20,7 @@ different interpolation - linear in frequency rather than in log-frequency -
 which disagreed with this one between tabulated points (0.00222 against
 0.00225 at 7.5 GHz). It now re-exports from here.
 
-``projects/physics_ml/notebooks/Simulation_MBML.ipynb`` still has the table
+``projects/physics_ml/notebooks/archive/Simulation_MBML.ipynb`` still has the table
 pasted inline. That notebook is a working experiment rather than library
 code, so it is left alone; import from here in anything new.
 """

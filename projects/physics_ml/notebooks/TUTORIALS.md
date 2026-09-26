@@ -2,7 +2,7 @@
 
 Tutorial notebooks for the physics-informed machine-learning tools this
 project builds on. They are reference material, not the project's own
-experiment — that is `Simulation_MBML.ipynb` in this folder.
+experiment — that is `hybrid_retrieval.ipynb` in this folder.
 
 ## Notebooks
 

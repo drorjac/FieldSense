@@ -1,7 +1,7 @@
 """
 The model-driven PyNNcml chain on OpenMRG: wet/dry, baseline, power law, maps.
 
-The counterpart of ``notebooks/model_driven_tutorial.ipynb`` (kept as it was)
+The counterpart of ``notebooks/archive/model_driven_tutorial.ipynb`` (kept as it was)
 without its per-cell boilerplate - in particular the 25-line block that
 guesses how a given PyNNcml version exposes a link's gauge reference, which
 is ``gauge_reference`` here.

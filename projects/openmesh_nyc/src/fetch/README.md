@@ -15,8 +15,7 @@ src/fetch/
 
 ../../notebooks/
 ├── asos_pipeline.ipynb                 # ASOS end to end
-├── wu_pipeline.ipynb                   # Weather Underground end to end
-└── download_and_read_openmesh.ipynb    # the published OpenMesh dataset from Zenodo
+└── wu_pipeline.ipynb                   # Weather Underground end to end
 ```
 
 Output goes wherever you point `output_dir` in the notebook. Data files are
@@ -75,8 +74,9 @@ The NYC station list is `pws_metadata.csv` in the published dataset's
 **Source:** https://zenodo.org/records/15287692 (links, PWS and metadata, 2023-2024)
 **API Key:** Not required ✓
 
-Open `notebooks/download_and_read_openmesh.ipynb` and run all cells. It downloads
-and extracts the dataset.
+`python -m core.opensense.fetch --dataset openmesh` (links, CC-BY-4.0) and
+`--dataset openmesh_pws` (PWS, CC-BY-NC-4.0) download and extract it;
+`notebooks/openmesh_data.ipynb` opens it.
 
 ## 📋 Requirements
 
