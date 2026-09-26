@@ -20,7 +20,8 @@ core/
 │   ├── example_data.py          # curated OpenSense example subsets, normalized on load
 │   ├── conventions.py           # units, polarization, projected geometry across sources
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
-│   ├── wet_dry.py               # radar and nearby-link wet/dry masks (poligrain, pycomlink)
+│   ├── wet_dry.py               # radar, nearby-link and CNN wet/dry masks (poligrain, pycomlink)
+│   ├── pws_qc.py                # PWS quality control: pypwsqc FZ/HI/SO + a rate check
 │   ├── quality.py               # receiver-floor (outage) detection
 │   ├── plots.py                 # standard figures (network, retrieval steps, hexbins, maps)
 │   └── evaluation.py            # poligrain matching of lines/points/grids + metrics
@@ -72,7 +73,8 @@ ev.rainfall_metrics(ev.radar_along_links(data["radar"].R, cml),
 | `example_data` | curated subsets; `time=` and `components=` select before reading | ported from `poligrain.example_data` |
 | `conventions` | m/km, MHz/GHz, polarization spellings, `project_cml`, `project_grid` | `poligrain.spatial` |
 | `retrieval` | `retrieve_dataset`, `retrieve_improved`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
-| `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `fill_undecided` | `poligrain`, `pycomlink` |
+| `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `cnn` (Polz 2020), `fill_undecided` | `poligrain`, `pycomlink`, PyTorch |
+| `pws_qc` | `flag` (faulty zeros, high influx, station outlier, rate without rain), `summary`, `usable` | `pypwsqc`, `poligrain` |
 | `quality` | `censored_at_floor`: receiver outages, where loss is only a lower bound | - |
 | `plots` | one function per standard figure, so notebooks stay a sequence of calls | `poligrain.plot_map`, `plot_metadata`, `validation` |
 | `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics`, `skill_table`, `aggregate` (start- or end-stamped bins) | `poligrain.spatial`, `poligrain.validation` |
@@ -85,6 +87,18 @@ metadata plots expect metres and MHz and divide by 1000 themselves, and
 flattening two DataArrays with different dimension order before scoring
 pairs the wrong values. See `projects/opensense_pipeline/README.md` for what
 the retrieval variants achieve.
+
+**PWS quality control pays off in station selection.** On the Amsterdam PWS
+set (June-August 2016, 45 stations within 2 km of a gauge, hourly, gauges
+start-stamped), raw PWS correlate r = 0.02 with the gauges at 14.8x their
+total, because a few counter resets dominate; removing flagged steps gives
+r = 0.18, and keeping only the 20 stations `pws_qc.usable` accepts gives
+r = 0.74 at 0.85x.
+
+`wet_dry.cnn` runs the Polz et al. (2020) network (pinned, BSD-3) with
+pycomlink's loader but its own windowing: pycomlink 0.6.0's `cnn_wd` returns
+all-NaN under NumPy 2.4 and builds every window as a Python list. The
+predictions match pycomlink's to 4e-8.
 
 `pycomlink` is imported lazily, only by the non-default wet-antenna models and
 the nearby-link mask.

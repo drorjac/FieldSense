@@ -10,6 +10,9 @@ CML's own time axis, ready for ``retrieval.retrieve_dataset(ds, wet=mask)``:
 ``from_radar``      radar path-averaged along each link (poligrain)
 ``nearby_links``    Overeem et al. (2016): a link is wet when it and its
                     neighbours drop together (pycomlink)
+``cnn``             Polz et al. (2020): a CNN trained on German links against
+                    radar, run on 3-hour windows of 1-minute total loss
+                    (pycomlink's model loader, PyTorch)
 
 Both are NaN where they cannot decide (no radar coverage, too few
 neighbours, not enough history). ``fill_undecided`` resolves those samples
@@ -43,6 +46,13 @@ from core.opensense import conventions as cv
 from core.opensense import retrieval as rt
 
 WET_THRESHOLD_MM_H = 0.1
+
+# Polz et al. (2020), AMT 13, 3835 - pinned to the commit that published it
+# (BSD-3-Clause, github.com/jpolz/cml_wd_pytorch)
+POLZ2020_MODEL = ("https://github.com/jpolz/cml_wd_pytorch/raw/"
+                  "c346b8bcf830678e495a2a308b41891e2133d988/data/amt_model/pytorch_model_jit.pt")
+CNN_WINDOW = 180        # minutes of context per prediction
+CNN_TARGET = 150        # the prediction belongs to window start + 150 (pycomlink)
 
 
 def from_radar(radar_path: xr.DataArray, cml_time,
@@ -118,6 +128,72 @@ def nearby_links(cml: xr.Dataset, radius_km: float = 15.0,
         nw.tqdm = tqdm_orig
     return (wet.transpose("time", "cml_id").astype(float)
             .reindex(time=cml.time, method="ffill"))
+
+
+def cnn(cml: xr.Dataset, model: str = POLZ2020_MODEL, threshold: float | None = 0.82,
+        batch_size: int = 4096, links_per_chunk: int = 16, max_gap_min: int = 5,
+        net=None) -> xr.DataArray:
+    """Polz et al. (2020) CNN wet/dry on 1-minute total loss.
+
+    Each link's total loss (``TSL - RSL``, or ``-RSL``) is averaged to 1
+    minute and its median removed; gaps up to ``max_gap_min`` are
+    interpolated and longer ones set to the median, because the network has
+    no notion of missing data. A prediction for minute ``t`` sees
+    ``[t - 150, t + 30)``, as in pycomlink. The model takes two channels: a
+    link with one sublink gets it twice, a link with more keeps its first two.
+
+    Returns P(wet), or with ``threshold`` a 1/0 mask, as float on the CML's
+    time axis; NaN where the link had no data in that minute or the window
+    does not fit (the first 150 and last 29 minutes). ``net`` passes an
+    already loaded model (tests; repeated calls).
+
+    pycomlink's own ``cnn_wd`` is not used: under NumPy >= 2.4 it returns
+    all-NaN predictions (a one-element array assigned to a scalar raises,
+    and the error is swallowed), and it builds every window as a Python list,
+    which does not fit in memory for a network over days.
+    """
+    import contextlib
+    import io
+
+    import torch
+
+    if net is None:
+        from pycomlink.processing.pytorch_utils.inference_utils import get_model
+        with contextlib.redirect_stdout(io.StringIO()):    # it prints on every load
+            net = get_model(model)
+
+    loss = (cml.tsl - cml.rsl) if "tsl" in cml else -cml.rsl
+    if "sublink_id" not in loss.dims:
+        loss = loss.expand_dims(sublink_id=[0])
+    loss = loss.transpose("time", "cml_id", "sublink_id").resample(time="1min").mean()
+    if loss.sizes["sublink_id"] == 1:
+        loss = xr.concat([loss, loss], dim="sublink_id")
+    loss = loss.isel(sublink_id=slice(0, 2))
+    have = loss.notnull().any("sublink_id")
+    normed = (loss - loss.median("time")).interpolate_na(
+        "time", max_gap=np.timedelta64(max_gap_min, "m")).fillna(0.0)
+
+    x = normed.values.astype(np.float32)                   # (time, cml, 2)
+    n_t, n_links = x.shape[:2]
+    prob = np.full((n_t, n_links), np.nan)
+    if n_t >= CNN_WINDOW:
+        for lo in range(0, n_links, links_per_chunk):
+            chunk = x[:, lo:lo + links_per_chunk]
+            # (windows, links, 2, 180) -> (links * windows, 180, 2)
+            win = np.lib.stride_tricks.sliding_window_view(chunk, CNN_WINDOW, axis=0)
+            win = np.ascontiguousarray(win.transpose(1, 0, 3, 2)).reshape(-1, CNN_WINDOW, 2)
+            out = []
+            with torch.no_grad():
+                for b in range(0, len(win), batch_size):
+                    out.append(net(torch.from_numpy(win[b:b + batch_size])).numpy().ravel())
+            p = np.concatenate(out).reshape(chunk.shape[1], -1).T   # (windows, links)
+            prob[CNN_TARGET:CNN_TARGET + len(p), lo:lo + chunk.shape[1]] = p
+
+    out = xr.DataArray(prob, dims=("time", "cml_id"),
+                       coords={"time": loss.time, "cml_id": loss.cml_id}).where(have)
+    if threshold is not None:
+        out = (out > threshold).astype(float).where(out.notnull())
+    return out.reindex(time=cml.time, method="ffill", tolerance=np.timedelta64(59, "s"))
 
 
 def fill_undecided(mask: xr.DataArray, cml: xr.Dataset,
