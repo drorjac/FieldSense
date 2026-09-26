@@ -34,6 +34,8 @@ opensense = [
     "poligrain>=0.3.1",
     "pycomlink>=0.6",      # wet-antenna models, nearby-link wet/dry
     "mergeplg==0.1.0",     # 0.0.2 on PyPI is a stub; pin the real API
+    "pypwsqc>=0.2.1",      # PWS quality control (core.opensense.pws_qc)
+    "opencv-python-headless",  # pySTEPS Lucas-Kanade; torch is needed for wet_dry.cnn
 ]
 dev = ["pytest"]
 
