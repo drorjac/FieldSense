@@ -251,6 +251,7 @@ class FrontalBandField:
     key: str = "frontal"
     orientation_deg: float = 35.0    # normal direction of travel
     centre_frac: float = 0.50        # band position along the normal, 0-1
+    offset_km: float = 0.0           # and moved this far along the normal
     conv_peak_mm_h: float = 30.0
     conv_width_km: float = 1.4
     strat_peak_mm_h: float = 3.2
@@ -261,6 +262,9 @@ class FrontalBandField:
     texture_strength: float = 0.30
     advection_kmh: Tuple[float, float] = (30.0, 21.0)
     seed: int = 37
+    # a straight band at an arbitrary angle cannot tile the torus: shifting
+    # this field wraps a cut band into view, so movers pad it instead
+    periodic: bool = False
 
     description: str = (
         "Analytic cross-band profile, GRF along-band modulation"
@@ -272,7 +276,7 @@ class FrontalBandField:
         theta = np.deg2rad(self.orientation_deg)
 
         centre = self.centre_frac * grid.size_km
-        u = (xx - centre) * np.cos(theta) + (yy - centre) * np.sin(theta)
+        u = (xx - centre) * np.cos(theta) + (yy - centre) * np.sin(theta) - self.offset_km
 
         # Cross-band profile. u > 0 is ahead of the line (sharp edge),
         # u < 0 is the trailing stratiform region.

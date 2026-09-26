@@ -407,3 +407,46 @@ def fig_error_budget(models, recon, sweep, path, n_links=90):
                  fontsize=12.5, color=vs.INK_PRIMARY, y=1.03)
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
+
+
+# --------------------------------------------------------------------------
+def fig_moving(models, moving, grid, path):
+    """Each regime over an hour, evolving; and how fast motion stops predicting it.
+
+    ``moving`` is ``{key: {tau_min or None: MovingSequence}}`` from
+    ``core.simulation.moving_fields``. The maps use the fastest evolution;
+    the right column is the correlation between the truth and the field
+    moved at the true velocity, for every evolution time.
+    """
+    taus = list(next(iter(moving.values())).keys())
+    shown = taus[-1]
+    fig, axes = plt.subplots(len(models), 4, figsize=(13.4, 3.3 * len(models)),
+                             gridspec_kw={"width_ratios": [1, 1, 1, 1.15]})
+    tau_color = dict(zip(taus, [vs.INK_PRIMARY, vs.INK_SECONDARY, vs.INK_MUTED]))
+    for row, m in zip(axes, models):
+        seqs = moving[m.key]
+        seq = seqs[shown]
+        vmax = float(seq.frames.max())
+        last = len(seq.frames) - 1
+        for ax, t in zip(row[:3], (0, last // 2, last)):
+            im = _rain_map(ax, seq.frames[t], grid, vmax)
+            ax.set_title(f"{m.name}, +{seq.times_min[t]:.0f} min", color=vs.SERIES[m.key],
+                         fontsize=10)
+        u, v = seq.velocity_kmh
+        vs.annotate_corner(row[0], f"moves {np.hypot(u, v):.0f} km/h\n"
+                                   f"evolves, tau {shown} min")
+        fig.colorbar(im, ax=row[2], fraction=0.046, pad=0.03).set_label("mm/h")
+
+        ax = row[3]
+        for tau, s in seqs.items():
+            h = np.arange(1, len(s.frames))
+            ax.plot(h * s.dt_min, [s.predictability(k) for k in h], "o-", ms=4, lw=2,
+                    color=tau_color[tau],
+                    label="frozen" if tau is None else f"evolving, tau {tau} min")
+        ax.set(ylim=(0, 1.05), xlabel="horizon (min)", ylabel="corr. with moved field")
+        ax.legend(fontsize=8, loc="lower left")
+    fig.suptitle("Moving rain: the true motion is a perfect forecast only while the "
+                 "pattern holds", fontsize=12.5, color=vs.INK_PRIMARY, x=0.03, ha="left")
+    fig.tight_layout()
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)

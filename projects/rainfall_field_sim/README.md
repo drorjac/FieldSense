@@ -17,8 +17,8 @@ pip install -r projects/rainfall_field_sim/requirements.txt
 python projects/rainfall_field_sim/src/run_demo.py
 ```
 
-Runs in about 30 s and writes six figures plus a summary table to `results/`.
-`--no-sweep` skips the network-density sweep and takes about 8 s. `--links`,
+Runs in about 2 min and writes seven figures plus summary tables to `results/`.
+`--no-sweep` skips the network-density sweep. `--links`,
 `--grid` and `--dx` change the network size and domain resolution.
 
 ## The three rainfall models
@@ -41,10 +41,31 @@ That last row is the one that matters downstream. Stratiform rain spreads its
 water evenly; convective rain puts nearly 70% of it into a twentieth of the
 map. A sparse network samples those two situations very differently.
 
-Fields are periodic by construction, so `advect()` translates them as an exact
-circular shift — no interpolation smoothing, mass conserved to floating point.
-Each model carries an `advection_kmh` velocity. The demo runs at a single time
-step; the advection API is there for the time-sequence extension.
+## Moving fields
+
+`core/simulation/moving_fields.py` puts the three regimes in motion, each at
+its own `advection_kmh`, either frozen (pure translation) or evolving: each
+step the pattern is mixed with a fresh realization of the same regime, with
+an e-folding time `tau`, and mapped back onto the original values, so wet
+area and intensities stay fixed while the cells reshape. Stratiform and
+convective fields are periodic and shift exactly; the frontal band is not (a
+straight band at 35 degrees cannot tile the domain), so it is generated on a
+padded domain and cropped, and nothing wraps into view.
+
+`fig7` and the demo's last table ask how much of the field the true motion
+alone predicts - the ceiling for any advection-based nowcast:
+
+| correlation with the field moved at the true velocity, +30 / +60 min | frozen | tau 120 min | tau 60 min |
+|---|---|---|---|
+| Stratiform | 1.00 / 1.00 | 0.74 / 0.53 | 0.59 / 0.37 |
+| Convective cells | 1.00 / 1.00 | 0.60 / 0.37 | 0.36 / 0.18 |
+| Frontal band | 1.00 / 1.00 | 0.98 / 0.96 | 0.97 / 0.95 |
+
+At the same `tau`, convective rain loses its predictability twice as fast as
+stratiform: its water sits in a few small cells, and when a cell is replaced
+the correlation goes with it. The front stays predictable because its
+geometry is fixed and only its texture evolves. `spatial_interpolation`
+uses the same sequences to test its forecasters against a known future.
 
 ## The CML sensor chain
 
@@ -152,13 +173,14 @@ rainfall_field_sim/
 └── README.md
 ```
 
-The models themselves are shared by `opensense_pipeline` and `physics_ml`, so
-they live in `core/`:
+The models are shared by `opensense_pipeline`, `physics_ml` and
+`spatial_interpolation`, so they live in `core/`:
 
 ```
 core/
 ├── simulation/
-│   ├── rain_fields.py    # the three models, advection, field statistics
+│   ├── rain_fields.py    # the three models and their statistics
+│   ├── moving_fields.py  # translation, growth and evolution in time
 │   ├── cml_network.py    # topology, forward model, impairments, retrieval
 │   └── reconstruct.py    # IDW variants, scoring, error decomposition
 └── viz_style.py          # palette and matplotlib defaults
@@ -166,7 +188,7 @@ core/
 
 Figures: `fig1` the three fields, `fig2` their proportions, `fig3` the network
 over each field, `fig4` the sensor chain, `fig5` the reconstructions, `fig6`
-the error budget and density sweep.
+the error budget and density sweep, `fig7` the fields in motion.
 
 ## Notes
 

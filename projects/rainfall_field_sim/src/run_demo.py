@@ -10,6 +10,7 @@ Writes six figures and a summary table to ``projects/rainfall_field_sim/results/
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 
@@ -21,14 +22,18 @@ sys.path.insert(0, str(HERE))        # this project's modules
 
 import figures                                            # noqa: E402
 from core import viz_style as vs  # noqa: E402
+from core.simulation import moving_fields as mf  # noqa: E402
 from core.simulation.cml_network import (SensorConfig, forward_model,  # noqa: E402
                                          path_averaging_bias, synthesize_network)
-from core.simulation.rain_fields import (MODELS, Grid, field_stats)  # noqa: E402
+from core.simulation.rain_fields import (MODELS, FrontalBandField, Grid,  # noqa: E402
+                                         field_stats)
 from core.simulation.reconstruct import decompose, idw_path, score  # noqa: E402
 
 RESULTS = HERE.parent / "results"
 SWEEP_DENSITIES = (25, 50, 90, 160, 280)
 SWEEP_REALIZATIONS = 6
+MOVING_TAUS_MIN = (None, 120, 60)       # frozen, then evolving with that e-folding time
+MOVING_DT_MIN, MOVING_STEPS = 10, 7     # 0 to 60 min
 
 
 def build_fields(grid):
@@ -93,6 +98,29 @@ def run_density_sweep(fields, grid, cfg, densities=SWEEP_DENSITIES,
             sweep[m.key]["rmse_total"].append(float(tot.mean()))
             sweep[m.key]["sampling_spread"].append(float(samp.std()))
     return sweep
+
+
+def run_moving(grid, taus=MOVING_TAUS_MIN):
+    """Each regime moving at its own velocity for an hour, frozen or evolving.
+
+    Returns ``{key: {tau: MovingSequence}}`` and prints how much of the field
+    at +30 and +60 min the true motion alone predicts.
+    """
+    out = {}
+    print("\nmoving fields: correlation of truth with the field moved at the true velocity")
+    print(f"  {'':<18}" + "".join(f"{'frozen' if t is None else f'tau {t} min':>14}" for t in taus))
+    for m in MODELS:
+        if isinstance(m, FrontalBandField):
+            # start the band upstream by half the hour's travel, so it
+            # crosses the middle of the domain at +30 min instead of leaving
+            half_km = np.hypot(*m.advection_kmh) * (MOVING_STEPS - 1) * MOVING_DT_MIN / 120
+            m = dataclasses.replace(m, offset_km=-half_km)
+        out[m.key] = {t: mf.sequence(m, grid, MOVING_STEPS, MOVING_DT_MIN,
+                                     evolve_tau_min=t, seed=1) for t in taus}
+        cells = [f"{out[m.key][t].predictability(3):.2f} / {out[m.key][t].predictability(6):.2f}"
+                 for t in taus]
+        print(f"  {m.name:<18}" + "".join(f"{c:>14}" for c in cells) + "   (+30 / +60 min)")
+    return out
 
 
 def print_summary(net, stats, results, recon, cfg):
@@ -187,6 +215,9 @@ def main():
         figures.fig_error_budget(MODELS, recon, sweep,
                                  RESULTS / "fig6_error_budget.png",
                                  n_links=args.links)
+
+    moving = run_moving(grid)
+    figures.fig_moving(MODELS, moving, grid, RESULTS / "fig7_moving_fields.png")
 
     for p in sorted(RESULTS.glob("*.png")):
         print(f"  {p.relative_to(REPO_ROOT)}  ({p.stat().st_size/1e3:.0f} kB)")

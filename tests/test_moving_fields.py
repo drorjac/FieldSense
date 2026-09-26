@@ -63,3 +63,13 @@ def test_growth_scales_intensity_exponentially():
 def test_velocity_defaults_to_the_models_own():
     seq = mf.sequence(StratiformField(), GRID, 2)
     assert seq.velocity_kmh == StratiformField().advection_kmh
+
+
+def test_non_periodic_front_moves_without_wrapping():
+    from core.simulation.rain_fields import FrontalBandField
+
+    seq = mf.sequence(FrontalBandField(), GRID, 4, dt_min=15, velocity_kmh=(12.0, 0.0))
+    assert seq.frames.shape == (4, 32, 32) and seq.pad > 0
+    # 3 km per step on 1 km cells: each frame is the previous one moved 3 columns
+    assert np.allclose(seq.frames[1][:, 3:], seq.frames[0][:, :-3], atol=1e-3)
+    assert seq.predictability(2) == pytest.approx(1.0, abs=1e-3)

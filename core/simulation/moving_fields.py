@@ -33,6 +33,7 @@ Three levels of difficulty, in the order a forecaster should meet them:
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 
 import numpy as np
@@ -76,6 +77,8 @@ class MovingSequence:
     velocity_kmh: tuple
     growth_per_h: float
     evolve_tau_min: float | None
+    extended: np.ndarray | None = None   # non-periodic models: frames on the padded domain
+    pad: int = 0                         # cells of padding on each side of ``extended``
 
     @property
     def times_min(self) -> np.ndarray:
@@ -88,7 +91,10 @@ class MovingSequence:
         evolution - the ceiling for an advection-only method.
         """
         hours = h * self.dt_min / 60.0
-        out = shift(self.frames[t], self.grid.dx_km, self.velocity_kmh, hours)
+        src = self.frames[t] if self.extended is None else self.extended[t]
+        out = shift(src, self.grid.dx_km, self.velocity_kmh, hours)
+        if self.extended is not None:
+            out = _crop(out, self.pad, self.grid.n)
         return np.clip(out * np.exp(self.growth_per_h * hours), 0.0, None)
 
     def predictability(self, h: int) -> float:
@@ -97,13 +103,14 @@ class MovingSequence:
         1 for pure translation; it falls with evolution, and bounds what any
         forecaster can achieve at that horizon.
         """
-        c = []
-        for t in range(len(self.frames) - h):
-            a = self.lagrangian_persistence(t, h).ravel()
-            b = self.frames[t + h].ravel()
-            if a.std() > 0 and b.std() > 0:
-                c.append(np.corrcoef(a, b)[0, 1])
-        return float(np.mean(c)) if c else float("nan")
+        # pooled over all (t, t+h) pairs, so frames the rain has mostly left
+        # weigh in by how much rain they hold, not one vote each
+        n = len(self.frames) - h
+        if n < 1:
+            return float("nan")
+        a = np.concatenate([self.lagrangian_persistence(t, h).ravel() for t in range(n)])
+        b = self.frames[h:h + n].ravel()
+        return float(np.corrcoef(a, b)[0, 1]) if a.std() > 0 and b.std() > 0 else float("nan")
 
 
 def sequence(model, grid: Grid, n_steps: int, dt_min: float = 5.0,
@@ -116,9 +123,13 @@ def sequence(model, grid: Grid, n_steps: int, dt_min: float = 5.0,
     ``growth_per_h`` scales intensity by ``exp(growth * t)`` (negative for
     decay). ``evolve_tau_min`` makes the pattern decorrelate in the moving
     frame with that e-folding time: each step the field's latent Gaussian
-    structure is mixed with a fresh one, AR(1) style, before the model's own
-    rain transform - so wet fraction and intensity stay realistic while the
-    cells reshape. ``None`` is frozen structure (pure translation).
+    scores are mixed, AR(1) style, with those of a fresh realization of the
+    same model - new cells for convective rain, a new along-band texture for a
+    front - and mapped back onto the original values, so wet fraction and
+    intensities are preserved while the pattern reshapes. ``None`` is frozen structure (pure translation).
+
+    A model with ``periodic = False`` (the frontal band) is generated on a
+    domain padded by the distance travelled and cropped, so nothing wraps.
 
     ``model`` is any ``rain_fields`` model, or ``"smooth"`` for a
     differentiable Gaussian field (5 +/- 2 mm/h, no dry areas), which is what
@@ -128,55 +139,79 @@ def sequence(model, grid: Grid, n_steps: int, dt_min: float = 5.0,
     velocity = tuple(velocity_kmh if velocity_kmh is not None
                      else getattr(model, "advection_kmh", (0.0, 0.0)))
     hours = dt_min / 60.0
+    smooth = isinstance(model, str) and model == "smooth"
+    target = grid
+    pad = 0
+    if not smooth and not getattr(model, "periodic", True):
+        # build on a domain larger by the whole path, move there, crop the
+        # middle: the wrap-around stays in the margin, out of view
+        travel_km = np.hypot(*velocity) * n_steps * hours
+        pad = int(np.ceil(travel_km / grid.dx_km)) + 1
+        if pad > 4 * grid.n:
+            raise ValueError(f"{type(model).__name__} is not periodic and would travel "
+                             f"{travel_km:.0f} km; use fewer steps or a periodic model")
+        grid = Grid(n=grid.n + 2 * pad, dx_km=grid.dx_km)
 
-    if model == "smooth":
-        latent = spectral_grf(grid, beta=3.2, rng=rng)
+    if smooth:
+        def realization(_):
+            return spectral_grf(grid, beta=3.2, rng=rng)
 
         def to_rain(g):
             return 5.0 + 2.0 * g
+        latent = realization(0)
     else:
         base = model.build(grid)
-        latent = None
+        sorted_rain = np.sort(base.ravel())
+
+        def realization(i):
+            # a fresh draw of the same regime (its cells, its band), in the
+            # latent Gaussian space, moved to where the flow has carried it
+            fresh = dataclasses.replace(model, seed=int(rng.integers(2 ** 31))).build(grid)
+            return shift(_latent(fresh, grid, rng), grid.dx_km, velocity, i * hours)
 
         def to_rain(g):
-            return g
+            # the base field's own values, re-ranked: wet fraction and the
+            # intensity distribution are preserved exactly
+            ranks = np.argsort(np.argsort(g.ravel()))
+            return sorted_rain[ranks].reshape(g.shape)
+        latent = _latent(base, grid, rng)
 
     frames = []
     if evolve_tau_min is None:                           # frozen structure
-        field0 = to_rain(latent) if latent is not None else base
+        field0 = to_rain(latent) if smooth else base
         for i in range(n_steps):
             f = shift(field0, grid.dx_km, velocity, i * hours, method)
             frames.append(f * np.exp(growth_per_h * i * hours))
     else:
         rho = float(np.exp(-dt_min / evolve_tau_min))
-        if latent is None:
-            # evolve a rain model through its latent field: rank-map the
-            # model's rain onto a Gaussian, evolve that, and map back, so the
-            # marginal distribution (wet fraction, intensities) is preserved
-            sorted_rain = np.sort(base.ravel())
-            order = np.argsort(np.argsort(base.ravel()))
-            latent = _gaussianize(order, base.shape)
-
-            def to_rain(g):
-                ranks = np.argsort(np.argsort(g.ravel()))
-                return sorted_rain[ranks].reshape(g.shape)
         g = latent
         for i in range(n_steps):
             if i:
-                fresh = spectral_grf(grid, beta=3.2, rng=rng)
-                g = rho * shift(g, grid.dx_km, velocity, hours, "spectral") \
-                    + np.sqrt(1 - rho ** 2) * fresh
+                g = rho * shift(g, grid.dx_km, velocity, hours) \
+                    + np.sqrt(1 - rho ** 2) * realization(i)
             frames.append(to_rain(g) * np.exp(growth_per_h * i * hours))
     frames = np.clip(np.stack(frames), 0.0, None).astype(np.float32)
-    return MovingSequence(frames, grid, dt_min, velocity, growth_per_h, evolve_tau_min)
+    if not pad:
+        return MovingSequence(frames, grid, dt_min, velocity, growth_per_h, evolve_tau_min)
+    return MovingSequence(_crop(frames, pad, target.n), target, dt_min, velocity,
+                          growth_per_h, evolve_tau_min, extended=frames, pad=pad)
 
 
-def _gaussianize(ranks: np.ndarray, shape) -> np.ndarray:
-    """Ranks -> standard normal quantiles, reshaped."""
+def _crop(a: np.ndarray, pad: int, n: int) -> np.ndarray:
+    return a[..., pad:pad + n, pad:pad + n]
+
+
+def _latent(rain: np.ndarray, grid: Grid, rng: np.random.Generator) -> np.ndarray:
+    """Rain -> standard normal scores by rank.
+
+    Dry pixels all tie at zero; ranking them by pixel order would stripe the
+    latent field row by row, so ties are broken by a smooth random field.
+    """
     from scipy.stats import norm
 
-    n = ranks.size
-    return norm.ppf((ranks + 0.5) / n).reshape(shape)
+    tiebreak = spectral_grf(grid, beta=3.2, rng=rng).ravel()
+    ranks = np.lexsort((tiebreak, rain.ravel())).argsort()
+    return norm.ppf((ranks + 0.5) / ranks.size).reshape(rain.shape)
 
 
 def wet_fraction(frames: np.ndarray, threshold: float = WET_THRESHOLD_MM_H) -> np.ndarray:
