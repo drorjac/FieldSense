@@ -1,2 +1,9 @@
-# No third-party dependencies: src/mop.py uses only the Python standard library (re).
-# Building the PDF requires a LaTeX distribution (TeX Live / MacTeX), not pip.
+# The manuscript tooling (src/mop.py) needs only the standard library; building
+# the PDF needs a LaTeX distribution (TeX Live / MacTeX), not pip.
+# The collection pipelines (src/fetch/) and stations.py need:
+requests
+python-dateutil
+pandas
+numpy
+matplotlib
+xarray

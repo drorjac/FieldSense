@@ -7,14 +7,12 @@ Functions for visualizing and analyzing WU PWS data.
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 from matplotlib.patches import Patch
 from typing import Optional, Dict, List
 import numpy as np
 
 # Set default style
 plt.style.use('seaborn-v0_8-darkgrid')
-sns.set_palette("husl")
 
 
 def plot_precipitation_analysis_multi(station_data: Dict, units: str = 'm', show: bool = False, 
