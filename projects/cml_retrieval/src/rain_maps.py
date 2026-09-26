@@ -262,5 +262,5 @@ METHODS = {
 # --------------------------------------------------------------------------
 def patch_pynncml_gmz() -> list[str]:
     """See ``pynncml_compat.patch_pynncml_gmz``."""
-    import pynncml_compat
+    from core.scientific_packages import pynncml_compat
     return pynncml_compat.patch_pynncml_gmz()

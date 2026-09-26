@@ -27,6 +27,8 @@ core/
 │   └── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
 └── scientific_packages/
     ├── PYSINDY.md  PYSR.md  PYNNcml.md   # reference notes
+    ├── pynncml_compat.py                 # PyNNcml 0.3.7 workarounds: GMZ bugs, NumPy 2, local OpenMRG
+    ├── pynncml_rnn.py                    # two-step RNN: loss, windowing, train (with val), predict
     └── pynncml_wrapper.py                # thin PyNNcml wrapper
 ```
 
@@ -37,6 +39,7 @@ core/
 | `simulation.*` | rainfall_field_sim | rainfall_field_sim, opensense_pipeline, physics_ml |
 | `opensense.*` | opensense_pipeline | opensense_pipeline, cml_retrieval, physics_ml, openmesh_nyc (notebook) |
 | `radar.nexrad` | openmesh_nyc | openmesh_nyc (notebook), opensense_pipeline |
+| `scientific_packages.pynncml_compat`, `pynncml_rnn` | cml_retrieval | cml_retrieval, spatial_interpolation |
 
 The command-line tools run as modules from the repo root:
 

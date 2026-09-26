@@ -36,7 +36,7 @@ class ModelDrivenConfig:
 def load(time_slice: slice):
     """OpenMRG as PyNNcml min/max links, from the repository's archive."""
     import pynncml as pnc
-    import pynncml_compat
+    from core.scientific_packages import pynncml_compat
 
     pynncml_compat.apply()
     link_set, _, _ = pynncml_compat.quietly(
@@ -91,7 +91,7 @@ def rain_maps(link_set, cfg: ModelDrivenConfig) -> dict:
     Returns maps in the ``plots.map_panels`` shape plus GMZ's loss curve.
     """
     import pynncml as pnc
-    import pynncml_compat
+    from core.scientific_packages import pynncml_compat
 
     pynncml_compat.patch_pynncml_gmz()
     dynamic = pnc.scm.rain_estimation.one_step_dynamic_baseline(

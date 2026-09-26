@@ -11,7 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 torch = pytest.importorskip("torch")
 
-import rnn_retrieval as rr  # noqa: E402
+from core.scientific_packages import pynncml_rnn as rr  # noqa: E402
 
 
 def test_regression_loss_weights_wet_samples_up():
@@ -60,7 +60,7 @@ def test_detection_scores_put_the_gauge_on_the_rows():
 
 def test_numpy2_patch_finds_nearest_gauge():
     pytest.importorskip("pynncml")
-    import pynncml_compat
+    from core.scientific_packages import pynncml_compat
     from pynncml.datasets import sensors_set
 
     pynncml_compat.patch_numpy2()
