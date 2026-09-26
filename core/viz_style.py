@@ -56,6 +56,11 @@ CMAP_ERROR = LinearSegmentedColormap.from_list("error_div", _DIVERGING)
 
 def use_style() -> None:
     """Apply the project's matplotlib defaults."""
+    import logging
+
+    # "semibold" falls back to bold where the font has no semibold face; the
+    # fallback is fine, the warning on every figure is not.
+    logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
     mpl.rcParams.update({
         "figure.facecolor": SURFACE,
         "savefig.facecolor": SURFACE,

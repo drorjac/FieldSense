@@ -247,10 +247,24 @@ def normalize_cml(ds: xr.Dataset, crs: str) -> xr.Dataset:
 
 
 def _normalize_points(ds: xr.Dataset, crs: str) -> xr.Dataset:
+    """Projected x/y, and ``R`` in mm/h next to per-step ``rainfall_amount``.
+
+    Gauge and PWS files store the accumulation per time step (1 min for
+    OpenMRG's municipal gauges, 15 min for OpenRainER's), so every caller
+    used to convert by hand with its own hardcoded factor.
+    """
     lon = next((c for c in ("lon", "longitude") if c in ds.coords), None)
     lat = next((c for c in ("lat", "latitude") if c in ds.coords), None)
     if lon and lat:
         ds = cv.project_points(ds, crs, lon=lon, lat=lat)
+    if "rainfall_amount" in ds.data_vars and "R" not in ds.data_vars \
+            and ds.sizes.get("time", 0) > 1:
+        from core.opensense.retrieval import sampling_interval_s
+
+        per_hour = 3600.0 / sampling_interval_s(ds.time)
+        ds["R"] = (ds.rainfall_amount * per_hour).transpose("time", ...)
+        ds.R.attrs.update(units="mm h-1", long_name="rain rate",
+                          comment=f"rainfall_amount x {per_hour:g}")
     return ds
 
 

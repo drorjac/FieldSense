@@ -265,6 +265,37 @@ def rainfall_metrics(reference, estimate,
     }
 
 
+def skill_table(estimates: dict, references: dict,
+                metrics=("ratio", "r", "mcc")):
+    """Score several per-link estimates against several references at once.
+
+    ``estimates`` maps a name to a (time, cml_id) rain rate at the
+    retrieval's own resolution. ``references`` maps a name to
+    ``(reference, step)`` or ``(reference, step, label)``: the reference on
+    (time, cml_id) - radar along links, gauges at links - and the step and
+    timestamp convention to aggregate the estimate to before comparing.
+    Returns a DataFrame, one row per estimate, one column per
+    (reference, metric).
+
+    >>> skill_table({"default": r1, "improved": r2},
+    ...             {"gauge": (gauge_at_links, "15min"), "radar": (radar_path, "5min")})
+    """
+    import pandas as pd
+
+    rows = {}
+    for name, est in estimates.items():
+        row = {}
+        for ref_name, spec in references.items():
+            ref, step, *rest = spec
+            label = rest[0] if rest else "start"
+            m = rainfall_metrics(ref, aggregate(est, step, label=label))
+            row.update({(ref_name, k): m[k] for k in metrics})
+        rows[name] = row
+    table = pd.DataFrame.from_dict(rows, orient="index")
+    table.columns = pd.MultiIndex.from_tuples(table.columns)
+    return table
+
+
 def aggregate(da: xr.DataArray, freq: str, label: str = "start") -> xr.DataArray:
     """Mean rain rate over ``freq`` bins; NaN only where a bin is all-NaN.
 

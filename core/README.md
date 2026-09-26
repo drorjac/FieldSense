@@ -21,6 +21,7 @@ core/
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
 │   ├── wet_dry.py               # radar and nearby-link wet/dry masks (poligrain, pycomlink)
 │   ├── quality.py               # receiver-floor (outage) detection
+│   └── plots.py                 # standard figures (network, retrieval steps, hexbins, maps)
 │   └── evaluation.py            # poligrain matching of lines/points/grids + metrics
 ├── radar/
 │   └── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
@@ -69,12 +70,14 @@ ev.rainfall_metrics(ev.radar_along_links(data["radar"].R, cml),
 | `retrieval` | `retrieve_dataset`, `retrieve_improved`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
 | `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `fill_undecided` | `poligrain`, `pycomlink` |
 | `quality` | `censored_at_floor`: receiver outages, where loss is only a lower bound | - |
-| `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics`, `aggregate` (start- or end-stamped bins) | `poligrain.spatial`, `poligrain.validation` |
+| `plots` | one function per standard figure, so notebooks stay a sequence of calls | `poligrain.plot_map`, `plot_metadata`, `validation` |
+| `evaluation` | `radar_along_links`, `closest_gauges`, `grid_at_points`, `rainfall_metrics`, `skill_table`, `aggregate` (start- or end-stamped bins) | `poligrain.spatial`, `poligrain.validation` |
 
-The wrappers exist because calling poligrain directly has three silent traps
+The wrappers exist because calling poligrain directly has four silent traps
 in this setting, each covered by a test in `tests/`: `get_closest_points_to_line`
 reads `length` in coordinate units (metres, not the km the files carry),
-`GridAtLines`/`GridAtPoints` require lon/lat even in projected mode, and
+`GridAtLines`/`GridAtPoints` require lon/lat even in projected mode, the
+metadata plots expect metres and MHz and divide by 1000 themselves, and
 flattening two DataArrays with different dimension order before scoring
 pairs the wrong values. See `projects/opensense_pipeline/README.md` for what
 the retrieval variants achieve.

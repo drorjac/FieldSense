@@ -159,3 +159,28 @@ def test_aggregate_labels_bins_by_the_edge_the_reference_uses():
     assert float(end.sel(time="2020-01-01T00:30")) == pytest.approx(4.0)
     with pytest.raises(ValueError):
         ev.aggregate(da, "15min", label="middle")
+
+
+def test_skill_table_scores_every_estimate_against_every_reference():
+    t = pd.date_range("2020-01-01", periods=60, freq="1min").as_unit("ns")
+    rng = np.random.default_rng(3)
+    truth = xr.DataArray(rng.gamma(0.5, 2.0, (60, 4)), dims=("time", "cml_id"),
+                         coords={"time": t, "cml_id": np.arange(4)})
+    ref5 = ev.aggregate(truth, "5min")
+    table = ev.skill_table({"perfect": truth, "double": truth * 2},
+                           {"ref": (ref5, "5min")})
+    assert table.loc["perfect", ("ref", "r")] == pytest.approx(1.0)
+    assert table.loc["double", ("ref", "ratio")] == pytest.approx(2.0)
+    assert list(table.columns) == [("ref", "ratio"), ("ref", "r"), ("ref", "mcc")]
+
+
+def test_gauges_gain_a_rate_on_load():
+    from core.opensense import example_data
+
+    t = pd.date_range("2020-01-01", periods=4, freq="15min").as_unit("ns")
+    ds = xr.Dataset({"rainfall_amount": (("id", "time"), np.ones((2, 4)))},
+                    coords={"time": t, "id": ["a", "b"], "lon": ("id", [11.9, 12.0]),
+                            "lat": ("id", [57.7, 57.7])})
+    out = example_data._normalize_points(ds, "EPSG:32632")
+    assert out.R.dims == ("time", "id")
+    assert float(out.R.max()) == pytest.approx(4.0)       # 1 mm per 15 min
