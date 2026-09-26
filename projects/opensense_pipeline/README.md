@@ -16,7 +16,7 @@ The bracketed stage is the point of the design. See *Why a synthetic stage*.
 
 **Start with `notebooks/02_end_to_end.ipynb`.** It takes one day of OpenMRG
 through every stage (pull, look, retrieve, score, improve, map) in about a
-minute, using only the functions below.
+minute and under 50 lines of code: every cell is a call into `core.opensense`.
 
 ## Running it
 
@@ -42,7 +42,7 @@ out = rt.retrieve_dataset(cml)                            # R, A_obs, waa, basel
 rain = rt.combine_sublinks(out).R                         # (time, cml_id), mm/h
 
 radar_path = ev.radar_along_links(radar.R, cml)           # poligrain GridAtLines
-ev.rainfall_metrics(radar_path, ev.aggregate(rain, "5min"))   # r, pbias, ratio, mcc, ...
+ev.skill_table({"default": rain}, {"radar": (radar_path, "5min")})   # ratio, r, MCC
 ```
 
 The improved retrieval (see *Improving the retrieval*) is one more line.
@@ -728,6 +728,7 @@ core/opensense/
 ├── retrieval.py        # the CML retrieval chain, arrays or xarray in
 ├── wet_dry.py          # radar and nearby-link wet/dry masks
 ├── quality.py          # receiver-floor (outage) detection
+├── plots.py            # standard figures, so notebooks are a sequence of calls
 └── evaluation.py       # poligrain matching (lines, points, grids) + metrics
 tests/                  # at the repo root: python -m pytest
 core/simulation/        # synthetic fields + CML network (synthetic_benchmark)
