@@ -75,7 +75,8 @@ others interpolate across the whole domain.
 
 ## PyNNcml 0.3.7 workarounds
 
-All in `src/pynncml_compat.py`, applied in memory; each belongs upstream at
+All in `core/scientific_packages/pynncml_compat.py`, applied in memory and
+reversible; each belongs upstream at
 [haihabi/PyNNcml](https://github.com/haihabi/PyNNcml).
 
 **GMZ: the ceiling index is unclamped.** `i_ceiling` reaches `len(grid)`

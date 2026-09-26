@@ -1,63 +1,67 @@
 # FieldSense
 
-Environmental sensing (ES) using physics-informed AI tools with wireless communication networks.
+Rainfall sensing with the networks that already exist. Commercial microwave
+links (CMLs) lose signal in rain; FieldSense turns that loss into rain rates
+and rainfall maps, fuses it with gauges, personal weather stations and radar,
+and uses physics-informed machine learning to retrieve, reconstruct and
+nowcast the field.
 
-## Overview
+## Projects
 
-This project explores multi-sensor data fusion for physical field sensing, including spatio-temporal field characterization and integration of wireless link sensors into sensing environments.
+Each project is self-contained: its own `src/`, notebooks, results and
+README. Start with the entry point listed.
 
-## Structure
+| project | question | start here |
+|---|---|---|
+| [`opensense_pipeline`](projects/opensense_pipeline/) | open CML data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
+| [`cml_retrieval`](projects/cml_retrieval/) | PyNNcml retrieval on OpenMRG: model-driven chain, two-step RNN, five map methods | `notebooks/model_driven_retrieval.ipynb` |
+| [`physics_ml`](projects/physics_ml/) | hybrid physics + neural retrieval; rediscovering ITU-R P.838 (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
+| [`rainfall_field_sim`](projects/rainfall_field_sim/) | three rain regimes, a simulated CML network: what limits the reconstruction, sensors or geometry? | `python src/run_demo.py` |
+| [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting from CML-derived maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
+| [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; paper | `notebooks/openmesh_data.ipynb` |
+| [`mphysics`](projects/mphysics/) | physics-ML methods on classical problems (n-body, PINNs); no rain data | `notebooks/nbody_discovery.ipynb` |
+| [`estimation_after_detection`](projects/estimation_after_detection/) | placeholder | - |
+
+Notebooks are short: each cell is a call into the project's `src/` or into
+`core/`, and every number shown is computed. The originals they replaced are
+kept in each project's `notebooks/archive/`.
+
+## Layout
 
 ```
 FieldSense/
-├── core/                 # Genuinely shared code (protected), installed as a package
-│   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
-│   ├── viz_style.py          # shared palette and matplotlib defaults
-│   ├── simulation/           # synthetic rain fields + CML network sampling
-│   ├── opensense/            # OpenSense data: fetch, conventions, retrieval
+├── core/                 # code more than one project imports (see core/README.md)
+│   ├── opensense/            # OpenSense data: fetch, conventions, retrieval, wet/dry, evaluation
+│   ├── simulation/           # synthetic rain fields, moving fields, CML network, reconstruction
+│   ├── scientific_packages/  # PyNNcml compatibility and RNN training; PySINDy/PySR notes
 │   ├── radar/                # KOKX NEXRAD
-│   └── scientific_packages/  # PySINDy / PySR / PyNNcml reference notes + wrapper
-├── tests/                # pytest suite for core/ (synthetic data, no downloads)
-├── dataset/              # Shared open datasets (protected)
-│   └── open_datasets/        # OpenMRG, OpenRainER, OpenMesh NYC, CML Netherlands
-├── projects/             # Research projects — each self-contained, notebooks included
-│   ├── cml_retrieval/          # PyNNcml retrieval tutorials on OpenMRG
-│   ├── estimation_after_detection/
-│   ├── mphysics/               # Physics-ML on classical problems (no FieldSense data)
-│   ├── openmesh_nyc/           # OpenMesh NYC: paper, fetch pipelines, notebooks
-│   ├── opensense_pipeline/     # Open CML data -> merged rainfall maps (OpenSense)
-│   ├── physics_ml/             # Hybrid retrieval + equation discovery on CML data
-│   ├── rainfall_field_sim/     # Synthetic rain fields + CML sampling/retrieval
-│   └── spatial_interpolation/  # Rainfall nowcasting from CML networks
-├── pyproject.toml        # makes core/ importable: pip install -e .
-├── requirements.txt
-├── CONTRIBUTING.md
-└── LICENSE
+│   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
+│   └── viz_style.py          # shared palette and matplotlib defaults
+├── projects/             # the research projects above
+├── tests/                # pytest for core/ (synthetic data, no downloads)
+├── dataset/open_datasets/  # OpenMRG, OpenRainER, OpenMesh NYC, CML Netherlands (data not in git)
+└── pyproject.toml        # installs core/ as a package
 ```
 
-Every project owns its own notebooks, source and results. `core/` holds only
-code that more than one project imports (see [core/README.md](core/README.md));
-`dataset/` holds the published data itself, not the analysis of it. Projects
-import shared code as `from core... import`, and never from each other.
+Projects import shared code as `from core... import` and never from each
+other; code moves into `core/` when a second project needs it.
 
 ## Installation
 
 ```bash
-git clone https://github.com/USERNAME/FieldSense.git
-cd FieldSense
+git clone git@github.com:drorjac/FieldSense.git && cd FieldSense
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt          # = pip install -e ".[notebooks]"
-pip install -r projects/<project>/requirements.txt   # the project you work on
-pip install -e ".[opensense,dev]" && python -m pytest  # core.opensense + its tests
+pip install -e ".[opensense,notebooks,dev]"
+pip install -r projects/<project>/requirements.txt    # the project you work on
+python -m core.opensense.fetch --list                 # open datasets, downloaded on request
 ```
 
-New to the OpenSense side? `projects/opensense_pipeline/notebooks/02_end_to_end.ipynb`
-takes one day of real CML data from download to a merged rainfall map.
+## Tests
 
-## Contributing
+```bash
+python -m pytest        # core and every project's tests, offline, about 30 s
+```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
+## Contributing and license
 
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md). MIT License, see [LICENSE](LICENSE).

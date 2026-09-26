@@ -18,13 +18,33 @@ The bracketed stage is the point of the design. See *Why a synthetic stage*.
 through every stage (pull, look, retrieve, score, improve, map) in about a
 minute and under 50 lines of code: every cell is a call into `core.opensense`.
 
+## Findings at a glance
+
+- **Which map wins depends on which sensor is weaker.** Against held-out
+  gauges, the dense Swedish network alone beats radar and every merge (RMSE
+  4.45 vs 6.16 mm/h); on the sparse Italian network merging wins (7.90 vs
+  8.81), and its gain is concentrated within 2 km of a link.
+- **The retrieval's magnitude is set by the wet-antenna term, and the
+  default does not transfer.** The ratio to the OpenSense reference moves
+  from 1.93 to 0.74 across plausible settings; `retrieve_improved`
+  (nearby-link wet/dry, Leijnse wet antenna, receiver-floor QC) improves
+  link-level detection and correlation on both networks, but not merged-map
+  RMSE, so it stays opt-in.
+- **Radar is not always the reference.** Over Manhattan the CML retrieval
+  correlates +0.53 with personal weather stations and ~0 with KOKX radar,
+  whose beam passes far above the city. In snow the CML signal carries no
+  precipitation information at all.
+- **Traps recorded below:** end-stamped OpenRainER references,
+  poligrain reading link length in coordinate units, low bands whose rain
+  signal sits below the RSL quantization.
+
 ## Running it
 
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e ".[opensense,notebooks,dev]"       # core + OpenSense stack
 .venv/bin/pip install -r projects/opensense_pipeline/requirements.txt
-.venv/bin/python -m pytest                                   # 35 tests, ~1 s, no downloads
+.venv/bin/python -m pytest                                   # the whole suite, offline
 ```
 
 ### The library in ten lines

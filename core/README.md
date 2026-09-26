@@ -11,7 +11,8 @@ core/
 ├── itu_p838.py              # ITU-R P.838-3 rain attenuation (k, alpha) tables
 ├── viz_style.py             # shared palette and matplotlib defaults
 ├── simulation/              # synthetic rain fields + CML network sampling
-│   ├── rain_fields.py           # stratiform / convective / frontal models, advection
+│   ├── rain_fields.py           # stratiform / convective / frontal models, statistics
+│   ├── moving_fields.py         # the same fields in time: translation, growth, evolution
 │   ├── cml_network.py           # topology, forward model, impairments, retrieval
 │   └── reconstruct.py           # IDW variants, scoring, error decomposition
 ├── opensense/               # OpenSense data: pull, normalize, retrieve, score
@@ -21,7 +22,7 @@ core/
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
 │   ├── wet_dry.py               # radar and nearby-link wet/dry masks (poligrain, pycomlink)
 │   ├── quality.py               # receiver-floor (outage) detection
-│   └── plots.py                 # standard figures (network, retrieval steps, hexbins, maps)
+│   ├── plots.py                 # standard figures (network, retrieval steps, hexbins, maps)
 │   └── evaluation.py            # poligrain matching of lines/points/grids + metrics
 ├── radar/
 │   └── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
@@ -36,7 +37,7 @@ core/
 |---|---|---|
 | `itu_p838` | - | rainfall_field_sim, opensense_pipeline, physics_ml |
 | `viz_style` | rainfall_field_sim | rainfall_field_sim, opensense_pipeline, physics_ml |
-| `simulation.*` | rainfall_field_sim | rainfall_field_sim, opensense_pipeline, physics_ml |
+| `simulation.*` | rainfall_field_sim | rainfall_field_sim, opensense_pipeline, physics_ml, spatial_interpolation |
 | `opensense.*` | opensense_pipeline | opensense_pipeline, cml_retrieval, physics_ml, openmesh_nyc (notebook) |
 | `radar.nexrad` | openmesh_nyc | openmesh_nyc (notebook), opensense_pipeline |
 | `scientific_packages.pynncml_compat`, `pynncml_rnn` | cml_retrieval | cml_retrieval, spatial_interpolation |
@@ -88,6 +89,33 @@ the retrieval variants achieve.
 `pycomlink` is imported lazily, only by the non-default wet-antenna models and
 the nearby-link mask.
 
+## `simulation/`
+
+Synthetic rain whose truth is known exactly, and a CML network to measure it.
+`rain_fields` builds three regimes (stratiform, convective cells, a frontal
+band) at comparable mean rain; `cml_network` samples them with a realistic
+link topology and sensor chain; `reconstruct` maps them back.
+`moving_fields` adds time:
+
+```python
+from core.simulation import moving_fields as mf
+from core.simulation.rain_fields import Grid, ConvectiveField
+
+seq = mf.sequence(ConvectiveField(), Grid(n=128, dx_km=0.25), n_steps=13,
+                  dt_min=5, evolve_tau_min=60)       # moves at the model's own velocity
+seq.frames                                           # (13, 128, 128) mm/h
+seq.lagrangian_persistence(t=4, h=3)                 # frame 4 moved 15 min on: the motion-only oracle
+seq.predictability(3)                                # how much of +15 min that oracle explains
+```
+
+Frozen sequences are pure translation (exact, by a Fourier phase ramp);
+evolving ones mix in fresh realizations of the same regime with e-folding
+time `evolve_tau_min` and keep wet area and intensities fixed. The frontal
+band is not periodic and is moved on a padded domain, so nothing wraps.
+`physics_ml` recovers the velocity from these sequences with SINDy,
+`spatial_interpolation` benchmarks its forecasters on them, and
+`rainfall_field_sim` shows how fast each regime stops being predictable.
+
 ## `itu_p838.py`
 
 Specific rain attenuation, `gamma = k * R**alpha`, with ITU-R P.838-3 Table 5
@@ -109,12 +137,3 @@ k, alpha = get_k_alpha(23.0, "vertical")
 ```
 
 Run it directly (`python -m core.itu_p838`) to print a coefficient table.
-
-## What is *not* here any more
-
-`core/examples/` used to hold six notebooks spanning three unrelated topics,
-and `core/utils.py`, `core/plotting.py` and `core/data_loaders.py` were empty
-files advertised as shared utilities. The notebooks moved to the projects that
-own them — `projects/physics_ml/notebooks/` and
-`projects/cml_retrieval/notebooks/` — and the empty modules were removed. Add
-them back when there is something to put in them.

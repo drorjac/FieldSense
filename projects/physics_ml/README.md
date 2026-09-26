@@ -1,85 +1,64 @@
-# Physics-Informed Machine Learning
+# physics_ml — physics and machine learning for CML rain retrieval
 
-This project focuses on integrating domain knowledge, primarily from physics and Partial Differential Equations (PDEs), with machine learning algorithms to enhance environmental sensing and field reconstruction.
+Three experiments on FieldSense's own quantities, each asking whether a
+physics-aware method finds what the physics says is there:
 
-## Overview
+- a **hybrid retrieval** that fuses a learnable ITU-R power-law branch with a
+  GRU branch, against physics alone;
+- **PySR** on measured attenuation: does `gamma = k R^alpha` fall out, with
+  ITU-R P.838-3's coefficients?
+- **SINDy** on moving rain fields: does the advection velocity fall out of
+  the field's own evolution?
 
-The `physics_ml` module explores the intersection of physics-based modeling and machine learning, with a particular emphasis on:
+## Findings at a glance
 
-- **Physics-Informed Neural Networks (PINNs)**: Neural networks that incorporate physical laws and constraints directly into the learning process
-- **PDE-Based Modeling**: Leveraging partial differential equations to model spatio-temporal phenomena
-- **Domain Knowledge Integration**: Combining physical principles with data-driven approaches for improved accuracy and generalization
-- **Machine Learning Algorithms**: Introduction and implementation of various ML techniques tailored for physics-informed applications
+- **The hybrid does not beat its own physics branch** (fused RMSE 4.0 mm/h
+  against 0.5 for physics alone at 38 GHz, 0.05 dB noise). The gate leans on
+  the neural branch, whose input sequences carry no temporal information.
+- **The exponent of the power law is recoverable from real data, the
+  prefactor is not:** alpha = 0.911 against ITU's 0.913, k 83% high - the
+  same wet-antenna offset `opensense_pipeline` measures independently.
+- **SINDy recovers the velocity from exact fields** (13.7 / 4.9 km/h for
+  14 / 5) **and fails through a CML network** (4.1 / 0.0): interpolation
+  smooths away the gradients advection lives in.
 
-## Key Concepts
+## Quick start
 
-### Physics-Informed Approaches
-- Incorporation of physical laws (conservation laws, boundary conditions, etc.) as soft constraints in neural networks
-- PDE-constrained optimization
-- Hybrid models that combine physics-based and data-driven components
+```bash
+pip install -e ".[notebooks,dev]" && pip install -r projects/physics_ml/requirements.txt
+python projects/physics_ml/src/discover_advection.py --all     # SINDy, ~1 min
+python projects/physics_ml/src/discover_itu.py --all --band 30 # PySR, needs OpenMRG
+python -m pytest projects/physics_ml/tests
+```
 
-### Machine Learning Algorithms
-- Neural networks with physics-informed loss functions
-- Deep learning architectures for spatio-temporal data
-- Transfer learning from physics-based models
-- Uncertainty quantification in physics-informed models
+Then `notebooks/hybrid_retrieval.ipynb`: both hybrid experiments in ~20
+lines of calls, every number computed. `src/main_experiment.py` is the
+original sweep script (run from `src/`; the modules import each other by bare
+name), configured by `ExperimentConfig` at its top.
 
-## Applications
-
-This module is particularly relevant for:
-- Environmental field sensing and reconstruction
-- Spatio-temporal evolution modeling
-- Multi-sensor data fusion with physical constraints
-- Weather and climate modeling
-- Fluid dynamics and transport phenomena
-
-## Contents
-
-The current codebase implements a **hybrid rain-retrieval model** for Commercial
-Microwave Links (CMLs): a model-based branch built on the ITU-R P.838-3 power law
-is fused with a data-driven neural branch, so the physics carries the retrieval
-where it is valid and the network absorbs what the power law cannot explain.
-
-| File | Role |
-|------|------|
-| `src/rain_simulator.py` | Synthetic rain-attenuation generator. ITU-R P.838-3 (k, α) tables, AR(1) temporal correlation, configurable noise. |
-| `src/hybrid_nn.py` | `PhysicsBranch` (learnable log-space k, α power-law inversion), the data-driven branch, and the dynamic fusion module. |
-| `src/training_utils.py` | Training loops, device selection (CUDA → MPS → CPU), curve plotting, result analysis. |
-| `src/data_analysis.py` | Dataset generation and pre-training inspection of the synthetic data. |
-| `src/main_experiment.py` | Entry point. `ExperimentConfig` sweeps frequencies and noise levels end to end. |
-| `src/mixing.py` | Six ways to combine a physics and a data-driven estimate, swept over frequency and noise. |
-| `src/hybrid_training.py` | Staged vs joint training of the hybrid model, tracking gate, loss and learned (k, α). |
-| `src/plots.py` | The figures `hybrid_retrieval.ipynb` draws. |
-| `notebooks/hybrid_retrieval.ipynb` | **Start here.** Both experiments in ~20 lines of calls, every number computed. |
-| `notebooks/archive/Simulation_MBML.ipynb` | The original working notebook, kept as the record (see below). |
-| `results/training_curves.png` | Training curves from the last recorded run. |
-
-## Structure
+## Layout
 
 ```
 physics_ml/
 ├── src/
-│   ├── main_experiment.py   # Entry point — experiment configuration and sweep
-│   ├── hybrid_nn.py         # Physics + data-driven branches and fusion
-│   ├── rain_simulator.py    # ITU-R P.838-3 synthetic attenuation generator
-│   ├── data_analysis.py     # Dataset generation and inspection
-│   └── training_utils.py    # Training loops, device selection, plotting
-│   ├── mixing.py            # six ways to combine physics and data estimates
-│   ├── hybrid_training.py   # staged vs joint training of the hybrid model
-│   ├── plots.py             # figures for hybrid_retrieval.ipynb
-│   ├── discover_itu.py      # PySR: recover ITU-R k, alpha from CML attenuation
+│   ├── rain_simulator.py     # synthetic attenuation: ITU-R P.838-3, AR(1) rain, noise
+│   ├── hybrid_nn.py          # learnable power-law branch, GRU branch, fusion gate
+│   ├── hybrid_training.py    # staged vs joint training, tracking gate and learned (k, alpha)
+│   ├── mixing.py             # six ways to combine a physics and a data estimate
+│   ├── training_utils.py     # training loops, device selection, curves
+│   ├── data_analysis.py      # dataset generation and inspection
+│   ├── main_experiment.py    # the original sweep script
+│   ├── plots.py              # figures for hybrid_retrieval.ipynb
+│   ├── discover_itu.py       # PySR: recover ITU-R k, alpha from CML attenuation
 │   └── discover_advection.py # SINDy: recover rain-field advection
 ├── notebooks/
-│   ├── hybrid_retrieval.ipynb         # the hybrid experiments, concise
-│   ├── TUTORIALS.md                   # guide to the two method tutorials
-│   ├── 01_sindy_basics.ipynb          # SINDy on the Lorenz system
-│   ├── 02_pysr_basics.ipynb           # symbolic regression basics
-│   └── archive/Simulation_MBML.ipynb  # the original working notebook, kept
-├── tests/test_physics_ml.py  # mixing + staged/joint training
-├── results/
-│   └── training_curves.png  # Outputs and figures
-├── requirements.txt         # Project-specific dependencies
-└── README.md                # This file
+│   ├── hybrid_retrieval.ipynb        # start here
+│   ├── 01_sindy_basics.ipynb         # SINDy on the Lorenz system (tutorial)
+│   ├── 02_pysr_basics.ipynb          # symbolic regression (tutorial)
+│   ├── TUTORIALS.md
+│   └── archive/Simulation_MBML.ipynb # the original working notebook
+├── results/                  # discover_*.json/png, training_curves.png
+└── tests/test_physics_ml.py
 ```
 
 ## Why each method is here
@@ -98,7 +77,7 @@ present has a job:
 system, and field estimation is where that matters: a nowcast has to
 propagate the field forward, which means knowing how it moves.
 `projects/spatial_interpolation` benchmarks POD-SINDy against a Transformer
-and a Mamba-style SSM for exactly this. The Lorenz notebook teaches the
+and a GRU for exactly this, on real data and on these same moving fields. The Lorenz notebook teaches the
 method; `discover_advection.py` runs it on rainfall with a velocity known
 exactly, so the answer can be checked.
 
@@ -198,9 +177,11 @@ dR/dt = -u dR/dx - v dR/dy
 ```
 
 and fitting a library of spatial derivatives against the time derivative
-should return the wind in its coefficients. The fields come from
-`projects/rainfall_field_sim` translated at a velocity we choose, so the
-answer is known exactly.
+should return the wind in its coefficients. The field is a smooth Gaussian
+field with the stratiform spectrum (`--field rain` uses the intermittent
+stratiform model itself), translated exactly by
+`core.simulation.moving_fields` at a velocity we choose, so the answer is
+known.
 
 ```bash
 python projects/physics_ml/src/discover_advection.py --all
@@ -247,31 +228,8 @@ time derivative picks up Gibbs error and reads 12.8 instead.
 
 ![SINDy advection recovery](results/discover_advection.png)
 
-## Getting Started
-
-```bash
-# from the repository root
-pip install -r requirements.txt
-pip install -r projects/physics_ml/requirements.txt
-
-# the modules import each other by bare name, so run from src/
-cd projects/physics_ml/src
-python main_experiment.py
-```
-
-Experiment parameters (frequencies, noise levels, sample count, epochs, batch
-size, learning rate, hidden size, link length, baseline attenuation) live in
-`ExperimentConfig` at the top of `main_experiment.py`.
-
-## Dependencies
-
-PyTorch for the neural branches, NumPy/SciPy for the simulator, scikit-learn for
-splitting and baselines, and Matplotlib/Seaborn for figures. See
-`requirements.txt`; it extends the root `requirements.txt` rather than replacing it.
-
 ## References
 
-- ITU-R P.838-3: Specific attenuation model for rain for use in prediction methods
-- Physics-Informed Neural Networks (PINNs) literature — see `projects/mphysics/src/gravity/` and `projects/mphysics/notebooks/pinn_gravity.ipynb` for a worked PINN example
-- PDE-constrained optimization
-- Domain-informed machine learning
+- ITU-R P.838-3, *Specific attenuation model for rain for use in prediction methods*.
+- Brunton, Proctor & Kutz (2016), SINDy, *PNAS* 113(15); Cranmer (2023), PySR, arXiv:2305.01582.
+- PINNs on classical problems: `projects/mphysics/`.
