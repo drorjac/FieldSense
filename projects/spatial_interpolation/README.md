@@ -54,11 +54,14 @@ spatial_interpolation/
 pip install -r requirements.txt
 pip install -r projects/spatial_interpolation/requirements.txt
 
-jupyter lab projects/spatial_interpolation/notebooks/advanced_models_colab_v2.ipynb
+jupyter lab projects/spatial_interpolation/notebooks/nowcasting.ipynb   # the pipeline from src/
+python -m pytest projects/spatial_interpolation/tests
 ```
 
-The notebooks were developed in Google Colab and mount Drive for data access;
-running locally means repointing those paths at a local copy of the dataset.
+`nowcasting.ipynb` reads OpenMRG from `dataset/open_datasets/` (`python -m
+core.opensense.fetch --dataset openmrg`). `advanced_models_colab_v2.ipynb`,
+the source of the paper's numbers, was developed in Google Colab and mounts
+Drive for data; running it locally means repointing those paths.
 
 ## The pipeline as code
 
@@ -109,6 +112,40 @@ Also worth knowing: "Model 1 (physical)" is the CML estimate *at the target
 time* - a nowcast reference, not a forecast; the committed
 `advanced_models_colab_v2.ipynb` has no saved outputs, and its cell numbers
 no longer match the ones the paper's figures were taken from (72-80).
+
+## A sanity check on rain whose future is known
+
+On radar nobody knows how much of the next hour was predictable. On
+`core.simulation.moving_fields` sequences we do, so `src/synthetic.py`
+trains the same models on a 32 x 32 moving field (2 km cells, 15-min steps,
+20 x 8 km/h) and scores them between two references: persistence (the
+floor) and the last frame moved at the true velocity (the ceiling for any
+motion-based forecast). Correlation with the truth:
+
+| | 15 min | 30 min | 60 min |
+|---|---|---|---|
+| **frozen pattern** - oracle | 1.00 | 1.00 | 1.00 |
+| Transformer (multi) | 0.83 | 0.83 | 0.83 |
+| POD-SINDy | 0.80 | 0.79 | 0.79 |
+| GRU (multi) | 0.62 | 0.62 | 0.62 |
+| persistence | 0.71 | 0.40 | 0.04 |
+| **evolving, tau 120 min** - oracle | 0.86 | 0.74 | 0.57 |
+| POD-SINDy | 0.60 | 0.50 | 0.34 |
+| Transformer (multi) | 0.43 | 0.37 | 0.28 |
+| GRU (multi) | 0.22 | 0.18 | 0.13 |
+| persistence | 0.55 | 0.27 | 0.02 |
+
+On pure translation, where the oracle is perfect, no learned model moves
+the rain: the networks' skill is flat with horizon, the mark of a smooth
+climatological field rather than a forecast. With evolution only POD-SINDy
+beats persistence beyond 15 min. Both are limits of 400 training frames on a
+CPU budget (20 epochs), not verdicts on the architectures, but they are the
+behaviour to check for on real data before reading a skill score as skill.
+
+```python
+from synthetic import moving_benchmark            # from src/
+table, seq = moving_benchmark(evolve_tau_min=120)   # ~1 min on a CPU
+```
 
 ## Results
 
