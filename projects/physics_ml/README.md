@@ -47,7 +47,11 @@ where it is valid and the network absorbs what the power law cannot explain.
 | `src/training_utils.py` | Training loops, device selection (CUDA → MPS → CPU), curve plotting, result analysis. |
 | `src/data_analysis.py` | Dataset generation and pre-training inspection of the synthetic data. |
 | `src/main_experiment.py` | Entry point. `ExperimentConfig` sweeps frequencies and noise levels end to end. |
-| `notebooks/Simulation_MBML.ipynb` | Exploratory model-based / ML simulation notebook. |
+| `src/mixing.py` | Six ways to combine a physics and a data-driven estimate, swept over frequency and noise. |
+| `src/hybrid_training.py` | Staged vs joint training of the hybrid model, tracking gate, loss and learned (k, α). |
+| `src/plots.py` | The figures `hybrid_retrieval.ipynb` draws. |
+| `notebooks/hybrid_retrieval.ipynb` | **Start here.** Both experiments in ~20 lines of calls, every number computed. |
+| `notebooks/Simulation_MBML.ipynb` | The original working notebook, kept as the record (see below). |
 | `results/training_curves.png` | Training curves from the last recorded run. |
 
 ## Structure
@@ -60,13 +64,18 @@ physics_ml/
 │   ├── rain_simulator.py    # ITU-R P.838-3 synthetic attenuation generator
 │   ├── data_analysis.py     # Dataset generation and inspection
 │   └── training_utils.py    # Training loops, device selection, plotting
+│   ├── mixing.py            # six ways to combine physics and data estimates
+│   ├── hybrid_training.py   # staged vs joint training of the hybrid model
+│   ├── plots.py             # figures for hybrid_retrieval.ipynb
 │   ├── discover_itu.py      # PySR: recover ITU-R k, alpha from CML attenuation
 │   └── discover_advection.py # SINDy: recover rain-field advection
 ├── notebooks/
-│   ├── Simulation_MBML.ipynb          # the CML rain-retrieval experiment
+│   ├── hybrid_retrieval.ipynb         # the hybrid experiments, concise
+│   ├── Simulation_MBML.ipynb          # the original working notebook, kept
 │   ├── TUTORIALS.md                   # guide to the two method tutorials
 │   ├── 01_sindy_basics.ipynb          # SINDy on the Lorenz system
 │   └── 02_pysr_basics.ipynb           # symbolic regression basics
+├── tests/test_physics_ml.py  # mixing + staged/joint training
 ├── results/
 │   └── training_curves.png  # Outputs and figures
 ├── requirements.txt         # Project-specific dependencies
@@ -83,7 +92,7 @@ present has a job:
 |---|---|---|---|
 | **PySR** (symbolic regression) | does the ITU-R power law fall out of measured attenuation, and with what coefficients? | `src/discover_itu.py` | `notebooks/02_pysr_basics.ipynb` |
 | **SINDy** (sparse regression) | does a rain field's advection fall out of the field's own evolution? | `src/discover_advection.py` | `notebooks/01_sindy_basics.ipynb` |
-| **physics + NN hybrid** | can a learnable ITU branch and a GRU branch be fused per sample? | `src/hybrid_nn.py` | `notebooks/Simulation_MBML.ipynb` |
+| **physics + NN hybrid** | can a learnable ITU branch and a GRU branch be fused per sample? | `src/hybrid_nn.py`, `src/hybrid_training.py` | `notebooks/hybrid_retrieval.ipynb` |
 
 **Why SINDy specifically.** A rain field crossing a region is a dynamical
 system, and field estimation is where that matters: a nowcast has to
@@ -96,6 +105,40 @@ exactly, so the answer can be checked.
 The N-body and PINN-gravity material has no such counterpart and moved to
 `projects/mphysics/`. See `core/scientific_packages/` for PySINDy and PySR
 reference notes.
+
+## The hybrid, measured
+
+`notebooks/hybrid_retrieval.ipynb` answers two questions on synthetic links,
+all numbers computed in the notebook.
+
+**Combining two estimates depends on frequency.** At 5 GHz a 1 km link
+attenuates so weakly that inverting the power law turns noise into an MSE of
+~3,000 (mm/h)²; every learned combination is ~40x better. At 60-70 GHz physics
+alone is within ~5% of the best, and a learned gate on attenuation edges it.
+
+**The hybrid physics + GRU model does not beat its own physics branch.** At
+38 GHz, with the original notebook's training budget:
+
+| noise | method | fused RMSE | physics branch | neural branch | gate |
+|---|---|---|---|---|---|
+| 0.05 dB | staged | 4.00 | **0.49** | 4.04 | 0.13 |
+| 0.5 dB | staged | 4.12 | **1.26** | 4.16 | 0.13 |
+| 2.0 dB | staged | 4.68 | **3.74** | 4.73 | 0.23 |
+
+(RMSE in mm/h; joint training is worse than staged at every level.) The gate
+leans on the neural branch although physics is 1.3-8x more accurate. A likely
+cause is the input: `prepare_sequences` builds each GRU "sequence" as random
+noise around one attenuation value, so the network has no temporal
+information to learn from.
+
+### About `Simulation_MBML.ipynb`
+
+Kept unchanged as the working record, but it is not a reliable source of
+results: it defines the hybrid model three times, calls a
+`ThreeStageTrainer` that is defined nowhere in it (reconstructed as
+`hybrid_training.train(..., "staged")`), and its summary figures (cells 17,
+18, 22) plot numbers typed into the cells rather than computed. Those show
+the hybrid ahead; the code above does not reproduce that.
 
 ## Rediscovering ITU-R P.838-3 with symbolic regression
 
