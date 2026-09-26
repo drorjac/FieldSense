@@ -31,20 +31,27 @@ def _links(cml) -> xr.Dataset:
     return geo
 
 
-def network(radar_frame: xr.DataArray, cml, gauges=None, vmax: float = 40.0,
+def network(radar_frame: xr.DataArray | None, cml, gauges=None, vmax: float = 40.0,
             title: str = ""):
-    """A radar frame with the link paths and gauge locations on top (lon/lat)."""
+    """Link paths and point sensors in lon/lat, over a radar frame if given.
+
+    ``gauges`` is one point dataset or a ``{label: dataset}`` dict, drawn in
+    the palette's fixed order (PWS, ASOS, ...).
+    """
     import poligrain as plg
 
     fig, ax = plt.subplots(figsize=(7, 6))
-    plg.plot_map.plot_plg(da_grid=radar_frame, use_lon_lat=True, ax=ax, vmin=0,
-                          vmax=vmax, cmap=vs.CMAP_RAIN,
-                          colorbar_label="radar rain rate (mm/h)")
+    if radar_frame is not None:
+        plg.plot_map.plot_plg(da_grid=radar_frame, use_lon_lat=True, ax=ax, vmin=0,
+                              vmax=vmax, cmap=vs.CMAP_RAIN,
+                              colorbar_label="radar rain rate (mm/h)")
     plg.plot_map.plot_lines(_links(cml), use_lon_lat=True, ax=ax,
                             line_color=vs.INK_PRIMARY, line_width=1.0)
     if gauges is not None:
-        ax.scatter(gauges.lon, gauges.lat, s=40, color=C2, edgecolor=vs.SURFACE,
-                   lw=1.5, zorder=5, label="gauge")
+        groups = gauges if isinstance(gauges, dict) else {"gauge": gauges}
+        for (label, pts), c in zip(groups.items(), (C2, C3, C1)):
+            ax.scatter(pts.lon, pts.lat, s=40, color=c, edgecolor=vs.SURFACE,
+                       lw=1.5, zorder=5, label=label)
         ax.legend(loc="lower left")
     ax.set(xlabel="longitude", ylabel="latitude", title=title)
     return fig
@@ -125,7 +132,7 @@ def series(lines: dict, title: str = "", ylabel: str = "rain rate (mm/h)"):
     for (label, da), c in zip(lines.items(), colors):
         ax.plot(da.time, da, lw=1.6, color=c, label=label)
     ax.set(ylabel=ylabel, title=title)
-    ax.legend(loc="upper right")
+    ax.legend(loc="best")
     return fig
 
 

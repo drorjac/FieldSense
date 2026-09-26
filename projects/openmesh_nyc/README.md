@@ -25,6 +25,7 @@ openmesh_nyc/
 │   ├── camera_ready.tex        # Working manuscript — revisions marked \blue{...}
 │   └── camera_ready_clean.tex  # Generated: same text, markup stripped
 ├── notebooks/
+│   ├── openmesh_data.ipynb               # START HERE: pull, format check, links, PWS, ASOS (concise)
 │   ├── download_and_read_openmesh.ipynb  # fetch the published dataset and open it
 │   ├── openmesh_dataset_example.ipynb    # explore the link data
 │   ├── read_pws_sample.ipynb             # personal weather station sample
@@ -33,11 +34,25 @@ openmesh_nyc/
 │   └── nexrad_rain_vs_snow.ipynb         # radar over the network, rain vs snow
 ├── src/
 │   ├── mop.py                  # strips \blue{} markup, camera_ready → *_clean
+│   ├── stations.py             # PWS / ASOS totals, accumulation, dead-station check
 │   └── fetch/                  # the collection pipelines the notebooks drive
 │       ├── asos_functions.py   asos_plotting.py
 │       └── wu_functions.py     wu_plotting.py
+├── tests/test_stations.py
 ├── requirements.txt
 └── README.md
+
+`openmesh_data.ipynb` covers what the first three notebooks did, in ~25 lines
+of calls into `core.opensense` and `src/stations.py`, and runs offline on the
+curated 20-day subset. The full records: `python -m core.opensense.fetch
+--dataset openmesh` (CML, CC-BY-4.0) and `--dataset openmesh_pws` (PWS,
+CC-BY-NC-4.0, non-commercial). The collection pipelines need network access,
+and `wu_pipeline.ipynb` a Weather Underground API key read from
+`src/config.py`, which is not in the repository.
+
+Two facts from the 20-day subset worth knowing before using it: most links
+report one sublink (51 of 75; 20 report two, 4 three), and 8 of the 37 PWS
+record under 1 mm in 20 days against ~70 mm at the rest - dead, not dry.
 ```
 
 The published data itself stays in `dataset/open_datasets/OpenMesh_NYC/`,

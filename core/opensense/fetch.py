@@ -59,6 +59,22 @@ SOURCES = {
         # reflectivity and an adjusted product, fetched only on request.
         default_files=("README.txt", "AWS.tar", "CML.tar", "RADrain.tar"),
     ),
+    "openmesh": Source(
+        name="OpenMesh",
+        record_id="15287692",
+        folder="OpenMesh_NYC",
+        license="CC-BY-4.0",
+        doi="10.5281/zenodo.15287692",
+        default_files=("OpenMesh.zip",),     # NYC Mesh CML, 13.7 MB
+    ),
+    "openmesh_pws": Source(
+        name="OpenMesh PWS",
+        record_id="17508286",
+        folder="OpenMesh_NYC",
+        license="CC-BY-NC-4.0",              # non-commercial, unlike the CML
+        doi="10.5281/zenodo.17508286",
+        default_files=("PWS_NYC_WU.zip",),
+    ),
 }
 
 

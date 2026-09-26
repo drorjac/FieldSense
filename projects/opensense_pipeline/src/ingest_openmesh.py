@@ -9,14 +9,16 @@ path loss is ``-RSL`` rather than ``TSL - RSL``. Anything that moves the
 transmitter - automatic power control, a hardware change - enters as if it
 were rain. See ``retrieval.total_loss_from``.
 
-**Three sublinks per link, across three bands.** Roughly 5.7, 24 and 60 GHz
-rather than two directions of one frequency. They are not redundant
-measurements of the same thing: a 60 GHz sublink saturates in rain that a
-5.7 GHz one barely registers, so they are retrieved separately and combined
-by taking the band that is actually responsive.
+**Up to three sublinks per link, in different bands.** Roughly 5-6, 24 and
+58-69 GHz. In the 20-day subset most links report a single sublink (51 of
+75), 20 report two - usually both directions of one band - and only 4 report
+three. Where bands differ they are not redundant measurements: a 60 GHz
+sublink saturates in rain that a 5.7 GHz one barely registers, so sublinks
+are retrieved separately and combined by taking the band that is actually
+responsive.
 
 **No radar in the dataset.** It comes from KOKX through
-``projects/openmesh_nyc/src/fetch/nexrad.py``.
+``core/radar/nexrad.py``.
 
 **And it snows.** The record covers the 2023-24 winter. ITU-R P.838-3 is a
 *rain* relation; applying it to snow is wrong, and the module says so rather

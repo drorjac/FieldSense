@@ -72,6 +72,6 @@ def test_pinn_residuals_vanish_on_the_true_trajectory():
 
     t = torch.linspace(0, 2, 30).view(-1, 1)
     for residual in ("velocity", "acceleration"):
-        assert float(physics_loss(Exact(), t, throw.v0, throw.g, residual)) < 1e-8
+        assert float(physics_loss(Exact(), t, throw.v0, throw.g, residual).detach()) < 1e-8
     with pytest.raises(ValueError):
         physics_loss(Exact(), t, throw.v0, throw.g, "jerk")

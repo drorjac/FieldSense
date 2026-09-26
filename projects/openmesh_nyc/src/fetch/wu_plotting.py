@@ -461,3 +461,40 @@ def check_data_quality(df: pd.DataFrame, start_date, end_date, verbose: bool = F
         print(f"Gaps > 2h: {len(gaps)}")
     else:
         print(f"✓ Quality: {completeness:.0f}% complete, {len(gaps)} gaps")
+
+
+def station_accumulation_table(station_data: Dict, units: str = "m") -> pd.DataFrame:
+    """Per-station totals and rain statistics from ``run_wu_pipeline`` output.
+
+    Moved from ``wu_pipeline.ipynb``. Uses ``precip_rate`` when present,
+    summed over the *hourly* history the pipeline requests - a rate in
+    mm/h (in/h) summed over one-hour records is an accumulation in mm (in).
+    That would not hold for the 5-minute ``history/all`` endpoint.
+    """
+    rows = []
+    for station_id, data in station_data.items():
+        df = data["clean"]
+        col = "precip_rate" if "precip_rate" in df.columns else "precip_total"
+        if col not in df.columns:
+            continue
+        wet = df[df[col] > 0]
+        daily = df.groupby(df["time_local"].dt.date)[col].sum()
+        rows.append({"station_id": station_id, "total_precip": df[col].sum(),
+                     "rain_hours": len(wet), "max_rate": df[col].max(),
+                     "mean_rate": wet[col].mean() if len(wet) else 0.0,
+                     "days_with_rain": int((daily > 0).sum()),
+                     "unit": "mm" if units == "m" else "in"})
+    return pd.DataFrame(rows).sort_values("total_precip", ascending=False)
+
+
+def plot_station_accumulation(table: pd.DataFrame, show: bool = False):
+    """Bar chart of ``station_accumulation_table`` totals with the median."""
+    fig, ax = plt.subplots(figsize=(max(6, 0.3 * len(table)), 4))
+    ax.bar(table.station_id, table.total_precip, color="#2a78d6")
+    ax.axhline(table.total_precip.median(), color="k", ls="--", lw=1, label="median")
+    ax.set_ylabel(f"total precipitation ({table.unit.iloc[0] if len(table) else ''})")
+    ax.tick_params(axis="x", rotation=90)
+    ax.legend()
+    if show:
+        plt.show()
+    return fig

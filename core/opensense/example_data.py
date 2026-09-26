@@ -104,8 +104,10 @@ DATASETS = {
         }),
     "openmesh": ExampleDataset(
         key="openmesh", name="OpenMesh", folder="OpenMesh", crs="EPSG:32618",
-        note="New York City. RSL only - no tsl - and 3 sublinks per link "
-             "across three bands. ASOS is published for 20d only.",
+        note="New York City. RSL only - no tsl. Up to 3 sublinks per link, "
+             "but in the 20d subset 51 of 75 links report one, 20 two (mostly "
+             "both directions of one band) and 4 three; bands ~5-6, 24 and "
+             "58-69 GHz. ASOS is published for 20d only.",
         subsets={
             "1d": {"cml": "openmesh_cml_1d.nc",
                    "pws": "openmesh_wu_pws_1d.nc"},
@@ -257,6 +259,12 @@ def _normalize_points(ds: xr.Dataset, crs: str) -> xr.Dataset:
     lat = next((c for c in ("lat", "latitude") if c in ds.coords), None)
     if lon and lat:
         ds = cv.project_points(ds, crs, lon=lon, lat=lat)
+    if "rainfall_rate" in ds.data_vars and "R" not in ds.data_vars:
+        # a declared rate beats one derived from per-step amounts, which
+        # assumes a regular time step (PWS reporting is not)
+        ds["R"] = ds.rainfall_rate.transpose("time", ...)
+        ds.R.attrs.update(units="mm h-1", long_name="rain rate",
+                          comment="rainfall_rate as published")
     if "rainfall_amount" in ds.data_vars and "R" not in ds.data_vars \
             and ds.sizes.get("time", 0) > 1:
         from core.opensense.retrieval import sampling_interval_s

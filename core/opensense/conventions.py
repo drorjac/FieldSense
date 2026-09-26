@@ -170,3 +170,47 @@ def project_grid(ds: xr.Dataset, crs: str, lon: str = "lon",
     ds.coords["y"] = ("y", yv[:, xv.shape[1] // 2])
     ds.attrs["crs"] = crs
     return ds
+
+
+# Required by the OpenSense-1.0 CML convention, for ``check_format``.
+_CML_DIMS = ("time", "cml_id", "sublink_id")
+_CML_COORDS = ("site_0_lat", "site_0_lon", "site_1_lat", "site_1_lon",
+               "frequency", "length")
+
+
+def check_format(ds: xr.Dataset):
+    """OpenSense-1.0 CML format checks, one row per check.
+
+    Returns a DataFrame with ``check``, ``passed`` and ``detail``, so a
+    failure says what was found rather than just that something is off.
+    Units are checked for being declared, because an undeclared unit is the
+    failure that goes unnoticed (see the module docstring).
+    """
+    import pandas as pd
+
+    rows = []
+
+    def add(check, passed, detail=""):
+        rows.append({"check": check, "passed": bool(passed), "detail": detail})
+
+    missing = [d for d in _CML_DIMS if d not in ds.dims]
+    add("dimensions time, cml_id, sublink_id", not missing,
+        f"missing {missing}" if missing else "")
+    if "time" in ds.coords:
+        add("time is datetime64", ds.time.dtype.kind == "M", str(ds.time.dtype))
+    for name in ("cml_id", "sublink_id"):
+        if name in ds.coords:
+            add(f"{name} is a string", ds[name].dtype.kind in "USO", str(ds[name].dtype))
+    missing = [c for c in _CML_COORDS if c not in ds.variables]
+    add("site coordinates, frequency, length", not missing,
+        f"missing {missing}" if missing else "")
+    signals = [v for v in ("rsl", "tsl") if v in ds.data_vars]
+    add("rsl present (tsl optional)", "rsl" in signals, f"found {signals}")
+    for v in signals:
+        add(f"{v} in dBm", str(ds[v].attrs.get("units", "")).lower() == "dbm",
+            f"units={ds[v].attrs.get('units', '(none)')!r}")
+    for c in ("frequency", "length"):
+        if c in ds.variables:
+            units = ds[c].attrs.get("units")
+            add(f"{c} units declared", bool(units), f"units={units!r}")
+    return pd.DataFrame(rows)

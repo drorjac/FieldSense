@@ -79,3 +79,21 @@ def test_project_grid_attaches_what_mergeplg_and_poligrain_read():
     # projected metres, increasing eastward
     assert np.all(np.diff(out.x.values) > 0)
     assert 6.3e6 < float(out.y_grid.mean()) < 6.5e6
+
+
+def test_check_format_reports_what_is_missing():
+    from conftest import make_cml, rain_event
+    ds = make_cml(rain_event(n_links=1), [[23.0, 23.0]], [4.0])
+    ds = ds.assign_coords(cml_id=ds.cml_id.astype(str))      # the convention: strings
+    ds.rsl.attrs["units"] = "dBm"
+    ds.tsl.attrs["units"] = "dBm"
+    table = cv.check_format(ds)
+    assert table.passed.all(), table[~table.passed]
+    broken = ds.drop_vars("length")
+    broken.frequency.attrs.pop("units")
+    bad = cv.check_format(broken).set_index("check")
+    assert not bad.loc["site coordinates, frequency, length", "passed"]
+    assert "length" in bad.loc["site coordinates, frequency, length", "detail"]
+    assert not bad.loc["frequency units declared", "passed"]
+    ints = cv.check_format(make_cml(rain_event(n_links=1), [[23.0, 23.0]], [4.0])).set_index("check")
+    assert not ints.loc["cml_id is a string", "passed"]       # OpenMRG's subset does this
