@@ -85,3 +85,14 @@ def test_idw_in_km_corrects_the_degree_anisotropy():
     w_deg = maps.idw_weights(src_lon, src_lat, lon, lat, metric="degrees")[0]
     assert w_km == pytest.approx([0.5, 0.5], abs=1e-3)
     assert w_deg[1] > 0.7                                 # degrees favour the northern one
+
+
+def test_moving_benchmark_brackets_models_between_persistence_and_oracle():
+    from synthetic import moving_benchmark
+
+    table, _ = moving_benchmark(n=16, n_frames=(60, 20, 30), lookback=4, horizons=(1, 2),
+                                  epochs=1, evolve_tau_min=None)
+    cc = table.pivot(index="model", columns="horizon_min", values="CC")
+    assert cc.loc["oracle (true motion)"].min() > 0.99          # frozen: motion is everything
+    assert (cc.loc["oracle (true motion)"] >= cc.loc["persistence"]).all()
+    assert set(cc.index) >= {"transformer (multi)", "gru (multi)", "pod-sindy"}
