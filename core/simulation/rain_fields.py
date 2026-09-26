@@ -308,12 +308,13 @@ def advect(field: np.ndarray, grid: Grid, velocity_kmh: Tuple[float, float],
     """Translate a field by ``velocity_kmh`` over ``minutes``.
 
     Uses a circular shift on the periodic grid, rounded to whole cells, so no
-    interpolation smoothing is introduced. Sub-cell residuals are dropped.
+    interpolation smoothing is introduced. Sub-cell residuals are dropped -
+    which quantizes the velocity; ``moving_fields.shift`` has the exact
+    (spectral) version and ``moving_fields.sequence`` builds whole moving,
+    growing and evolving sequences.
     """
-    ux, uy = velocity_kmh
-    shift_x = int(round(ux * minutes / 60.0 / grid.dx_km))
-    shift_y = int(round(uy * minutes / 60.0 / grid.dx_km))
-    return np.roll(np.roll(field, shift_y, axis=0), shift_x, axis=1)
+    from core.simulation.moving_fields import shift
+    return shift(field, grid.dx_km, velocity_kmh, minutes / 60.0, method="integer")
 
 
 # --------------------------------------------------------------------------

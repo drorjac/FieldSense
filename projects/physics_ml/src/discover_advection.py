@@ -48,6 +48,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
 
+from core.simulation import moving_fields as mf
 from core.simulation.rain_fields import Grid, StratiformField, spectral_grf
 
 RESULTS = HERE.parent / "results"
@@ -62,15 +63,10 @@ def shift_exact(field: np.ndarray, dx_km: float,
 
     ``rain_fields.advect`` rounds to whole cells, which quantizes the velocity
     - at 0.25 km cells and 5-minute steps, 14 km/h becomes 15 km/h. That would
-    make this experiment measure the rounding, not the method. A phase ramp in
-    Fourier space translates a periodic field exactly, for any displacement.
+    make this experiment measure the rounding, not the method. The exact
+    (spectral) shift lives in ``core.simulation.moving_fields``.
     """
-    n = field.shape[0]
-    kx = np.fft.fftfreq(n, d=dx_km)
-    ky = np.fft.fftfreq(n, d=dx_km)
-    kxx, kyy = np.meshgrid(kx, ky, indexing="xy")
-    phase = np.exp(-2j * np.pi * (kxx * u_kmh * hours + kyy * v_kmh * hours))
-    return np.real(np.fft.ifft2(np.fft.fft2(field) * phase))
+    return mf.shift(field, dx_km, (u_kmh, v_kmh), hours, method="spectral")
 
 
 def make_sequence(velocity=(14.0, 5.0), n_steps: int = 40,
@@ -293,9 +289,6 @@ def main() -> None:
         print(f"wrote {fig_path.relative_to(REPO_ROOT)}")
 
 
-if __name__ == "__main__":
-    main()
-
 
 # --------------------------------------------------------------------------
 def figure(runs: list[dict], path: Path) -> None:
@@ -336,3 +329,7 @@ def figure(runs: list[dict], path: Path) -> None:
     fig.tight_layout()
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
+
+
+if __name__ == "__main__":
+    main()
