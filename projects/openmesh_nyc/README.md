@@ -50,7 +50,9 @@ and `wu_pipeline.ipynb` a Weather Underground API key read from
 
 Two facts from the 20-day subset worth knowing before using it: most links
 report one sublink (51 of 75; 20 report two, 4 three), and 8 of the 37 PWS
-record under 1 mm in 20 days against ~70 mm at the rest - dead, not dry.
+record under 1 mm in 20 days against ~70 mm at the rest. Seven of those are
+89-100% missing; one (KNYNEWYO1622) reports throughout but stays at zero,
+and pypwsqc's faulty-zero filter flags 88% of its record.
 ```
 
 The published data itself stays in `dataset/open_datasets/OpenMesh_NYC/`,
