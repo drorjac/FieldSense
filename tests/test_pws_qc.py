@@ -65,3 +65,25 @@ def test_regular_axis_and_the_amsterdam_variable_name(network):
 def test_so_is_not_evaluated_on_a_record_shorter_than_its_window(network):
     short = pws_qc.flag(network.isel(time=slice(0, 300)))       # default window: 28 days
     assert (short.so_flag == -1).all()
+
+
+def test_an_isolated_station_is_not_evaluated_rather_than_breaking(network):
+    far = network.assign_coords(x=network.x.where(network.id != "pws_9", 1e6))
+    qc = pws_qc.flag(far, so_evaluation_period=288, so_mmatch=20)
+    alone = qc.sel(id="pws_9")
+    assert int(alone.nbrs_not_nan.max()) == 0
+    assert (alone.fz_flag == -1).all() and (alone.hi_flag == -1).all()
+
+
+def test_openmrg2_file_quirks_are_normalized():
+    from core.opensense import openmrg2
+
+    raw = xr.Dataset(
+        {"rainfall": (("id", "time"), np.zeros((2, 3)))},
+        coords={"id": ["0", "1"], "time": pd.date_range("2015-06-01", periods=3, freq="5min"),
+                "elevation": ("elevation", [119.0, 73.0]),       # a dimension of its own
+                "latitude": ("id", [57.70, 57.71]), "longitude": ("id", [11.97, 11.98])})
+    ds = openmrg2._points(raw)
+    assert "elevation" not in ds.dims and list(ds.elevation.values) == [119.0, 73.0]
+    assert {"lon", "lat", "x", "y", "rainfall_amount", "R"} <= set(ds.variables)
+    assert 600_000 < float(ds.x[0]) < 700_000                  # UTM 32N metres

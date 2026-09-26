@@ -1,5 +1,6 @@
 """
-Fetch raw open datasets from Zenodo.
+Fetch raw open datasets from Zenodo (and, for data not yet on Zenodo, from
+the direct links its authors publish).
 
 Downloads are resumable (HTTP Range), verified against the checksum Zenodo
 publishes, and idempotent - an already-complete, verified file is skipped. Raw
@@ -8,6 +9,7 @@ from git by the root ``.gitignore`` (``*.zip``, ``*.tar``, ``*.nc``).
 
     python -m core.opensense.fetch --dataset openmrg
     python -m core.opensense.fetch --dataset openrainer --files CML.tar AWS.tar RADrain.tar
+    python -m core.opensense.fetch --dataset openmrg2_pws    # direct links, checksummed here
     python -m core.opensense.fetch --list
 """
 
@@ -37,6 +39,9 @@ class Source:
     license: str
     doi: str
     default_files: tuple    # files to fetch when --files is not given
+    # (key, url, md5, bytes) for data not (yet) on Zenodo; checksums are ours,
+    # taken at first download, so a changed upstream file fails loudly
+    direct: tuple = ()
 
 
 SOURCES = {
@@ -75,11 +80,35 @@ SOURCES = {
         doi="10.5281/zenodo.17508286",
         default_files=("PWS_NYC_WU.zip",),
     ),
+    # OpenMRG2 (github.com/OpenSenseAction/OpenMRG2): Gothenburg PWS for the
+    # OpenMRG period, which its authors distribute from Google Drive until the
+    # Zenodo record exists. CC-BY-4.0 is declared in the PWS file itself.
+    "openmrg2_pws": Source(
+        name="OpenMRG2 PWS preview (Netatmo, SMHI)",
+        record_id="",
+        folder="OpenMRG2_preview",
+        license="CC-BY-4.0",
+        doi="unpublished - see github.com/OpenSenseAction/OpenMRG2",
+        default_files=("OpenMRGplus_rain.nc", "city_gauges.nc", "smhi_gauges.nc"),
+        direct=(
+            ("OpenMRGplus_rain.nc", "1hjJq5sdHBDjNvw5oeLMXVjkdH-P36cpC",
+             "c1985231ed52defc0d67668d7584471e", 336773),
+            ("city_gauges.nc", "1190fQu3ie_93e7iJpZEC-p92h9y8XtOW",
+             "91a42c4679f2a33fb108b4b9a1067907", 11669605),
+            ("smhi_gauges.nc", "1j7MdStiY1xdWeJrrsEXgHCqMoT9Qy67z",
+             "8a98f068c03c111e8883de49eb91b785", 152389),
+        ),
+    ),
 }
+
+DRIVE = "https://drive.usercontent.google.com/download?id={}&confirm=yes"
 
 
 def list_record(source: Source) -> list[dict]:
-    """Return Zenodo's file listing for a record."""
+    """Return Zenodo's file listing for a record, or the direct files."""
+    if source.direct:
+        return [{"key": k, "size": n, "checksum": f"md5:{md5}", "url": DRIVE.format(i)}
+                for k, i, md5, n in source.direct]
     r = requests.get(
         f"https://zenodo.org/api/records/{source.record_id}", timeout=60
     )

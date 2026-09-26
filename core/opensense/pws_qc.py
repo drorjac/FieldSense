@@ -77,8 +77,12 @@ def neighbour_reference(ds: xr.Dataset, dist: xr.DataArray,
     for sid in ds.id.values:
         ids = dist.id_neighbor.values[near.sel(id=sid).values]
         sub = rain.sel(id=ids)
-        ref.append(sub.median("id") if len(ids) else xr.full_like(rain.isel(id=0), np.nan))
-        count.append(sub.notnull().sum("id"))
+        if len(ids):
+            ref.append(sub.median("id"))
+            count.append(sub.notnull().sum("id"))
+        else:                                   # isolated: nothing to compare with
+            ref.append(xr.full_like(rain.isel(id=0, drop=True), np.nan))
+            count.append(xr.zeros_like(rain.isel(id=0, drop=True), dtype=int))
     ds = ds.copy()
     ds["reference"] = xr.concat(ref, dim="id").assign_coords(id=ds.id).transpose("id", "time")
     ds["nbrs_not_nan"] = xr.concat(count, dim="id").assign_coords(id=ds.id).transpose("id", "time")
