@@ -4,11 +4,21 @@ Clean interface for running experiments
 """
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
 
 from data_analysis import analyze_synthetic_data, generate_datasets, summarize_datasets
 from training_utils import train_models, plot_training_curves, analyze_results, get_device
 from rain_simulator import rain_params_from_itu
+
+RESULTS = Path(__file__).resolve().parent.parent / "results"
+
+
+def pause(message: str):
+    """Wait for Enter at a terminal; run straight through otherwise."""
+    print(f"\n{message}")
+    if sys.stdin.isatty():
+        input()
 
 
 @dataclass
@@ -62,18 +72,14 @@ def main():
     print("\nStep 1: Data Analysis")
     gen = analyze_synthetic_data(config, save_plots=True)
 
-    # Ask user if they want to proceed with dataset generation
-    print(f"\nPress Enter to continue with dataset generation and training...")
-    input()
+    pause("Press Enter to continue with dataset generation and training...")
 
     # Step 2: Generate datasets
     print("\nStep 2: Dataset Generation")
     datasets = generate_datasets(config)
     summarize_datasets(datasets)
 
-    # Ask user if they want to proceed with training
-    print(f"\nPress Enter to continue with model training on {device}...")
-    input()
+    pause(f"Press Enter to continue with model training on {device}...")
 
     # Step 3: Train models
     print(f"\nStep 3: Model Training")
@@ -85,9 +91,9 @@ def main():
 
     # Step 5: Plot training curves
     print(f"\nStep 5: Visualization")
-    plot_training_curves(results, save_path="training_curves.png")
+    plot_training_curves(results, save_path=str(RESULTS / "training_curves.png"))
 
-    print(f"\nExperiment completed! Generated plots:")
+    print(f"\nExperiment completed! Plots in {RESULTS}:")
     print("- synthetic_data_analysis.png")
     print("- rain_process_analysis.png")
     print("- training_curves.png")
@@ -118,7 +124,6 @@ def analyze_data_only():
         link_length_km=config.link_length_km,
         freq_ghz=24,
         rain_sampler=lambda n: gen._rain_ar1(n, phi=0.7, mu=5.0, sigma_eps=2.0),
-        unified=True
     )
 
     return config, gen

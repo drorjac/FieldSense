@@ -77,9 +77,9 @@ present has a job:
 system, and field estimation is where that matters: a nowcast has to
 propagate the field forward, which means knowing how it moves.
 `projects/spatial_interpolation` benchmarks POD-SINDy against a Transformer
-and a GRU for exactly this, on real data and on these same moving fields. The Lorenz notebook teaches the
-method; `discover_advection.py` runs it on rainfall with a velocity known
-exactly, so the answer can be checked.
+and a GRU for exactly this, on real data and on these same moving fields.
+The Lorenz notebook teaches the method; `discover_advection.py` runs it on
+rainfall with a velocity known exactly, so the answer can be checked.
 
 The N-body and PINN-gravity material has no such counterpart and moved to
 `projects/mphysics/`. See `core/scientific_packages/` for PySINDy and PySR
@@ -134,7 +134,7 @@ has 172 links (ITU: k = 0.229, alpha = 0.913):
 
 | experiment | rain rate from | recovered k | recovered alpha | alpha error |
 |---|---|---|---|---|
-| synthetic | ITU + noise, truth known | 0.229 | 0.913 | **0.000** |
+| synthetic | ITU + noise, truth known | 0.230 | 0.912 | **0.001** |
 | reference | OpenSense's published retrieval | 0.419 | 0.911 | **0.002** |
 | gauge | municipal rain gauges | 0.488 | 0.478 | **0.435** |
 

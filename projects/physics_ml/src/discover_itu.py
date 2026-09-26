@@ -307,8 +307,6 @@ def main() -> None:
         print(f"wrote {fig_path.relative_to(REPO_ROOT)}")
 
 
-if __name__ == "__main__":
-    main()
 
 
 # --------------------------------------------------------------------------
@@ -370,3 +368,7 @@ def figure(runs: list[dict], path: Path) -> None:
     fig.tight_layout()
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
+
+
+if __name__ == "__main__":
+    main()

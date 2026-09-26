@@ -163,6 +163,39 @@ class RainAttenuationGenerator:
         plt.tight_layout(rect=[0, 0, 1, 0.92])
         plt.show()
 
+    def plot_synthetic_data(self, frequencies: List[float], sigma_vals: List[float],
+                            n_samples: int = 2000, link_length_km: float = 1.0,
+                            rain_sampler: Callable[[int], np.ndarray] = None,
+                            save_path: Optional[str] = None):
+        """Attenuation against rain rate, one panel per frequency x noise level.
+
+        Each frequency uses its ITU-R P.838-3 coefficients; the dashed line is
+        the noise-free power law.
+        """
+        fig, axes = plt.subplots(len(sigma_vals), len(frequencies), squeeze=False,
+                                 figsize=(3.6 * len(frequencies), 3.0 * len(sigma_vals)))
+        for j, freq in enumerate(frequencies):
+            rp = rain_params_from_itu(freq)
+            for i, sigma in enumerate(sigma_vals):
+                ax = axes[i][j]
+                R, _, A, _, _ = self.generate_data(
+                    n_samples, rp, link_length_km=link_length_km, sigma_db=sigma,
+                    rain_sampler=rain_sampler, test_size=0.0)
+                R_ref = np.linspace(0, max(R.max(), 1.0), 200)
+                ax.scatter(R, A, s=4, alpha=0.4)
+                ax.plot(R_ref, rp.a_coeff * R_ref ** rp.b_exponent * link_length_km, "--k", lw=1.2)
+                ax.set_title(f"{freq:g} GHz, σ = {sigma:g} dB", fontsize=10)
+                ax.grid(alpha=0.3)
+                if i == len(sigma_vals) - 1:
+                    ax.set_xlabel("rain rate (mm/h)")
+                if j == 0:
+                    ax.set_ylabel("attenuation (dB)")
+        fig.tight_layout()
+        if save_path:
+            fig.savefig(save_path, dpi=120)
+        plt.show()
+        return fig
+
 
 def rain_params_from_itu(freq_ghz: float, pol: str = "vertical") -> RainParams:
     """Return RainParams with ITU-R coefficients"""

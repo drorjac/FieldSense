@@ -3,10 +3,13 @@ Data analysis functions for hybrid rain retrieval
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 from typing import List, Dict, Any
 from sklearn.model_selection import train_test_split
 
 from rain_simulator import RainAttenuationGenerator, rain_params_from_itu, get_k_alpha
+
+RESULTS = Path(__file__).resolve().parent.parent / "results"
 
 
 def analyze_synthetic_data(config, save_plots: bool = True):
@@ -32,7 +35,7 @@ def analyze_synthetic_data(config, save_plots: bool = True):
         n_samples=2000,
         link_length_km=config.link_length_km,
         rain_sampler=lambda n: gen._rain_ar1(n, phi=0.7, mu=5.0, sigma_eps=2.0),
-        save_path="synthetic_data_analysis.png" if save_plots else None
+        save_path=str(RESULTS / "synthetic_data_analysis.png") if save_plots else None
     )
 
     # Print ITU coefficients for all frequencies
@@ -87,8 +90,8 @@ def analyze_synthetic_data(config, save_plots: bool = True):
     plt.tight_layout()
 
     if save_plots:
-        plt.savefig("rain_process_analysis.png", dpi=300, bbox_inches='tight')
-        print(f"Rain process analysis saved to: rain_process_analysis.png")
+        plt.savefig(RESULTS / "rain_process_analysis.png", dpi=300, bbox_inches='tight')
+        print(f"Rain process analysis saved to: {RESULTS / 'rain_process_analysis.png'}")
 
     plt.show()
 
