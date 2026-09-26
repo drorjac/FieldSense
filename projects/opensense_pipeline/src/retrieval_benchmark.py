@@ -18,6 +18,8 @@ wet/dry mask        which samples the baseline is allowed to learn from
                       (``poligrain.spatial.GridAtLines``)
     ``nearby``        the nearby-link approach of Overeem et al. (2016)
                       (``pycomlink``)
+    ``cnn``           the CNN of Polz et al. (2020), trained on German links
+                      against radar (``pycomlink`` loader, PyTorch)
 
 Every variant is scored against three references that do not share its
 errors, all matched with poligrain:
@@ -82,7 +84,7 @@ class Variant:
 
     key: str
     label: str
-    wet: str = "rolling_std"            # rolling_std | radar | nearby
+    wet: str = "rolling_std"            # rolling_std | radar | nearby | cnn
     changes: dict = field(default_factory=dict)
     qc: bool = False                    # mask samples at the receiver floor
 
@@ -106,6 +108,13 @@ VARIANTS = (
             wet="nearby", changes=dict(waa_model="leijnse2008")),
     Variant("wet_nearby_zero", "nearby-link wet/dry, zero when dry",
             wet="nearby", changes=dict(zero_when_dry=True)),
+    Variant("wet_cnn", "CNN wet/dry (Polz 2020), saturating WAA 0.5 dB", wet="cnn"),
+    Variant("wet_cnn_pastorek", "CNN wet/dry + WAA Pastorek 2021",
+            wet="cnn", changes=dict(waa_model="pastorek2021")),
+    Variant("wet_cnn_leijnse", "CNN wet/dry + WAA Leijnse 2008",
+            wet="cnn", changes=dict(waa_model="leijnse2008")),
+    Variant("wet_cnn_zero", "CNN wet/dry, zero when dry",
+            wet="cnn", changes=dict(zero_when_dry=True)),
     Variant("default_qc", "default + receiver-floor QC", qc=True),
     Variant("improved", "retrieve_improved: nearby + Leijnse + QC",
             wet="nearby", changes=dict(waa_model="leijnse2008"), qc=True),
@@ -273,18 +282,19 @@ def common_support(series: dict, refs: dict, spec: Spec) -> tuple[dict, dict]:
     each on its own valid pairs compares different samples.
     """
     keep = {}
-    for ref_key, step in (("gauge", spec.gauge_step), ("radar", spec.radar_step)):
+    pairs = [("gauge", spec.gauge_step), ("radar", spec.radar_step)]
+    if "pws" in refs:
+        pairs.append(("pws", spec.gauge_step))
+    for ref_key, step in pairs:
         m = np.isfinite(refs[ref_key].transpose("time", "cml_id"))
         for s in series.values():
             m = m & np.isfinite(s[step].transpose("time", "cml_id"))
         keep[ref_key] = m
-    out_refs = {k: refs[k].transpose("time", "cml_id").where(keep[k])
-                for k in ("gauge", "radar")}
+    out_refs = {k: refs[k].transpose("time", "cml_id").where(keep[k]) for k, _ in pairs}
     out_series = {}
     for key, s in series.items():
-        out_series[key] = {
-            "gauge": s[spec.gauge_step].transpose("time", "cml_id").where(keep["gauge"]),
-            "radar": s[spec.radar_step].transpose("time", "cml_id").where(keep["radar"])}
+        out_series[key] = {k: s[step].transpose("time", "cml_id").where(keep[k])
+                           for k, step in pairs}
     if "opensense_reference" in out_series:
         out_refs["opensense"] = out_series["opensense_reference"]["radar"]
     return out_series, out_refs
@@ -302,9 +312,10 @@ def score_all(series: dict, refs: dict, spec: Spec) -> list[dict]:
         logs = np.log(np.array(list(days.values()))) if days else np.array([np.nan])
         label = (VARIANTS_BY_KEY[key].label if key in VARIANTS_BY_KEY
                  else "OpenSense reference retrieval (shipped R)")
+        p = ev.rainfall_metrics(refs["pws"], s["pws"]) if "pws" in refs else {}
         rows.append({
             "key": key, "label": label,
-            "gauge": g, "radar": r, "opensense_ref": o,
+            "gauge": g, "radar": r, "opensense_ref": o, "pws": p,
             "daily_ratio": days,
             # spread of the daily ratio, as a factor: exp(std(log ratio))
             "daily_ratio_spread": float(np.exp(np.nanstd(logs))),
@@ -320,12 +331,63 @@ def print_table(rows: list[dict], spec: Spec) -> None:
           f"{'ratio':>7s}{'r':>7s}{'MCC':>7s}   {'spread':>6s}")
     for row in rows:
         g, r = row["gauge"], row["radar"]
+        p = row.get("pws") or {}
+        extra = (f"   PWS ratio {p['ratio']:5.2f} r {p['r']:5.3f} MCC {p['mcc']:5.3f}"
+                 if p else "")
         print(f"{row['label'][:52]:52s} {g['ratio']:7.2f}{g['r']:7.3f}{g['mcc']:7.3f}   "
               f"{r['ratio']:7.2f}{r['r']:7.3f}{r['mcc']:7.3f}   "
-              f"{row['daily_ratio_spread']:6.2f}x")
+              f"{row['daily_ratio_spread']:6.2f}x{extra}")
 
 
 # --------------------------------------------------------------------------
+def pws_reference(cml: xr.Dataset, spec: Spec) -> tuple[xr.DataArray, dict]:
+    """QC'd OpenMRG2 PWS, usable stations only, matched to link paths like the gauges.
+
+    The PWS share the municipal gauges' start-stamped convention (the raw
+    city-gauge file is identical to the curated one, and a lag scan puts
+    PWS and gauges on the same labels).
+    """
+    from core.opensense import openmrg2, pws_qc
+
+    d = openmrg2.load()
+    window = slice(cml.time.values[0], cml.time.values[-1])
+    qc = pws_qc.flag(d["pws"])
+    use = pws_qc.usable(qc)
+    per_hour = 3600.0 / pd.Timedelta(qc.attrs["step"]).total_seconds()
+    rate = (qc.rainfall_qc.sel(id=use) * per_hour).transpose("time", "id").sel(time=window)
+    pts = d["pws"].sel(id=use)
+    rate = rate.assign_coords({c: pts[c] for c in ("x", "y", "lon", "lat")})
+    closest = ev.closest_gauges(cml, rate.to_dataset(name="rainfall_amount"), spec.gauge_match_m)
+    at_links = ev.gauge_series_at_links(ev.aggregate(rate, spec.gauge_step, label=spec.label),
+                                        closest)
+    n = int(np.isfinite(closest.distance.isel(n_closest=0)).sum())
+    return at_links, {"stations": int(qc.sizes["id"]), "usable": len(use), "links_matched": n,
+                      "qc": "pws_qc.flag defaults, usable() stations"}
+
+
+def cnn_mask(spec: Spec, cml: xr.Dataset, quick: bool) -> xr.DataArray:
+    """``wet_dry.cnn`` for the whole window, cached: it is the one slow mask.
+
+    About 50 minutes for OpenMRG's 364 links over 8 days on a laptop CPU;
+    the cache key is the dataset, window and model, so a changed model or
+    threshold recomputes.
+    """
+    import hashlib
+
+    key = hashlib.md5(f"{wet_dry.POLZ2020_MODEL}|0.82|{cml.time.values[0]!s}|"
+                      f"{cml.time.values[-1]!s}|{cml.sizes['cml_id']}".encode()).hexdigest()[:10]
+    path = example_data.CACHE / "_masks" / f"{spec.key}{'_quick' if quick else ''}_cnn_{key}.nc"
+    if path.exists():
+        return xr.open_dataarray(path).load()
+    t = time.time()
+    print("  running the CNN (cached afterwards) ...", flush=True)
+    mask = wet_dry.cnn(cml)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    mask.rename("wet").to_netcdf(path)
+    print(f"  CNN done in {time.time() - t:.0f} s")
+    return mask
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -335,6 +397,8 @@ def main() -> None:
     ap.add_argument("--variants", nargs="*", choices=sorted(VARIANTS_BY_KEY),
                     help="default: all")
     ap.add_argument("--no-figure", action="store_true")
+    ap.add_argument("--pws", action="store_true",
+                    help="OpenMRG only: add QC'd OpenMRG2 PWS as a third reference")
     args = ap.parse_args()
 
     spec = SPECS[args.dataset]
@@ -359,6 +423,15 @@ def main() -> None:
     print(f"  radar along {radar_path.sizes['cml_id']} link paths; "
           f"{n_matched} links within {spec.gauge_match_m:g} m of a gauge")
 
+    pws_info = None
+    if args.pws:
+        if spec.key != "openmrg":
+            ap.error("--pws: PWS exist for OpenMRG (OpenMRG2) only")
+        pws_at_links, pws_info = pws_reference(cml, spec)
+        print(f"  PWS reference: {pws_info['usable']} of {pws_info['stations']} OpenMRG2 PWS "
+              f"pass QC; {pws_info['links_matched']} links within "
+              f"{spec.gauge_match_m:g} m of one")
+
     masks = {}
     if any(v.wet == "radar" for v in variants):
         masks["radar"] = wet_dry.from_radar(radar_path, cml.time)
@@ -367,6 +440,11 @@ def main() -> None:
         decided = float(np.isfinite(masks["nearby"]).mean())
         print(f"  nearby-link wet/dry (Overeem 2016): decided {decided:.0%} "
               f"of link-samples, rolling-std elsewhere")
+    if any(v.wet == "cnn" for v in variants):
+        masks["cnn"] = cnn_mask(spec, cml, args.quick)
+        decided = float(np.isfinite(masks["cnn"]).mean())
+        print(f"  CNN wet/dry (Polz 2020): decided {decided:.0%} of link-samples, "
+              f"wet {float(masks['cnn'].mean()):.1%}")
 
     steps = tuple(dict.fromkeys((spec.gauge_step, spec.radar_step)))
     print(f"Running {len(variants)} variants")
@@ -377,6 +455,8 @@ def main() -> None:
         series["opensense_reference"] = {
             f: ev.aggregate(ref, f, label=spec.label) for f in steps}
     refs = {"gauge": gauge_at_links, "radar": radar_path}
+    if pws_info:
+        refs["pws"] = pws_at_links
 
     rows = score_all(series, refs, spec)
     print_table(rows, spec)
@@ -397,6 +477,9 @@ def main() -> None:
         "wet_threshold_mm_h": ev.WET_THRESHOLD_MM_H,
         "nearby_mask_decided": (float(np.isfinite(masks["nearby"]).mean())
                                 if "nearby" in masks else None),
+        "cnn_mask_decided": (float(np.isfinite(masks["cnn"]).mean())
+                             if "cnn" in masks else None),
+        "pws_reference": pws_info,
         "rows": rows,
     }
     out = RESULTS / f"retrieval_benchmark{tag}.json"

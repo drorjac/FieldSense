@@ -37,6 +37,10 @@ opensense = [
     "pypwsqc>=0.2.1",      # PWS quality control (core.opensense.pws_qc)
     "opencv-python-headless",  # pySTEPS Lucas-Kanade; torch is needed for wet_dry.cnn
 ]
+# mergeplg main (new API, RADOLAN, c0_within) - installed *instead of* 0.1.0 it
+# changes merging results, which are then written with a "_mergeplg-main" suffix.
+# Not in the default environment; see projects/opensense_pipeline/README.md.
+mergeplg-main = ["mergeplg @ git+https://github.com/OpenSenseAction/mergeplg.git@dd380b1ed9b5b6bd38fdb3dfdfcca1659ceb8128"]
 dev = ["pytest"]
 
 # Only core/ is a package. Projects are scripts and notebooks that import it.

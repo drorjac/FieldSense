@@ -30,7 +30,7 @@ import plots                                                # noqa: E402
 import ingest_openmrg as omrg                               # noqa: E402
 import ingest_openrainer as orain                           # noqa: E402
 from core import viz_style as vs  # noqa: E402
-from merging import METHODS, run, score                     # noqa: E402
+from merging import API_TAG, METHODS, run, score            # noqa: E402
 from synthetic_benchmark import run_benchmark               # noqa: E402
 
 RESULTS = HERE.parent / "results"
@@ -173,7 +173,7 @@ def run_dataset(name: str, module, event_key: str,
     # overwrite each other.
     tag = ("" if source == "raw" else f"_{source}") + \
           ("" if retrieval == "default" else f"_{retrieval}") + \
-          ("" if select_by == "cml" else f"_by{select_by}")
+          ("" if select_by == "cml" else f"_by{select_by}") + API_TAG
 
     if source == "example":
         key = name.lower()
@@ -445,8 +445,14 @@ def main() -> None:
 
     suffix = ("" if args.source == "raw" else f"_{args.source}") + \
              ("" if args.retrieval == "default" else f"_{args.retrieval}") + \
-             ("" if args.val_select == "cml" else f"_by{args.val_select}")
+             ("" if args.val_select == "cml" else f"_by{args.val_select}") + API_TAG
     out = RESULTS / f"summary{suffix}.json"
+    if out.exists() and args.dataset != "both":
+        # a one-dataset run replaces that dataset's entry and keeps the other's
+        old = json.loads(out.read_text())
+        done = {r["dataset"] for r in runs}
+        summary["applications"] = [a for a in old.get("applications", [])
+                                   if a.get("dataset") not in done] + runs
     out.write_text(json.dumps(summary, indent=1, default=float))
     print(f"\nwrote {out.relative_to(REPO_ROOT)}")
     for p in sorted(RESULTS.glob("*.png")):

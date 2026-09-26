@@ -119,6 +119,14 @@ downstream code cannot track `main` without pinning a
 commit. A tagged release, with the renames in a changelog, would let users
 move together.
 
+**Bug on main with pandas 3:** `MergeRADOLAN` fails on float32 radar with
+`TypeError: Invalid value '[...]' for dtype 'float32'` in
+`radolan.processing.rh_to_rw` (`df_stations_t.loc[sensor_is_cml,
+"radar_RB_rainfall"] = ...`): the station table inherits the radar's dtype
+and is then assigned float64 values, a silent upcast in pandas 2 and an
+error in pandas 3.0.6. Casting the inputs to float64 avoids it; creating the
+column as float64 would fix it.
+
 One behaviour worth documenting: `MergeRADOLAN.__call__` picks its starting
 audit station at random by default (`start_index_in_relevant_stations=
 "random"`), so repeated runs differ unless an index is passed.

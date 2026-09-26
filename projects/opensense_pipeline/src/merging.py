@@ -17,10 +17,22 @@ from merging is measurable rather than assumed:
     its complexity.
 ``cml_only_idw``
     CML observations interpolated with no radar input at all.
+
+Two mergeplg APIs are supported. The 0.1.0 release (pinned, the published
+results) builds an object and calls ``update()`` then ``adjust()``; mergeplg
+``main`` takes the geometry in the constructor and is called per timestep,
+and renames and re-defaults several parameters. ``NEW_API`` says which is
+installed; each method carries explicit settings for both, so a run on
+``main`` compares like with like. Two methods exist only on ``main`` and are
+listed only there: RADOLAN (the DWD operational adjustment) and difference
+kriging with the nugget estimated from link geometry (``c0_within``).
+Results from ``main`` are written with the ``API_TAG`` suffix, never over
+the published files.
 """
 
 from __future__ import annotations
 
+import inspect
 import warnings
 from dataclasses import dataclass, field
 from typing import Callable
@@ -33,6 +45,9 @@ from mergeplg import interpolate, merge
 # Any estimate above this is a numerical blow-up, not rain.
 IMPLAUSIBLE_MM_H = 300.0
 
+NEW_API = "ds_rad" in inspect.signature(merge.MergeDifferenceIDW.__init__).parameters
+API_TAG = "_mergeplg-main" if NEW_API else ""
+
 
 @dataclass(frozen=True)
 class Method:
@@ -42,8 +57,11 @@ class Method:
     label: str
     uses_radar: bool
     uses_cml: bool
-    build: Callable | None = None      # constructs the mergeplg object
+    build: Callable | None = None      # constructs the mergeplg object (0.1.0)
     kwargs: dict = field(default_factory=dict)
+    new_cls: str = ""                  # "merge.X" / "interpolate.X" on mergeplg main
+    new_kwargs: dict = field(default_factory=dict)
+    main_only: bool = False
 
     @property
     def family(self) -> str:
@@ -63,24 +81,36 @@ METHODS: tuple[Method, ...] = (
         "cml_idw", "CML only, IDW", False, True,
         build=lambda: interpolate.InterpolateIDW(min_observations=1),
         kwargs=dict(p=2, idw_method="radolan", nnear=8, max_distance=30000),
+        new_cls="interpolate.InterpolateIDW",
+        new_kwargs=dict(min_observations=1, p=2, idw_method="radolan", nnear=8,
+                        max_distance=30000),
     ),
     Method(
         "cml_okrig", "CML only, block kriging", False, True,
         build=lambda: interpolate.InterpolateOrdinaryKriging(
             discretization=8, min_observations=1),
         kwargs=dict(variogram_model="spherical", nnear=8, full_line=True),
+        new_cls="interpolate.InterpolateOrdinaryKriging",
+        new_kwargs=dict(discretization=8, min_observations=1, variogram_model="spherical",
+                        nnear=8, full_line=True),
     ),
     Method(
         "merge_idw_add", "Merge: difference IDW (additive)", True, True,
         build=lambda: merge.MergeDifferenceIDW(min_observations=1),
         kwargs=dict(p=2, idw_method="radolan", nnear=8, max_distance=30000,
                     method="additive"),
+        new_cls="merge.MergeDifferenceIDW",
+        new_kwargs=dict(min_observations=1, p=2, idw_method="radolan", nnear=8,
+                        max_distance=30000, method="additive"),
     ),
     Method(
         "merge_idw_mult", "Merge: difference IDW (multiplicative)", True, True,
         build=lambda: merge.MergeDifferenceIDW(min_observations=1),
         kwargs=dict(p=2, idw_method="radolan", nnear=8, max_distance=30000,
                     method="multiplicative"),
+        new_cls="merge.MergeDifferenceIDW",
+        new_kwargs=dict(min_observations=1, p=2, idw_method="radolan", nnear=8,
+                        max_distance=30000, method="multiplicative"),
     ),
     Method(
         "merge_okrig_add", "Merge: difference kriging (additive)", True, True,
@@ -88,14 +118,33 @@ METHODS: tuple[Method, ...] = (
             discretization=8, min_observations=1),
         kwargs=dict(variogram_model="spherical", nnear=8, full_line=True,
                     method="additive"),
+        new_cls="merge.MergeDifferenceOrdinaryKriging",
+        new_kwargs=dict(discretization=8, min_observations=1, variogram_model="spherical",
+                        nnear=8, full_line=True, method="additive"),
     ),
     Method(
         "merge_ked", "Merge: kriging with external drift", True, True,
         build=lambda: merge.MergeKrigingExternalDrift(
             discretization=8, min_observations=1),
         kwargs=dict(variogram_model="spherical", n_closest=8),
+        new_cls="merge.MergeKrigingExternalDrift",
+        new_kwargs=dict(discretization=8, min_observations=1, variogram_model="spherical",
+                        nnear=8),
+    ),
+    Method(
+        "merge_okrig_add_c0", "Merge: difference kriging, nugget from link geometry",
+        True, True, main_only=True,
+        new_cls="merge.MergeDifferenceOrdinaryKriging",
+        new_kwargs=dict(discretization=8, min_observations=1, variogram_model="spherical",
+                        nnear=8, full_line=True, method="additive", c0_within=True),
+    ),
+    Method(
+        "merge_radolan", "Merge: RADOLAN (DWD)", True, True, main_only=True,
+        new_cls="merge.MergeRADOLAN",
+        new_kwargs=dict(nnear=8, max_distance=60000),
     ),
 )
+METHODS = tuple(m for m in METHODS if NEW_API or not m.main_only)
 
 METHODS_BY_KEY = {m.key: m for m in METHODS}
 
@@ -118,6 +167,8 @@ def run(method: Method, da_rad: xr.DataArray, da_cml: xr.DataArray | None,
 
     if method.key == "radar_only":
         return da_rad
+    if NEW_API:
+        return _run_new(method, da_rad, da_cml, da_gauge)
 
     obj = method.build()
     kwargs = dict(method.kwargs)
@@ -137,6 +188,38 @@ def run(method: Method, da_rad: xr.DataArray, da_cml: xr.DataArray | None,
         return xr.full_like(da_rad, np.nan).assign_attrs(
             merge_error=f"{type(exc).__name__}: {exc}")
 
+    out = xr.DataArray(np.asarray(out), dims=da_rad.dims, coords=da_rad.coords)
+    return out.clip(min=0.0)
+
+
+def _run_new(method: Method, da_rad, da_cml, da_gauge) -> xr.DataArray:
+    """``run`` on mergeplg main: geometry in the constructor, one call per step."""
+    module, name = method.new_cls.split(".")
+    cls = getattr(merge if module == "merge" else interpolate, name)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if module == "interpolate":
+                obj = cls(ds_grid=da_rad, ds_cmls=da_cml, ds_gauges=da_gauge,
+                          **method.new_kwargs)
+                out = obj(da_cmls=da_cml, da_gauges=da_gauge)
+            else:
+                extra = {}
+                if name == "MergeRADOLAN":
+                    # its station table is built from the inputs' dtype and then
+                    # given float64 values, which pandas 3 refuses for float32
+                    da_rad = da_rad.astype("float64")
+                    da_cml = None if da_cml is None else da_cml.astype("float64")
+                    da_gauge = None if da_gauge is None else da_gauge.astype("float64")
+                    extra = {"start_index_in_relevant_stations": 0}   # not random
+                obj = cls(ds_rad=da_rad, ds_cmls=da_cml, ds_gauges=da_gauge,
+                          **method.new_kwargs)
+                out = obj(da_rad, da_cmls=da_cml, da_gauges=da_gauge, **extra)
+                if isinstance(out, xr.Dataset):       # RADOLAN returns every product
+                    out = out["RW_not_rounded"]
+    except Exception as exc:                        # noqa: BLE001
+        return xr.full_like(da_rad, np.nan).assign_attrs(
+            merge_error=f"{type(exc).__name__}: {exc}")
     out = xr.DataArray(np.asarray(out), dims=da_rad.dims, coords=da_rad.coords)
     return out.clip(min=0.0)
 
