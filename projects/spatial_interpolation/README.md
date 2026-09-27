@@ -119,8 +119,8 @@ switchable in `config.py`, and the smoke run measures its direction.
 
 Also worth knowing: "Model 1 (physical)" is the CML estimate *at the target
 time* - a nowcast reference, not a forecast; the committed
-`advanced_models_colab_v2.ipynb` has no saved outputs, and its cell numbers
-no longer match the ones the paper's figures were taken from (72-80).
+`advanced_models_colab_v2.ipynb` has no saved outputs, and its cells no longer
+line up with the numbers (72-80) the paper's figures were taken from.
 
 ## A sanity check on rain whose future is known
 
