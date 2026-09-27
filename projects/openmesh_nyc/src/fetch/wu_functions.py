@@ -188,6 +188,22 @@ COLUMN_ORDER = [
 # DATA CONVERSION AND METADATA FUNCTIONS
 # ============================================================================
 
+def api_key() -> str:
+    """The WU API key from ``$WU_API_KEY``; raises with instructions if unset."""
+    key = os.environ.get("WU_API_KEY")
+    if not key:
+        raise RuntimeError("Set WU_API_KEY (https://www.wunderground.com/member/api-keys)")
+    return key
+
+
+def station_frames(results: Dict) -> Dict[str, Dict]:
+    """``run_wu_pipeline`` output as ``{station_id: {'raw', 'clean', 'metadata'}}``,
+    the shape every ``wu_plotting`` ``*_multi`` function and
+    ``station_accumulation_table`` take."""
+    return {sid: {**dfs, "metadata": results["metadata"][sid]}
+            for sid, dfs in results["dataframes"].items()}
+
+
 def find_project_root():
     """Find project root by looking for dataset folder"""
     from pathlib import Path

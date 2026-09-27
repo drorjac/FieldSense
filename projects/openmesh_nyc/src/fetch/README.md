@@ -8,8 +8,7 @@ used by other projects too, so its fetcher lives in `core/radar/nexrad.py`.
 
 ```
 src/fetch/
-├── asos_functions.py    # NOAA ASOS 1-minute fetch, processing, save_data()
-├── asos_plotting.py     # ASOS figures
+├── asos_functions.py    # NOAA ASOS 1-minute fetch, processing, figures, save_data()
 ├── wu_functions.py      # Weather Underground PWS fetch, cleaning, run_wu_pipeline()
 └── wu_plotting.py       # PWS figures
 

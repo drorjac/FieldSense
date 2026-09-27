@@ -50,7 +50,7 @@ def plot_precipitation_analysis_multi(station_data: Dict, units: str = 'm', show
     
     ax.set_ylabel(f'Precipitation Rate ({unit})', fontweight='bold', fontsize=11)
     ax.set_xlabel('Date', fontweight='bold', fontsize=11)
-    ax.set_title(f'💧 Precipitation: Sample Stations ({len(station_ids)} of {len(station_data)})', 
+    ax.set_title(f'Precipitation: Sample Stations ({len(station_ids)} of {len(station_data)})', 
                 fontsize=13, fontweight='bold')
     ax.set_facecolor('white')
     ax.grid(True, alpha=0.4, color='#999999', linestyle='--')
@@ -110,7 +110,7 @@ def plot_cumulative_precipitation_multi(station_data: Dict, units: str = 'm', sh
     
     ax.set_ylabel(f'Cumulative Precipitation ({unit})', fontweight='bold', fontsize=11)
     ax.set_xlabel('Date', fontweight='bold', fontsize=11)
-    ax.set_title(f'💧 Cumulative Precipitation: Sample Stations ({len(station_ids)} of {len(station_data)})',
+    ax.set_title(f'Cumulative Precipitation: Sample Stations ({len(station_ids)} of {len(station_data)})',
                 fontsize=13, fontweight='bold')
     ax.set_facecolor('white')
     ax.grid(True, alpha=0.4, color='#999999', linestyle='--')
@@ -182,7 +182,7 @@ def plot_precipitation_analysis(df: pd.DataFrame, station_id: str, units: str = 
                edgecolor='#003366', alpha=0.8, linewidth=0.5)
         ax.set_ylabel(f'Precipitation Rate ({unit})', fontweight='bold', fontsize=11)
         ax.set_xlabel('Date', fontweight='bold', fontsize=11)
-        ax.set_title(f'💧 Precipitation: {station_id}', fontsize=13, fontweight='bold')
+        ax.set_title(f'Precipitation: {station_id}', fontsize=13, fontweight='bold')
         ax.set_facecolor('white')
         ax.grid(True, alpha=0.4, color='#999999', linestyle='--')
         ax.tick_params(axis='x', rotation=45, labelsize=9)
@@ -214,7 +214,7 @@ def plot_precipitation_analysis(df: pd.DataFrame, station_id: str, units: str = 
         ax.axhline(y=0, color='red', linestyle='-', linewidth=2, alpha=0.8, zorder=5)
         ax.set_ylabel(f'Precipitation Rate ({unit})', fontweight='bold', fontsize=11)
         ax.set_xlabel('Date', fontweight='bold', fontsize=11)
-        ax.set_title(f'💧 Precipitation: {station_id} - DRY PERIOD', fontsize=13, fontweight='bold', color='red')
+        ax.set_title(f'Precipitation: {station_id} - DRY PERIOD', fontsize=13, fontweight='bold', color='red')
         ax.set_facecolor('white')
         ax.grid(True, alpha=0.4, color='#999999', linestyle='--')
         ax.tick_params(axis='x', rotation=45, labelsize=9)
@@ -278,7 +278,7 @@ def plot_cumulative_precipitation(df: pd.DataFrame, station_id: str, units: str 
                     alpha=0.3, color='#3399FF')
     ax.set_ylabel(f'Cumulative Precipitation ({unit})', fontweight='bold', fontsize=12)
     ax.set_xlabel('Date', fontweight='bold', fontsize=12)
-    ax.set_title(f'💧 Cumulative Precipitation: {station_id}', fontsize=14, fontweight='bold')
+    ax.set_title(f'Cumulative Precipitation: {station_id}', fontsize=14, fontweight='bold')
     ax.set_facecolor('white')
     ax.grid(True, alpha=0.6, color='#666666', linestyle='-', linewidth=0.8)
     ax.tick_params(axis='x', rotation=45, labelsize=10)
@@ -447,7 +447,7 @@ def check_data_quality(df: pd.DataFrame, start_date, end_date, verbose: bool = F
 
     first_date = df['time_local'].min()
     last_date = df['time_local'].max()
-    expected_obs = (end_date - start_date).days * 24
+    expected_obs = ((end_date - start_date).days + 1) * 24   # both ends inclusive, hourly
     completeness = (len(df) / expected_obs) * 100
     time_diffs = df['time_local'].diff()
     gaps = time_diffs[time_diffs > pd.Timedelta(hours=2)]

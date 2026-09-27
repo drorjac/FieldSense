@@ -34,7 +34,7 @@ openmesh_nyc/
 │   ├── mop.py                  # strips \blue{} markup, camera_ready → *_clean
 │   ├── stations.py             # PWS / ASOS totals, accumulation, dead-station check
 │   └── fetch/                  # the collection pipelines the notebooks drive
-│       ├── asos_functions.py   asos_plotting.py
+│       ├── asos_functions.py
 │       └── wu_functions.py     wu_plotting.py
 ├── tests/test_stations.py
 ├── requirements.txt

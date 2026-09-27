@@ -422,6 +422,27 @@ def compute_accumulated_all(processed_data, start_date=None, end_date=None):
     return accumulated
 
 
+def station_summary(data_dict):
+    """One row per station: rows, precipitation total and wet minutes, mean
+    temperature and wind. Works on 1-minute or resampled data."""
+    rows = []
+    for station_id, df in data_dict.items():
+        rows.append({
+            'station_id': station_id,
+            'rows': len(df),
+            'start': df['datetime'].min(),
+            'end': df['datetime'].max(),
+            'precip_mm': df['precip_mm'].sum(),
+            'wet_rows': int((df['precip_mm'] > 0).sum()),
+            'temp_c_mean': df['temp_c'].mean() if 'temp_c' in df else np.nan,
+            'wind_ms_mean': df['wind_speed_ms'].mean() if 'wind_speed_ms' in df else np.nan,
+        })
+    out = pd.DataFrame(rows).set_index('station_id')
+    num = out.select_dtypes('number').columns
+    out[num] = out[num].round(2)
+    return out
+
+
 # =============================================================================
 # PRECIP TYPE ANALYSIS
 # =============================================================================
