@@ -68,3 +68,6 @@ hall_of_fame*.csv.bak
 # core/opensense/fetch.py and projects/opensense_pipeline/src/ingest_*.py)
 dataset/open_datasets/*/raw/
 dataset/open_datasets/*/processed/
+
+# PR write-ups kept locally for review, not published
+docs/PRs/
