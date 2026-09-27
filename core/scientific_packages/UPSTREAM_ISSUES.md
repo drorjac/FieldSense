@@ -106,6 +106,76 @@ projected endpoints (test: `tests/test_evaluation.py`).
 
 ---
 
+## mergeplg 0.1.0: `MergeKrigingExternalDrift.adjust` writes NaN into the caller's radar
+
+**Repository:** OpenSenseAction/mergeplg
+
+`adjust` takes the radar values without copying them and then marks dry
+cells in place (`merge.py`, 0.1.0):
+
+```python
+rad_field = da_rad.isel(time=0).data if "time" in da_rad.dims else da_rad.data
+# Set zero values to nan, these are ignored in ked function
+rad_field[rad_field <= 0] = np.nan
+```
+
+`da_rad.data` (and `isel(time=0).data`, a view) is the caller's array, so
+after one call every zero-rain cell of the input radar is NaN. Nothing is
+returned or warned; the damage shows up wherever the caller uses that radar
+next - in a benchmark, the "radar only" baseline, or the next method run on
+the same field.
+
+Reproduction:
+
+```python
+import numpy as np
+import xarray as xr
+from mergeplg import merge
+
+rng = np.random.default_rng(0)
+x = np.arange(20) * 1000.0
+xg, yg = np.meshgrid(x, x)
+rad = np.full(xg.shape, 3.0)
+rad[:, :5] = 0.0                                   # a dry strip
+da_rad = xr.DataArray(rad, dims=("y", "x"), coords=dict(
+    x=x, y=x, x_grid=(("y", "x"), xg), y_grid=(("y", "x"), yg)))
+
+n = 12
+x0, y0 = rng.uniform(6e3, 17e3, (2, n))
+da_cml = xr.DataArray(rng.uniform(2, 5, n), dims="cml_id", coords=dict(
+    cml_id=np.arange(n), site_0_x=("cml_id", x0), site_0_y=("cml_id", y0),
+    site_1_x=("cml_id", x0 + 1500), site_1_y=("cml_id", y0 + 1500)))
+
+ked = merge.MergeKrigingExternalDrift()
+ked.update(da_rad, da_cml=da_cml)
+ked.adjust(da_rad, da_cml=da_cml)
+print(int(np.isnan(da_rad.values).sum()))          # 100: the whole dry strip
+```
+
+**Impact here:** a radar-only baseline scored after KED on the same array
+lost its dry cells, and with them its easy correct zeros: on OpenRainER
+(26 Sep 2021) radar-only scored RMSE 8.81 on 4,606 gauge pairs instead of
+8.00 on 5,607, which made merging look 10% better than radar instead of 1%.
+
+**Fix:** copy before masking, e.g. `rad_field = np.array(..., dtype=float)`,
+or build the mask without assigning (`np.where(rad_field > 0, rad_field,
+np.nan)`). A related aliasing: when there are too few observations `adjust`
+returns `da_rad` itself, so a caller who modifies the "adjusted" field
+modifies the radar too; returning `da_rad.copy()` avoids it.
+
+**Status on `main` (dd380b1):** not reproducible. The rewritten KED selects
+valid cells with a boolean mask (`rad_field[~mask]`, a copy), and the same
+checks leave the input unchanged. So this is fixed by the unreleased
+rewrite, which is one more reason for the release below; a 0.1.1 with the
+one-line copy would help anyone pinned to the PyPI version meanwhile.
+
+**Workaround in FieldSense:** `projects/opensense_pipeline/src/merging.py`
+passes every method a deep copy of the radar;
+`projects/opensense_pipeline/tests/test_merging.py` checks each method
+leaves its input untouched.
+
+---
+
 ## mergeplg: a release of `main`
 
 **Repository:** OpenSenseAction/mergeplg
