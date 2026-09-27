@@ -22,8 +22,9 @@ minute and under 50 lines of code: every cell is a call into `core.opensense`.
 
 - **Which map wins depends on which sensor is weaker.** Against held-out
   gauges, the dense Swedish network alone beats radar and every merge (RMSE
-  4.45 vs 6.16 mm/h); on the sparse Italian network merging wins (7.90 vs
-  8.81), and its gain is concentrated within 2 km of a link.
+  4.45 vs 6.16 mm/h); on the sparse Italian network merging only edges
+  radar overall (7.90 vs 8.00), and all of its gain is within 5 km of a
+  link (−11% within 2 km; beyond 5 km radar alone is best).
 - **The retrieval's magnitude is set by the wet-antenna term, and the
   default does not transfer.** The ratio to the OpenSense reference moves
   from 1.93 to 0.74 across plausible settings; `retrieve_improved`
@@ -455,7 +456,7 @@ radar-only then scores identically.
 | event | best method | default retrieval | improved retrieval |
 |---|---|---|---|
 | OpenMRG, 25 Aug 2015 | CML only, block kriging | RMSE **4.73**, r 0.668, bias −0.81 | RMSE 5.26, r **0.747**, bias +3.08 |
-| OpenRainER, 26 Sep 2021 | merge: difference kriging | RMSE **8.01**, r 0.722, bias −0.66 | RMSE 8.10, r 0.719, bias −0.93 |
+| OpenRainER, 26 Sep 2021 | merge: difference kriging | RMSE **8.01**, r 0.722, bias −0.66 | RMSE 8.06, r 0.721, bias −0.94 |
 
 On OpenMRG the improved chain raises correlation for every method that uses
 the CMLs (+0.05 to +0.08) and adds a +3 mm/h bias that costs more RMSE than
@@ -642,18 +643,31 @@ Scored against held-out gauges, pooled over the 20 wettest timesteps:
 | | radar only | best CML-only | best merged | winner |
 |---|---|---|---|---|
 | **OpenMRG** (n=200) | RMSE 6.16, r=0.35 | RMSE **4.45**, r=0.66 | RMSE 4.69, r=0.64 | CML |
-| **OpenRainER** (n≈5,600) | RMSE 8.81, r=0.72 | RMSE 9.81, r=0.47 | RMSE **7.90**, r=0.71 | merge |
+| **OpenRainER** (n≈5,600) | RMSE 8.00, r=0.73 | RMSE 9.81, r=0.47 | RMSE **7.90**, r=0.71 | merge, narrowly |
 
 In Sweden the dense 364-link network is much better than the radar
 (r=0.66 against 0.35), and merging lands between its two inputs: it dilutes
-the good sensor with the poor one. In Italy the two are closer, and merging
-wins. Difference kriging cuts RMSE 10% below radar-only at essentially the
-same correlation.
+the good sensor with the poor one. In Italy the two are closer and the
+overall result is nearly a tie: difference kriging edges radar-only by 1%
+RMSE at slightly lower correlation. The tie hides a clear split by distance
+from the links (below): merging wins near the network and radar wins away
+from it.
 
 **The practical answer: merge when the sensors are comparable, and not when
 one is clearly better.** Merging corrects the weaker sensor's errors where
 the stronger one has information. When one sensor dominates, there is little
 left to correct and the weaker one's noise comes along.
+
+> **Correction (27 September 2026).** An earlier version had merging beat
+> OpenRainER's radar by 10% (7.90 against 8.81), and by 5-19% in every
+> distance band. The radar-only score was computed on a damaged field:
+> mergeplg 0.1.0's kriging with external drift sets every zero-rain cell of
+> the radar it is given to NaN, and `merging.run` passed it the same array
+> that "radar only" returns. Dry cells then dropped out of radar-only's score
+> (4,606 of ~5,600 pairs kept), which removed its easy correct zeros. Every
+> method now gets its own copy (`tests/test_merging.py` covers this); merge
+> scores did not change, radar-only did. On OpenMRG no scored radar pixel was
+> zero at the gauges, so its scores are unchanged.
 
 > **Correction (September 2026).** An earlier version of this section had
 > OpenRainER's radar winning outright (RMSE 8.62 against 8.98 merged, CML-only
@@ -672,9 +686,9 @@ left to correct and the weaker one's noise comes along.
 The synthetic benchmark imposed a ~35% low radar bias with a relatively clean
 CML retrieval. Those errors are *complementary*, the situation merging is
 designed for, and merging duly wins every regime. OpenRainER is closer to that
-situation than it first appeared, and merging now wins there too. OpenMRG
-is not: its radar is not merely biased but poorly correlated with the gauges,
-so a merge that trusts it anywhere pays for it.
+situation than it first appeared, and merging wins there within 5 km of a
+link. OpenMRG is not: its radar is not merely biased but poorly correlated
+with the gauges, so a merge that trusts it anywhere pays for it.
 
 The general caveat still holds: **a synthetic ranking is only as good as the
 error model you assume.** It describes OpenRainER reasonably and OpenMRG only
@@ -689,15 +703,58 @@ near the network. Stratified by gauge distance to the nearest link path
 
 | band | n | best method, RMSE | radar-only RMSE | gain |
 |---|---|---|---|---|
-| 0–2 km | 1,420 | difference kriging, 7.31 | 9.06 | −19% |
-| 2–5 km | 1,380 | difference kriging, 7.15 | 8.33 | −14% |
-| 5–10 km | 1,740 | kriging with external drift, 5.84 | 6.36 | −8% |
-| >10 km | 1,840 | difference kriging, 10.16 | 10.70 | −5% |
+| 0–2 km | 1,420 | difference kriging, 7.31 | 8.25 | −11% |
+| 2–5 km | 1,380 | difference kriging, 7.15 | 7.47 | −4% |
+| 5–10 km | 1,740 | radar only, 5.76 | 5.76 | 0 |
+| >10 km | 1,840 | radar only, 9.80 | 9.80 | 0 |
 
-The gain falls steadily with distance, as the geometry argument predicts.
-The earlier version of this table showed radar-only winning every band and
-was presented as ruling that explanation out; it was the timestamp error
-again.
+The gain falls with distance, as the geometry argument predicts, and is gone
+beyond 5 km: there the links add nothing the radar does not already have,
+and every merge scores at or below radar alone. Two earlier versions of this
+table were wrong in opposite directions: one showed radar-only winning every
+band (the timestamp error), the next showed merging winning every band (the
+damaged radar-only field, see the correction above).
+
+### mergeplg `main`: same picture, two new methods
+
+mergeplg `main` (pinned at `dd380b1`) changes the API and several defaults
+and adds two methods: RADOLAN, the DWD operational gauge adjustment, and
+difference kriging with the nugget estimated from link geometry
+(`c0_within`). `merging.py` gives every method explicit settings on both
+versions, so the comparison is like for like. Install `main` into a
+**separate** environment, identical to `.venv` except for mergeplg, since it
+replaces 0.1.0; results carry a `_mergeplg-main` suffix and never overwrite
+the published files:
+
+```bash
+python -m venv .venv-mergeplg-main
+.venv/bin/pip freeze | grep -v -e '^mergeplg' -e '^-e' > /tmp/freeze.txt
+.venv-mergeplg-main/bin/pip install -r /tmp/freeze.txt && .venv-mergeplg-main/bin/pip install --no-deps -e .
+.venv-mergeplg-main/bin/pip install --no-deps "mergeplg @ git+https://github.com/OpenSenseAction/mergeplg.git@dd380b1ed9b5b6bd38fdb3dfdfcca1659ceb8128"
+.venv-mergeplg-main/bin/python projects/opensense_pipeline/src/run_pipeline.py --val-select gauge --skip-benchmark
+```
+
+Gauge-selected timesteps, RMSE (mm/h) against held-out gauges:
+
+| method | OpenMRG 0.1.0 | OpenMRG main | OpenRainER 0.1.0 | OpenRainER main |
+|---|---|---|---|---|
+| Radar only | 7.06 | 7.06 | 8.24 | 8.24 |
+| CML only, IDW | 4.91 | 4.91 | 9.97 | 9.97 |
+| CML only, block kriging | **4.73** | 4.85 | 9.89 | 9.90 |
+| Merge: difference IDW (additive) | 5.39 | 5.39 | 8.58 | 8.35 |
+| Merge: difference IDW (multiplicative) | 5.36 | 5.36 | 105.16 ⚠ | 12.46 |
+| Merge: difference kriging (additive) | 5.14 | 5.11 | **8.01** | 7.98 |
+| Merge: kriging with external drift | 4.96 | 4.93 | 8.62 | 8.77 |
+| Merge: difference kriging, `c0_within` | - | 5.23 | - | **7.92** |
+| Merge: RADOLAN | - | **4.73** | - | 8.04 |
+
+The conclusions hold. On OpenMRG, RADOLAN (4.73) matches 0.1.0's best, CML-
+only kriging, and the other merges trail the CML-only maps; on OpenRainER,
+difference kriging still leads radar-only, a little more so with the
+geometric nugget (7.92). What differs is the IDW merges on OpenRainER:
+`main` fills every cell (5,718 pairs against 5,291 on 0.1.0), and
+multiplicative IDW is no longer catastrophic, though it is still the worst
+merge.
 
 ## Figures
 
