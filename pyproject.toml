@@ -48,7 +48,7 @@ dev = ["pytest"]
 include = ["core*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "projects/cml_retrieval/tests", "projects/physics_ml/tests", "projects/mphysics/tests", "projects/openmesh_nyc/tests", "projects/spatial_interpolation/tests"]
+testpaths = ["tests", "projects/cml_retrieval/tests", "projects/physics_ml/tests", "projects/mphysics/tests", "projects/openmesh_nyc/tests", "projects/opensense_pipeline/tests", "projects/spatial_interpolation/tests"]
 addopts = "-q"
 filterwarnings = [
     # poligrain's wet/dry metrics take the mean of an empty slice when a

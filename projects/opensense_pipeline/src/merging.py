@@ -161,7 +161,10 @@ def run(method: Method, da_rad: xr.DataArray, da_cml: xr.DataArray | None,
     a singular kriging system - returns an all-NaN field rather than raising,
     so one bad timestep cannot abort a long benchmark.
     """
-    da_rad = conform_radar(da_rad)
+    # A copy: mergeplg 0.1.0's MergeKrigingExternalDrift sets zero-rain cells of
+    # the radar it is given to NaN, which corrupted "radar only" (the same array)
+    # and any later use of the caller's field.
+    da_rad = conform_radar(da_rad).copy(deep=True)
     da_cml = conform_cml(da_cml)
     da_gauge = conform_gauge(da_gauge)
 
