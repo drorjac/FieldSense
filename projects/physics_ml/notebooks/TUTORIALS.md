@@ -37,8 +37,8 @@ method on a FieldSense quantity where the right answer is known.
 
 ---
 
-The N-body pipeline and the PINN-vs-network comparison moved to
-`projects/mphysics/` — they are classical-physics demonstrations with no
-FieldSense counterpart. The two tutorials that remain teach methods this
+The N-body pipeline and the PINN-vs-network comparison are not part of this
+repository — they are classical-physics demonstrations with no FieldSense
+counterpart. The two tutorials that remain teach methods this
 project runs on real data: see `src/discover_itu.py` (PySR) and
 `src/discover_advection.py` (SINDy).

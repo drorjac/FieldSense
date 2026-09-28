@@ -6,6 +6,20 @@ and rainfall maps, fuses it with gauges, personal weather stations and radar,
 and uses physics-informed machine learning to retrieve, reconstruct and
 nowcast the field.
 
+## Example datasets
+
+[`examples/`](examples/) reads the small curated subsets the OpenSense
+community publishes at
+[OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data),
+one notebook per dataset: OpenMRG (Gothenburg), OpenRainER (Emilia-Romagna),
+OpenMesh (New York City) and the Amsterdam PWS. Files download on first use,
+about 60 MB in all. Start with `examples/00_overview.ipynb`.
+
+```python
+from core.opensense import example_data
+data = example_data.load("openmesh", "20d")    # {"cml": ..., "pws": ..., "asos": ...}
+```
+
 ## Projects
 
 Each project is self-contained: its own `src/`, notebooks, results and
@@ -19,7 +33,6 @@ README. Start with the entry point listed.
 | [`rainfall_field_sim`](projects/rainfall_field_sim/) | three rain regimes, a simulated CML network: what limits the reconstruction, sensors or geometry? | `python src/run_demo.py` |
 | [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting from CML-derived maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
 | [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; paper | `notebooks/openmesh_data.ipynb` |
-| [`mphysics`](projects/mphysics/) | physics-ML methods on classical problems (n-body, PINNs); no rain data | `notebooks/nbody_discovery.ipynb` |
 | [`estimation_after_detection`](projects/estimation_after_detection/) | placeholder | - |
 
 Notebooks are short: each cell is a call into the project's `src/` or into
@@ -37,6 +50,7 @@ FieldSense/
 │   ├── radar/                # KOKX NEXRAD
 │   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
 │   └── viz_style.py          # shared palette and matplotlib defaults
+├── examples/             # one notebook per OpenSense example dataset
 ├── projects/             # the research projects above
 ├── tests/                # pytest for core/ (synthetic data, no downloads)
 ├── dataset/open_datasets/  # OpenMRG, OpenRainER, OpenMesh NYC, CML Netherlands (data not in git)

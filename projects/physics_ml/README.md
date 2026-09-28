@@ -81,8 +81,8 @@ and a GRU for exactly this, on real data and on these same moving fields.
 The Lorenz notebook teaches the method; `discover_advection.py` runs it on
 rainfall with a velocity known exactly, so the answer can be checked.
 
-The N-body and PINN-gravity material has no such counterpart and moved to
-`projects/mphysics/`. See `core/scientific_packages/` for PySINDy and PySR
+The N-body and PINN-gravity material has no such counterpart and is not part
+of this repository. See `core/scientific_packages/` for PySINDy and PySR
 reference notes.
 
 ## The hybrid, measured
@@ -232,4 +232,3 @@ time derivative picks up Gibbs error and reads 12.8 instead.
 
 - ITU-R P.838-3, *Specific attenuation model for rain for use in prediction methods*.
 - Brunton, Proctor & Kutz (2016), SINDy, *PNAS* 113(15); Cranmer (2023), PySR, arXiv:2305.01582.
-- PINNs on classical problems: `projects/mphysics/`.
