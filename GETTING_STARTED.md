@@ -67,6 +67,28 @@ python -m pytest                     # offline, about 30 s; everything should pa
 from any notebook. In PyCharm or VS Code, choose `.venv` as the interpreter or
 notebook kernel.
 
+### Import errors?
+
+`No module named 'core'`, or `numpy.core.multiarray failed to import` from
+`poligrain` or `netCDF4`, means the notebook runs in a different Python than
+the `.venv` you installed into - usually an older environment, or one created
+with access to the system's packages, whose numpy does not match.
+
+1. Point the editor at the repository's `.venv`:
+   - **PyCharm:** Settings → Project → Python Interpreter → Add Interpreter →
+     Add Local Interpreter → Select existing → `<repo>/.venv/bin/python`
+     (Windows: `<repo>\.venv\Scripts\python.exe`).
+   - **VS Code:** Python: Select Interpreter, and in a notebook, Select Kernel.
+2. Select the same interpreter as the notebook's kernel, and restart the kernel.
+3. Check it from a terminal with `.venv` activated:
+
+```bash
+python -c "import core, poligrain, netCDF4; print(core.__file__)"
+```
+
+This should print a path inside your clone of FieldSense. If it fails, run
+the `pip install` line above again inside `.venv`.
+
 ## 3. Open your first dataset: OpenMRG
 
 **OpenMRG** is 364 microwave links, a weather radar and rain gauges over
