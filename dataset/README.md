@@ -30,6 +30,14 @@ NetCDF files under `open_datasets/<dataset>/processed/`.
 | **Amsterdam PWS** | Amsterdam, Netherlands; 2016-2018 | 134 Netatmo PWS, radar reference | `ams_pws` (`full_period`) | - | CC BY 4.0 |
 | **CML Netherlands** | Netherlands; 2011-2015 | nationwide CMLs | - | not automated yet | see source |
 
+Reference observations over New York City, downloaded on request by `core/`:
+
+| source | what | code | license |
+|---|---|---|---|
+| **MRMS** (NOAA/NSSL) | gauge-corrected radar QPE and precipitation type, 0.01°, from the [NOAA AWS bucket](https://registry.opendata.aws/noaa-mrms-pds/) (IEM as fallback) | `core.radar.mrms` | public domain (US government) |
+| **ASOS** (NWS) | airport gauges and present weather at Central Park, LaGuardia, JFK and Newark, via the [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/request/download.phtml) | `core.asos` | public domain (US government) |
+| **KOKX NEXRAD** | reflectivity frames, via the IEM archive | `core.radar.nexrad` | public domain (US government) |
+
 ### Sources and citations
 
 Cite the original dataset in anything that uses it.
@@ -77,6 +85,9 @@ dataset/open_datasets/
 │   └── processed/        #   OpenSense NetCDF made by ingest_openmrg.py  (generated)
 ├── OpenRainER_Italy/     # README; raw/ and processed/ as above
 ├── OpenMesh_NYC/         # the Zenodo package's README.txt, network maps (HTML)
+│   └── raw/              #   OpenMesh.zip, PWS_NYC_WU.zip and their extracted files   (downloaded)
+├── MRMS/cache/           # NOAA MRMS radar crops over NYC, one NetCDF per day          (downloaded)
+├── ASOS/                 # NWS airport reports from IEM                              (downloaded)
 └── CML_Netherlands/      # README only
 ```
 

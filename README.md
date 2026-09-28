@@ -18,7 +18,7 @@ installing, and opening your first dataset.
 ```
  open data  ──►  signal loss to rain rate  ──►  rainfall map, merged with radar  ──►  forecast
  examples/       cml_retrieval                  opensense_pipeline                    spatial_interpolation
- openmesh_nyc    physics_ml
+ openmesh_nyc    physics_ml                     nyc_rain_maps
 
  and why the results look the way they do:  rainfall_field_sim (simulation), physics_ml
 ```
@@ -29,6 +29,7 @@ installing, and opening your first dataset.
 | [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and paper | `notebooks/openmesh_data.ipynb` |
 | [`cml_retrieval`](projects/cml_retrieval/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
 | [`opensense_pipeline`](projects/opensense_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
+| [`nyc_rain_maps`](projects/nyc_rain_maps/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges, over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
 | [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
 | [`rainfall_field_sim`](projects/rainfall_field_sim/) | on simulated rain: does the error come from the sensors or from where the links are? | `python src/run_demo.py` |
 | [`physics_ml`](projects/physics_ml/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
@@ -50,6 +51,10 @@ Each is computed in the project named, where the details and caveats are.
   +0.53 with PWS and about 0 with the KOKX radar, whose beam passes far above
   the city; in snow the links carry no precipitation signal.
   *(opensense_pipeline)*
+- **Over New York, link maps sit within twice the gauge-radar gap.** Near the links the PWS map
+  differs from MRMS radar by NRMSE 0.33 and the best link map by 0.57; the dynamic-baseline
+  methods are the only unbiased ones. Mixed precipitation is over-read by every method, and
+  snow is measured by neither links nor PWS. *(nyc_rain_maps)*
 - **Geometry, not sensor physics, limits the map.** At 90 links the sensor
   chain changes the reconstruction error by about 1% or less; almost all of
   it comes from rain that falls between links. *(rainfall_field_sim)*
@@ -85,7 +90,8 @@ FieldSense/
 │   ├── opensense/            # data: fetch, example subsets, conventions, retrieval, wet/dry, PWS QC, scoring
 │   ├── simulation/           # synthetic rain fields, moving fields, CML network, reconstruction
 │   ├── scientific_packages/  # PyNNcml compatibility and RNN training; PySINDy/PySR notes
-│   ├── radar/                # KOKX NEXRAD for New York
+│   ├── radar/                # KOKX NEXRAD and MRMS for New York
+│   ├── asos.py, geo.py       # NWS airport gauges; lat/lon domains and grids
 │   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
 │   └── viz_style.py          # shared palette and matplotlib defaults
 ├── dataset/              # dataset documentation; data is downloaded, never committed
