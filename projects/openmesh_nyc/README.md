@@ -22,16 +22,13 @@ opportunistically for high-resolution urban weather monitoring.
 ```
 openmesh_nyc/
 ├── paper/
-│   ├── camera_ready.tex        # Working manuscript — revisions marked \blue{...}
-│   └── camera_ready_clean.tex  # Generated: same text, markup stripped
+│   └── openmesh_essd.tex       # LaTeX source of the published ESSD article
 ├── notebooks/
 │   ├── openmesh_data.ipynb               # START HERE: pull, format check, links, PWS, ASOS (concise)
 │   ├── asos_pipeline.ipynb               # NOAA ASOS collection pipeline
 │   ├── wu_pipeline.ipynb                 # Weather Underground collection pipeline
-│   ├── nexrad_rain_vs_snow.ipynb         # radar over the network, rain vs snow
-│   └── archive/                          # the three notebooks openmesh_data.ipynb replaces
+│   └── nexrad_rain_vs_snow.ipynb         # radar over the network, rain vs snow
 ├── src/
-│   ├── mop.py                  # strips \blue{} markup, camera_ready → *_clean
 │   ├── stations.py             # PWS / ASOS totals, accumulation, dead-station check
 │   └── fetch/                  # the collection pipelines the notebooks drive
 │       ├── asos_functions.py
@@ -119,25 +116,10 @@ choice rather than a settled one.
 
 ## The manuscript
 
-`camera_ready.tex` is the file to edit. `camera_ready_clean.tex` is
-**generated** — regenerate it rather than editing it by hand, or the two drift
-apart.
-
-```bash
-# strip \blue{} markup: paper/camera_ready.tex -> paper/camera_ready_clean.tex
-python projects/openmesh_nyc/src/mop.py
-
-# or with explicit paths
-python projects/openmesh_nyc/src/mop.py in.tex out.tex
-```
-
-Building the PDF needs a LaTeX distribution with the `copernicus` class:
-
-```bash
-cd projects/openmesh_nyc/paper
-pdflatex camera_ready_clean.tex && bibtex camera_ready_clean \
-  && pdflatex camera_ready_clean.tex && pdflatex camera_ready_clean.tex
-```
+The article is published: Jacoby et al. (2026), *Earth System Science Data*
+18, 5817-5836, [doi:10.5194/essd-18-5817-2026](https://doi.org/10.5194/essd-18-5817-2026).
+`paper/openmesh_essd.tex` is its LaTeX source. Building it needs the
+`copernicus` class and the figures, which are not in this repository.
 
 ## Citation
 

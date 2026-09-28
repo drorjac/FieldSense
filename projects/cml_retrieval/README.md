@@ -9,8 +9,7 @@ cml_retrieval/
 ├── notebooks/
 │   ├── model_driven_retrieval.ipynb   # wet/dry, baselines, power law, IDW/GMZ   (concise)
 │   ├── rnn_retrieval.ipynb            # two-step RNN: train and validate       (concise)
-│   ├── rainfall_maps_idw_gmz.ipynb    # five reconstructions, side by side
-│   └── archive/                       # the two upstream PyNNcml tutorials, as they were
+│   └── rainfall_maps_idw_gmz.ipynb    # five reconstructions, side by side
 ├── src/
 │   ├── model_driven.py                # the model-driven chain + gauge_reference
 │   ├── rain_maps.py                   # one API over four map packages
@@ -19,10 +18,9 @@ cml_retrieval/
 └── tests/test_cml_retrieval.py
 ```
 
-The notebooks are narrative: each cell is a call into `src/`. The two
-upstream tutorials are kept unchanged in `notebooks/archive/`; they predate PyNNcml
-0.3.7 (`DNNType` is now `RNNType`) and do not run under NumPy 2 without
-`pynncml_compat`.
+The notebooks are narrative: each cell is a call into `src/`. They replace
+the two upstream PyNNcml tutorials, which predate PyNNcml 0.3.7 (`DNNType` is
+now `RNNType`) and do not run under NumPy 2 without `pynncml_compat`.
 
 ## Running
 

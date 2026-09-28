@@ -55,8 +55,7 @@ physics_ml/
 │   ├── hybrid_retrieval.ipynb        # start here
 │   ├── 01_sindy_basics.ipynb         # SINDy on the Lorenz system (tutorial)
 │   ├── 02_pysr_basics.ipynb          # symbolic regression (tutorial)
-│   ├── TUTORIALS.md
-│   └── archive/Simulation_MBML.ipynb # the original working notebook
+│   └── TUTORIALS.md
 ├── results/                  # discover_*.json/png, training_curves.png
 └── tests/test_physics_ml.py
 ```
@@ -110,10 +109,11 @@ cause is the input: `prepare_sequences` builds each GRU "sequence" as random
 noise around one attenuation value, so the network has no temporal
 information to learn from.
 
-### About `archive/Simulation_MBML.ipynb`
+### About the original notebook
 
-Kept unchanged as the working record, but it is not a reliable source of
-results: it defines the hybrid model three times, calls a
+`src/` was consolidated from an earlier working notebook
+(`Simulation_MBML.ipynb`, no longer in the repository). It was not a reliable
+source of results: it defines the hybrid model three times, calls a
 `ThreeStageTrainer` that is defined nowhere in it (reconstructed as
 `hybrid_training.train(..., "staged")`), and its summary figures (cells 17,
 18, 22) plot numbers typed into the cells rather than computed. Those show

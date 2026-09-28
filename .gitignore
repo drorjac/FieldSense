@@ -68,6 +68,9 @@ hall_of_fame*.csv.bak
 # core/opensense/fetch.py and projects/opensense_pipeline/src/ingest_*.py)
 dataset/open_datasets/*/raw/
 dataset/open_datasets/*/processed/
+# files copied out of the OpenMRG archive (fetch.py downloads the originals)
+dataset/open_datasets/OpenMRG_Sweden/OpenMRG_Dataset_Paper.pdf
+dataset/open_datasets/OpenMRG_Sweden/Torslanda-event-2015-07-28/
 
 # PR write-ups kept locally for review, not published
 docs/PRs/

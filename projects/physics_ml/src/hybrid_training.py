@@ -2,8 +2,8 @@
 Training the hybrid physics + GRU model: in stages, or jointly from the start.
 
 ``hybrid_nn.HybridRainModel`` fuses a learnable ITU-R branch and a GRU branch
-through a gate. ``notebooks/archive/Simulation_MBML.ipynb`` compared two ways to
-train it, but the staged trainer it calls (``ThreeStageTrainer``) is not
+through a gate. The original working notebook (``Simulation_MBML.ipynb``)
+compared two ways to train it, but the staged trainer it calls (``ThreeStageTrainer``) is not
 defined anywhere in the notebook, so that comparison cannot be re-run from
 it. This module is the comparison, reconstructed from how the notebook used
 it:

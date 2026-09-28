@@ -1,5 +1,3 @@
-# The manuscript tooling (src/mop.py) needs only the standard library; building
-# the PDF needs a LaTeX distribution (TeX Live / MacTeX), not pip.
 # The collection pipelines (src/fetch/) and stations.py need:
 requests
 python-dateutil

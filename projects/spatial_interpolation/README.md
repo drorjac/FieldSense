@@ -29,11 +29,9 @@ grid-to-grid against radar.
 spatial_interpolation/
 ├── notebooks/
 │   ├── nowcasting.ipynb                # the pipeline from src/, faithful vs corrected (concise)
-│   ├── advanced_models_colab_v2.ipynb  # Main working notebook — source of truth for all results
-│   └── archive/version_v1.ipynb        # Earlier iteration, kept for provenance
+│   └── advanced_models_colab_v2.ipynb  # Main working notebook — source of truth for all results
 ├── paper/
-│   ├── paper.tex                       # 5-page IEEE conference paper (IEEEtran) — target artifact
-│   └── full_report.tex                 # Long-form report, earlier experiment scope
+│   └── paper.tex                       # 5-page IEEE conference paper (IEEEtran) — target artifact
 ├── src/
 │   ├── config.py                       # NowcastConfig: splits, budgets, faithful/corrected
 │   ├── data.py                         # radar, gauges, links, per-link rain on one 15-min axis
@@ -159,10 +157,7 @@ table, seq = moving_benchmark(evolve_tau_min=120)   # ~1 min on a CPU
 ## Results
 
 `notebooks/advanced_models_colab_v2.ipynb` is the source of truth for every
-number and figure. `paper/full_report.tex` describes an **earlier and different**
-experiment scope (IDW vs GMZ map inputs, pySTEPS baseline, full-period training),
-so its result tables do not match the notebook — treat it as methodology
-background, not as a source of numbers.
+number and figure.
 
 ## Team
 

@@ -30,8 +30,7 @@ core/
 └── scientific_packages/
     ├── PYSINDY.md  PYSR.md  PYNNcml.md   # reference notes
     ├── pynncml_compat.py                 # PyNNcml 0.3.7 workarounds: GMZ bugs, NumPy 2, local OpenMRG
-    ├── pynncml_rnn.py                    # two-step RNN: loss, windowing, train (with val), predict
-    └── pynncml_wrapper.py                # thin PyNNcml wrapper
+    └── pynncml_rnn.py                    # two-step RNN: loss, windowing, train (with val), predict
 ```
 
 | Module | Came from | Used by |
@@ -140,10 +139,7 @@ Imported by `projects/rainfall_field_sim/`, `projects/opensense_pipeline/` and
 `projects/physics_ml/` — which used to carry its own copy of Table 5 with a
 different interpolation, and now re-exports from here.
 
-One copy remains outside this module: the table is pasted inline in
-`projects/physics_ml/notebooks/archive/Simulation_MBML.ipynb`. That is a working
-experiment rather than library code, so it is left as it is; anything new
-should import from here.
+Anything new should import the table from here rather than paste it.
 
 ```python
 from core.itu_p838 import get_k_alpha, specific_attenuation

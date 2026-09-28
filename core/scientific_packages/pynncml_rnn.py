@@ -4,8 +4,7 @@ Training and evaluating PyNNcml's two-step RNN (Habi & Messer 2020) on OpenMRG.
 Shared by ``projects/cml_retrieval`` (the data-driven retrieval notebook) and
 ``projects/spatial_interpolation`` (the "Model-2" estimation maps).
 
-The upstream tutorial (``notebooks/archive/data_driven_tutorial.ipynb``, kept as it
-was) writes the sliding-window loop out three times - for loss balancing,
+The upstream PyNNcml data-driven tutorial writes the sliding-window loop out three times - for loss balancing,
 training and validation - and defines the loss inline. Here each exists once:
 
 ``openmrg_dataset``   PyNNcml's OpenMRG loader on the repository's archive,

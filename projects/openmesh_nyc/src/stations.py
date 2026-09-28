@@ -1,7 +1,7 @@
 """
 Point sensors over the OpenMesh network: PWS and ASOS, summarized and plotted.
 
-The analysis ``archive/read_pws_sample.ipynb`` and ``wu_pipeline.ipynb`` wrote into
+The analysis the earlier PWS notebooks and ``wu_pipeline.ipynb`` wrote into
 cells: per-station totals and rain statistics, accumulation over time, and
 which stations can be trusted. Works on any OpenSense point dataset with a
 rain rate ``R`` on (time, id) - ``core.opensense.example_data`` adds one.
