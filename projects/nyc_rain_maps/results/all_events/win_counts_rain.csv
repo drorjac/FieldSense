@@ -1,0 +1,6 @@
+,wins,median_rank,median_nrmse,median_bias,share_underestimating
+impl1_dynamic,16,2.0,0.9783,0.0096,0.4889
+impl2_classical_dynamic,9,2.0,1.021,0.0674,0.4444
+impl2_pycomlink,15,3.0,1.0049,-0.4897,0.9556
+impl2_classical_constant,1,4.0,1.1674,-0.6093,0.9778
+impl2_nearby,4,4.0,0.9968,-0.6008,1.0

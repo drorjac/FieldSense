@@ -1,0 +1,7 @@
+time,cells,valid_time_ok,same_missing_mask,max_abs_diff
+2023-10-29 21:00:00,2655,True,True,0.0
+2023-11-22 00:00:00,2655,True,True,0.0
+2023-11-26 21:00:00,2655,True,True,0.0
+2023-12-11 06:00:00,2655,True,True,0.0
+2023-12-28 12:00:00,2655,True,True,0.0
+2024-01-09 20:00:00,2655,True,True,0.0

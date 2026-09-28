@@ -1,0 +1,12 @@
+# On top of the repository install: pip install -e ".[opensense,mrms,notebooks]"
+# (opensense brings pycomlink and poligrain; mrms brings eccodes for MRMS GRIB2).
+
+# The pretrained PyNNcml GRU method (impl2_gru, not in the default method set)
+pynncml>=0.3.7
+torch>=2.0
+
+# Street basemaps under the maps (figures fall back to plain maps without it)
+contextily>=1.4
+
+# The validation's independent GRIB decode (run.py validate)
+cfgrib>=0.9.10

@@ -1,0 +1,147 @@
+{
+  "config": {
+    "name": "study",
+    "methods": [
+      "impl1_dynamic",
+      "impl2_classical_dynamic",
+      "impl2_classical_constant",
+      "impl2_pycomlink",
+      "impl2_nearby"
+    ],
+    "link_sets": [
+      "shared8",
+      "selected",
+      "qc"
+    ],
+    "sensors": true,
+    "sensor_link_set": "selected",
+    "events": null,
+    "only_selected": true,
+    "near_km": 2.0,
+    "spinup": "6h",
+    "wet_threshold_mm": 0.1,
+    "min_coverage": 0.9
+  },
+  "qc": {
+    "rain#5 2023-11-21": {
+      "links_in": 103,
+      "links_dropped": 78,
+      "links_out": 25,
+      "by_reason": {
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {
+        "isolated spikes (flagged, kept)": 1
+      }
+    },
+    "rain#4 2023-12-10": {
+      "links_in": 103,
+      "links_dropped": 78,
+      "links_out": 25,
+      "by_reason": {
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "rain#2 2023-12-17": {
+      "links_in": 103,
+      "links_dropped": 91,
+      "links_out": 12,
+      "by_reason": {
+        "availability below 80%": 13,
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "mix#1 2024-01-06": {
+      "links_in": 103,
+      "links_dropped": 78,
+      "links_out": 25,
+      "by_reason": {
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "rain#3 2024-01-09": {
+      "links_in": 103,
+      "links_dropped": 78,
+      "links_out": 25,
+      "by_reason": {
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "mix#3 2024-01-16": {
+      "links_in": 103,
+      "links_dropped": 78,
+      "links_out": 25,
+      "by_reason": {
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "snow#2 2024-01-19": {
+      "links_in": 103,
+      "links_dropped": 78,
+      "links_out": 25,
+      "by_reason": {
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "mix#2 2024-02-13": {
+      "links_in": 103,
+      "links_dropped": 85,
+      "links_out": 18,
+      "by_reason": {
+        "availability below 80%": 7,
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "snow#1 2024-02-17": {
+      "links_in": 103,
+      "links_dropped": 79,
+      "links_out": 24,
+      "by_reason": {
+        "availability below 80%": 1,
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    },
+    "rain#1 2024-03-23": {
+      "links_in": 103,
+      "links_dropped": 82,
+      "links_out": 21,
+      "by_reason": {
+        "availability below 80%": 4,
+        "duplicate path (other direction/sublink kept)": 14,
+        "frequency outside 10.0-100.0 GHz": 51,
+        "path shorter than 0.3 km": 13
+      },
+      "flagged": {}
+    }
+  },
+  "errors": {},
+  "started": "2026-09-28T17:08:48+00:00",
+  "finished": "2026-09-28T17:11:35+00:00",
+  "version": "1.0"
+}
