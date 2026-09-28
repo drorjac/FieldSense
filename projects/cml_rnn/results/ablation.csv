@@ -1,0 +1,10 @@
+model,inputs,val_rmse,network,rmse,corr,bias,csi,nearby_rmse,nearby_corr
+gru_all,hourly excess-loss blocks + summaries (64 inputs),0.526,openmrg,0.48,0.79,0.065,0.613,0.563,0.758
+gru_all,hourly excess-loss blocks + summaries (64 inputs),0.526,openrainer,0.775,0.746,0.034,0.473,1.209,0.472
+gru_all,hourly excess-loss blocks + summaries (64 inputs),0.526,openmesh,1.311,0.535,0.107,0.453,1.271,0.498
+gru_physics,+ power-law rates of the excess loss (67),0.48,openmrg,0.466,0.813,0.153,0.636,0.563,0.758
+gru_physics,+ power-law rates of the excess loss (67),0.48,openrainer,0.707,0.781,0.039,0.484,1.209,0.472
+gru_physics,+ power-law rates of the excess loss (67),0.48,openmesh,1.114,0.589,-0.01,0.471,1.271,0.498
+gru_physics_nbr,+ what the links within 15 km see (69),0.408,openmrg,0.44,0.837,0.181,0.674,0.563,0.758
+gru_physics_nbr,+ what the links within 15 km see (69),0.408,openrainer,0.623,0.817,0.024,0.552,1.209,0.472
+gru_physics_nbr,+ what the links within 15 km see (69),0.408,openmesh,0.78,0.784,0.094,0.677,1.271,0.498
