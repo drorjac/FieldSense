@@ -12,6 +12,15 @@ core/
 ├── viz_style.py             # shared palette and matplotlib defaults
 ├── geo.py                   # lat/lon Domain and MRMS-aligned Grid; NYC and OpenMesh domains
 ├── asos.py                  # NWS ASOS reports from IEM: hourly rain, present weather (rain/snow/mix)
+├── events.py                # precipitation events in an hourly radar record
+├── cml/                     # link retrieval methods on a flat link set (from pcpn_maps)
+│   ├── estimators.py            # DynamicBaseline, ConstantBaselineSTD, PycomlinkRSD, NearbyLinks, ...
+│   ├── rnn.py                   # PyNNcml's two-step RNN as a method: features, HourlyRNN
+│   ├── power_law.py, baseline.py, preprocess.py, link_qc.py
+├── maps/                    # link and gauge values to fields on a lat/lon grid
+│   ├── idw.py                   # midpoint IDW; rates to hour-ending totals
+│   ├── gmz.py                   # line IDW and GMZ (Goldshtein-Messer-Zinevich) from path averages
+│   └── scores.py                # NRMSE, bias, corr, POD/FAR/CSI; maps and links vs radar
 ├── simulation/              # synthetic rain fields + CML network sampling
 │   ├── rain_fields.py           # stratiform / convective / frontal models, statistics
 │   ├── moving_fields.py         # the same fields in time: translation, growth, evolution
@@ -21,6 +30,7 @@ core/
 │   ├── fetch.py                 # Zenodo full records, resumable + verified
 │   ├── example_data.py          # curated OpenSense example subsets, normalized on load
 │   ├── openmesh.py              # the full OpenMesh record (links + PWS) as link sets
+│   ├── networks.py              # OpenMRG, OpenRainER, OpenMesh: links, point gauges, hourly radar on one grid
 │   ├── conventions.py           # units, polarization, projected geometry across sources
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
 │   ├── wet_dry.py               # radar, nearby-link and CNN wet/dry masks (poligrain, pycomlink)
@@ -45,7 +55,9 @@ core/
 | `simulation.*` | rainfall_field_sim | rainfall_field_sim, opensense_pipeline, physics_ml, spatial_interpolation |
 | `opensense.*` | opensense_pipeline | opensense_pipeline, cml_retrieval, physics_ml, openmesh_nyc (notebook) |
 | `radar.nexrad` | openmesh_nyc | openmesh_nyc (notebook), opensense_pipeline |
-| `radar.mrms`, `asos`, `geo`, `opensense.openmesh` | pcpn_maps (see `projects/nyc_rain_maps`) | nyc_rain_maps |
+| `radar.mrms`, `asos`, `geo`, `opensense.openmesh` | pcpn_maps (see `projects/nyc_rain_maps`) | nyc_rain_maps, multisensor_maps, cml_rnn |
+| `cml.*`, `maps.idw`, `maps.scores`, `events` | pcpn_maps / nyc_rain_maps | nyc_rain_maps, multisensor_maps, cml_rnn |
+| `opensense.networks`, `maps.gmz`, `cml.rnn` | - | multisensor_maps, cml_rnn |
 | `scientific_packages.pynncml_compat`, `pynncml_rnn` | cml_retrieval | cml_retrieval, spatial_interpolation |
 
 The command-line tools run as modules from the repo root:
@@ -108,6 +120,29 @@ predictions match pycomlink's to 4e-8.
 
 `pycomlink` is imported lazily, only by the non-default wet-antenna models and
 the nearby-link mask.
+
+## `opensense/networks.py`, `cml/`, `maps/`
+
+One interface to three city networks, and the methods that run on it.
+
+```python
+from core.opensense.networks import NETWORKS, radar_along_links, points_near_links
+net = NETWORKS["openrainer"]                          # also "openmrg", "openmesh"
+links = net.links("2021-09-26", "2021-09-27")         # rsl(link, time) at 1 min, tsl where recorded
+radar = net.radar_hourly("2021-09-26", "2021-09-27")  # mm, hour-ending, on net.grid
+gauges = net.points_hourly("2021-09-26", "2021-09-27")
+
+from core.cml.estimators import study_estimator
+from core.maps.idw import accumulate, idw_map
+from core.maps.gmz import gmz_map
+rain = study_estimator("nearby", links.time[0], links.time[-1]).estimate(links)["rain"]
+hourly = accumulate(rain, "1h")
+field_idw, field_gmz = idw_map(hourly, net.grid), gmz_map(hourly, net.grid)
+```
+
+`networks` checked each source's time-label convention by lagging it against the links
+(module docstring). `cml.rnn.HourlyRNN` runs a model trained in `projects/cml_rnn` on any
+link set of these networks.
 
 ## `radar/`, `asos.py`, `geo.py`
 

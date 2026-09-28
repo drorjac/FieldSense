@@ -93,43 +93,10 @@ def hourly_record(start, end, domain: Domain = NYC, client: MRMSClient | None = 
 
 def detect_events(hourly: xr.DataArray, wet_mm: float = 0.1, min_gap_h: int = 6,
                   min_total_mm: float = 1.0, min_valid_fraction: float = 0.8) -> list[Event]:
-    """Split the hourly record into events (see module docstring)."""
-    valid = hourly.notnull().mean(("lat", "lon"))
-    mean = hourly.mean(("lat", "lon")).where(valid >= min_valid_fraction)
-    s = mean.to_series()
-    full = pd.date_range(s.index.min(), s.index.max(), freq="h")
-    s = s.reindex(full)                         # archive gaps become NaN (treated as dry)
-    wet = (s >= wet_mm).fillna(False).values
-    idx = np.flatnonzero(wet)
-    if idx.size == 0:
-        return []
-    groups, cur = [], [idx[0]]
-    for i in idx[1:]:
-        if i - cur[-1] - 1 < min_gap_h:
-            cur.append(i)
-        else:
-            groups.append(cur)
-            cur = [i]
-    groups.append(cur)
-
-    events = []
-    for g in groups:
-        t_first, t_last = full[g[0]], full[g[-1]]          # hour-ending labels
-        sub = hourly.sel(time=slice(t_first, t_last))
-        total_map = sub.sum("time", min_count=1)
-        seg = s.loc[t_first:t_last]
-        total = float(seg.sum())
-        if total < min_total_mm:
-            continue
-        peak = seg.idxmax()
-        start = t_first - pd.Timedelta("1h")
-        events.append(Event(
-            event_id=f"{start:%Y%m%dT%H}", start=str(start), end=str(t_last),
-            duration_h=int(len(seg)), wet_hours=int((seg >= wet_mm).sum()),
-            total_mm=round(total, 2), max_cell_mm=round(float(total_map.max()), 2),
-            peak_hour=str(peak), peak_hourly_mm=round(float(seg.max()), 2),
-            max_cell_hourly_mm=round(float(sub.max()), 2)))
-    return events
+    """Split the hourly record into events (``core.events.detect_events``) as :class:`Event`."""
+    from core.events import detect_events as detect
+    df = detect(hourly, wet_mm, min_gap_h, min_total_mm, min_valid_fraction)
+    return [Event(**r) for r in df.to_dict("records")]
 
 
 # ------------------------------------------------------------ classification

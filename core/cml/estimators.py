@@ -409,3 +409,28 @@ class PyNNcmlGRU(RainEstimator):
 ESTIMATORS = {cls.name: cls for cls in
               [DynamicBaseline, ConstantBaselineSTD, ManualWindows, PycomlinkRSD, NearbyLinks,
                PyNNcmlGRU]}
+
+
+# ---------------------------------------------------------- long-window settings
+
+
+def study_estimator(name: str, start, end, threshold_links: xr.Dataset | None = None):
+    """The methods as run on long windows (projects multisensor_maps and cml_rnn): gaps left
+    as gaps.
+
+    implementation 2 filled every gap with the link's deepest fade, which suits the short
+    windows it ran on; over the 24-hour spin-up used here it turns every dry-weather
+    dropout into heavy rain. The dynamic baseline also skips gaps rather than letting one
+    missing minute blank the next 200.
+    """
+    if name == "dynamic":
+        return DynamicBaseline(gap_fill="none", skipna_baseline=True)
+    if name == "constant":
+        return ConstantBaselineSTD(gap_fill="none")
+    if name == "pycomlink":
+        # the wet threshold is a percentile of the signal's variability, so it needs a
+        # record that is mostly dry: the 10 days before the event, not the event alone
+        return PycomlinkRSD(gap_fill="none", threshold_links=threshold_links)
+    if name == "nearby":
+        return NearbyLinks(start=str(start), end=str(end))
+    raise ValueError(name)

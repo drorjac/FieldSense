@@ -76,7 +76,9 @@ def metadata_qc(table: pd.DataFrame, cfg: QCConfig = QCConfig()) -> tuple[list[s
             keep.append(lk)
 
     # duplicates: same endpoints (either direction) and same band; keep best availability
-    kept = table.loc[keep].sort_values("availability", ascending=False)
+    kept = table.loc[keep]
+    if "availability" in kept:            # prefer the better-recorded one of a duplicate pair
+        kept = kept.sort_values("availability", ascending=False)
     chosen = []
     for lk, r in kept.iterrows():
         dup_of = None

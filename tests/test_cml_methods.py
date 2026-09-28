@@ -143,3 +143,62 @@ def test_accumulate_coverage_and_infill():
 def test_trailing_min_skipna():
     x = np.array([[5.0, np.nan, 3.0, 4.0]])
     assert np.allclose(bl.trailing_min(x, 2, skipna=True), [[5, 5, 3, 3]])
+
+
+# ------------------------------------------------------------------ GMZ
+
+def _gmz_links(values, lats=(40.70, 40.70), lons=((-74.00, -73.96), (-73.96, -73.92))):
+    t = pd.to_datetime(["2024-01-01 01:00"])
+    return xr.DataArray(np.asarray(values, float)[:, None], dims=("link", "time"),
+                        coords={"link": ["a", "b"], "time": t,
+                                "site_0_lat": ("link", list(lats)), "site_1_lat": ("link", list(lats)),
+                                "site_0_lon": ("link", [lo[0] for lo in lons]),
+                                "site_1_lon": ("link", [lo[1] for lo in lons]),
+                                "frequency": ("link", [38.0, 38.0]), "polarization": ("link", ["v", "v"])})
+
+
+def test_gmz_keeps_uniform_rain_and_the_link_average():
+    from core.maps.gmz import gmz_map, virtual_gauges
+    grid = Grid(np.round(np.arange(40.66, 40.74, 0.005), 4), np.round(np.arange(-74.02, -73.90, 0.005), 4))
+    uniform = gmz_map(_gmz_links([4.0, 4.0]), grid, n_iter=10, radius_m=5000)
+    assert np.nanmax(np.abs(uniform.values - 4.0)) < 1e-6
+    # unequal links: the field along each path leans to its neighbour, but its mean in the
+    # R**b domain stays the link's value (what GMZ preserves)
+    links = _gmz_links([2.0, 10.0])
+    field_ = gmz_map(links, grid, n_iter=10, radius_m=5000)
+    lat, lon, owner = virtual_gauges(links, per_km=1.0)
+    at = field_.isel(time=0).interp(lat=xr.DataArray(lat), lon=xr.DataArray(lon)).values
+    b = 0.8816
+    for i, v in enumerate([2.0, 10.0]):
+        got = np.mean(np.clip(at[owner == i], 0, None) ** b) ** (1 / b)
+        assert got == pytest.approx(v, rel=0.15)
+    line = gmz_map(links, grid, n_iter=0, radius_m=5000)          # line IDW: no correction
+    assert np.isfinite(line.values).any() and not np.allclose(line.values, field_.values, equal_nan=True)
+
+
+def test_rnn_physics_features_invert_the_power_law():
+    from core.cml.power_law import itu_ab
+    from core.cml.rnn import FEATURES, N_MIN, physics_features
+    a, b = itu_ab(38.0, "v", "ITU_2005")
+    L, R = 2.0, 10.0
+    A = float(a[0] * R ** b[0] * L)                  # attenuation of 10 mm/h over 2 km
+    X = np.zeros((1, 2, len(FEATURES)), "float32")
+    X[0, 0, :N_MIN] = A                              # hour 1: steady rain
+    X[0, 0, N_MIN + 1] = A
+    X[0, 1, :N_MIN] = -3.0                           # hour 2: below the baseline -> no rain
+    M = np.array([[38.0, L, 1.0, np.log10(a[0]), b[0]]], "float32")
+    p = physics_features(X, M)
+    assert p[0, 0] == pytest.approx([R, R, R], rel=1e-3)
+    assert p[0, 1].tolist() == [0.0, 0.0, 0.0]
+
+
+def test_rnn_neighbour_features_see_the_surrounding_links():
+    from core.cml.rnn import FEATURES, N_MIN, neighbour_features
+    X = np.zeros((3, 1, len(FEATURES)), "float32")
+    X[1, 0, :N_MIN] = X[1, 0, N_MIN + 1] = 5.0       # the neighbour sees rain
+    M = np.tile(np.array([[38.0, 2.0, 1.0, np.log10(0.4), 0.88]], "float32"), (3, 1))
+    lat, lon = [40.70, 40.71, 41.50], [-74.0, -74.0, -74.0]   # the third is 90 km away
+    f = neighbour_features(X, M, lat, lon, radius_km=15)
+    assert f[0, 0, 0] > 0 and f[0, 0, 1] == 1.0         # link 0's only neighbour is wet
+    assert f[1, 0].tolist() == [0.0, 0.0]               # link 1's neighbour (0) is dry
+    assert f[2, 0].tolist() == [0.0, 0.0]               # link 2 has no neighbour
