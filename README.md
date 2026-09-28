@@ -6,6 +6,9 @@ and rainfall maps, fuses it with gauges, personal weather stations and radar,
 and uses physics-informed machine learning to retrieve, reconstruct and
 nowcast the field.
 
+New here? Start with [GETTING_STARTED.md](GETTING_STARTED.md): what the
+project is, forking and installing, and opening your first dataset.
+
 ## Example datasets
 
 [`examples/`](examples/) reads the small curated subsets the OpenSense

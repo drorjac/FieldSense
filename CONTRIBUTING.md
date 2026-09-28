@@ -44,7 +44,7 @@ cd FieldSense
 This lets you pull updates from the main repo:
 
 ```bash
-git remote add upstream https://github.com/ORIGINAL_OWNER/FieldSense.git
+git remote add upstream https://github.com/drorjac/FieldSense.git
 ```
 
 Verify your remotes:
@@ -52,7 +52,7 @@ Verify your remotes:
 git remote -v
 # Should show:
 # origin    https://github.com/YOUR_USERNAME/FieldSense.git (your fork)
-# upstream  https://github.com/ORIGINAL_OWNER/FieldSense.git (main repo)
+# upstream  https://github.com/drorjac/FieldSense.git (main repo)
 ```
 
 ### Step 4: Install Dependencies
@@ -123,7 +123,7 @@ git push origin main
 2. Click **Pull Requests** → **New Pull Request**
 3. Click **compare across forks**
 4. Set:
-   - **base repository:** `ORIGINAL_OWNER/FieldSense` | **base:** `main`
+   - **base repository:** `drorjac/FieldSense` | **base:** `main`
    - **head repository:** `YOUR_USERNAME/FieldSense` | **compare:** `main`
 5. Add a title and description
 6. Click **Create Pull Request**

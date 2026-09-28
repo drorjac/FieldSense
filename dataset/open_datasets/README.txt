@@ -128,17 +128,17 @@ Dataset Citation
 
 When using OpenMesh dataset, please cite:
 
-@article{jacoby2025openmesh,
+@article{jacoby2026openmesh,
   title={OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather Sensing in New York City},
   author={Jacoby, Dror and Yu, Shuyue and Hu, Qianfei and Hine, Zachary and Johnson, Rob and Ostrometzky, Jonatan and Kadota, Igor and Zussman, Gil and Messer, Hagit},
-  journal={Earth System Science Data Discussions},
-  volume={2025},
-  pages={1--27},
-  year={2025},
-  publisher={G{\"o}ttingen, Germany}
+  journal={Earth System Science Data},
+  volume={18},
+  pages={5817--5836},
+  year={2026},
+  doi={10.5194/essd-18-5817-2026}
 }
 
-Jacoby, D., et al. (2025). OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather Sensing in New York City. Earth System Science Data.
+Jacoby, D., et al. (2026). OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather Sensing in New York City. Earth System Science Data, 18, 5817-5836. https://doi.org/10.5194/essd-18-5817-2026
 
 GitHub Repository: https://github.com/drorjac/OpenMesh
 

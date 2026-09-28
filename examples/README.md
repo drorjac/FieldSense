@@ -54,7 +54,7 @@ Cite the original dataset when you use one.
 | dataset | reference | license |
 |---|---|---|
 | OpenMRG | Andersson et al. (2022), [doi:10.5281/zenodo.6673750](https://doi.org/10.5281/zenodo.6673750) | CC BY-SA 4.0 |
-| OpenRainER | Covi et al., [doi:10.5281/zenodo.10593848](https://doi.org/10.5281/zenodo.10593848) | CC BY 4.0 |
-| OpenMesh CML | Jacoby et al. (2025), [doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692) | CC BY 4.0 |
+| OpenRainER | Covi et al., [doi:10.5281/zenodo.22829808](https://doi.org/10.5281/zenodo.22829808) | CC BY 4.0 |
+| OpenMesh CML | Jacoby et al. (2026), [ESSD 18, 5817-5836](https://doi.org/10.5194/essd-18-5817-2026); data [doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692) | CC BY 4.0 |
 | OpenMesh PWS | [doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286) | CC BY-NC 4.0 |
 | Amsterdam PWS | de Vos et al. (2019), [doi:10.1029/2019GL083731](https://doi.org/10.1029/2019GL083731) | CC BY 4.0 |

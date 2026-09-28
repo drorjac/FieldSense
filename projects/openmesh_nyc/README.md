@@ -142,13 +142,13 @@ pdflatex camera_ready_clean.tex && bibtex camera_ready_clean \
 ## Citation
 
 ```bibtex
-@article{jacoby2025openmesh,
-  title={OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather
-         Sensing in New York City},
-  author={Jacoby, Dror and Yu, Shuyue and Hu, Qianfei and Hine, Zachary and
-          Johnson, Rob and Ostrometzky, Jonatan and Kadota, Igor and
-          Zussman, Gil and Messer, Hagit},
+@article{jacoby2026openmesh,
+  title={OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather Sensing in New York City},
+  author={Jacoby, Dror and Yu, Shuyue and Hu, Qianfei and Hine, Zachary and Johnson, Rob and Ostrometzky, Jonatan and Kadota, Igor and Zussman, Gil and Messer, Hagit},
   journal={Earth System Science Data},
-  year={2025}
+  volume={18},
+  pages={5817--5836},
+  year={2026},
+  doi={10.5194/essd-18-5817-2026}
 }
 ```
