@@ -1,4 +1,4 @@
-"""nyc_rain_maps: retrieval methods, mapping, events, selection, study - no network, no data."""
+"""nyc_rain_maps: events, link selection, study, validation - no network, no data."""
 
 import sys
 from pathlib import Path
@@ -6,128 +6,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import xarray as xr
+import xarray as xr  # noqa: F401
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from nyc_rain_maps import baseline as bl  # noqa: E402
 from core.geo import NYC, Domain, Grid, haversine_m  # noqa: E402,F401
 from nyc_rain_maps.events import Event, classify, detect_events  # noqa: E402
-from nyc_rain_maps.idw import accumulate, idw_map, idw_weights  # noqa: E402
-from nyc_rain_maps.power_law import attenuation_from_rain, itu_ab, rain_from_attenuation  # noqa: E402
-from nyc_rain_maps.scores import scores  # noqa: E402
-
-
-def test_itu_coefficients_match_both_libraries():
-    a, b = itu_ab(68.04, "v", "ITU_2003")          # PyNNcml / implementation_1
-    assert a[0] == pytest.approx(0.7577, abs=1e-4) and b[0] == pytest.approx(0.7985, abs=1e-4)
-    a, b = itu_ab(68.04, "v", "ITU_2005")          # pycomlink / implementation_2
-    assert a[0] == pytest.approx(0.9939, abs=1e-4) and b[0] == pytest.approx(0.7261, abs=1e-4)
-
-
-def test_power_law_roundtrip_and_conventions():
-    R = np.array([0.5, 2.0, 10.0, 50.0])
-    A = attenuation_from_rain(R, 2.0, 68.04, "v")
-    assert np.allclose(rain_from_attenuation(A, 2.0, 68.04, "v", r_min=0), R)
-    out = rain_from_attenuation(np.array([-1.0, 0.0, np.nan, 1e-4]), 2.0, 68.04, "v", r_min=0.1)
-    assert out[0] == 0 and out[1] == 0 and np.isnan(out[2]) and out[3] == 0
-
-
-def test_power_law_per_link_broadcast():
-    A = np.ones((2, 5))
-    R = rain_from_attenuation(A, [1.0, 2.0], [68.04, 24.1], ["v", "h"], r_min=0)
-    assert R.shape == (2, 5) and not np.allclose(R[0], R[1])
-
-
-def test_frequency_out_of_table_raises():
-    with pytest.raises(ValueError):
-        itu_ab(0.5, "v")
-
-
-def test_trailing_min_matches_naive():
-    rng = np.random.default_rng(0)
-    x = rng.normal(size=(3, 50))
-    w = 7
-    naive = np.array([[x[i, max(0, t - w + 1):t + 1].min() for t in range(50)] for i in range(3)])
-    assert np.allclose(bl.trailing_min(x, w), naive)
-
-
-def test_trailing_min_propagates_nan():
-    x = np.array([[1.0, np.nan, 3.0, 4.0, 5.0]])
-    out = bl.trailing_min(x, 2)
-    assert np.isnan(out[0, 1]) and np.isnan(out[0, 2]) and out[0, 3] == 3.0
-
-
-def test_dynamic_baseline_removes_constant_offset():
-    A = np.full((1, 300), 40.0)
-    A[0, 250:260] += 10
-    A_rain, _ = bl.dynamic_baseline(A, window=200, quantization_delta=1.0)
-    assert np.allclose(A_rain[0, :250], -1.0)            # qd bias correction
-    assert np.allclose(A_rain[0, 250:260], 9.0)
-
-
-def test_constant_baseline_holds_while_wet():
-    A = np.array([[1.0, 2.0, 5.0, 6.0, 3.0]])
-    wet = np.array([[0, 0, 1, 1, 0]])
-    assert np.allclose(bl.constant_baseline(A, wet), [[1, 2, 2, 2, 3]])
-
-
-def test_std_wet_dry_edges_are_dry():
-    A = np.random.default_rng(1).normal(scale=5, size=(1, 100))
-    wet, sig = bl.std_wet_dry(A, window=20, threshold=1.0)
-    assert (wet[0, :9] == 0).all() and (wet[0, -10:] == 0).all() and wet[0, 20:80].max() == 1
-
-
-def test_estimators_match_pynncml():
-    torch = pytest.importorskip("torch")
-    pnc = pytest.importorskip("pynncml")
-    rng = np.random.default_rng(2)
-    att = 40 + np.round(np.cumsum(rng.normal(0, 0.3, 1200)))
-    att[500:560] += np.linspace(0, 12, 60)
-    A_rain, _ = bl.dynamic_baseline(att[None], 200, 1.0)
-    ours = rain_from_attenuation(A_rain, 2.0, 68.04, "v", table="ITU_2003", r_min=0.5)
-    m = pnc.scm.rain_estimation.one_step_dynamic_baseline(pnc.scm.power_law.PowerLawType.INSTANCE, 0.5, 200,
-                                                          quantization_delta=1)
-    ref, _ = m(torch.tensor(att[None], dtype=torch.float32), pnc.datasets.MetaData(68.04, True, 2.0, 10, 10))
-    assert np.allclose(ours, ref.numpy(), atol=1e-4)
-
-
-def _links(lat, lon, vals):
-    return xr.DataArray(np.asarray(vals, float)[:, None], dims=("link", "time"),
-                        coords={"link": [f"l{i}" for i in range(len(lat))],
-                                "time": pd.to_datetime(["2024-01-01"]),
-                                "mid_lat": ("link", lat), "mid_lon": ("link", lon)})
-
-
-def test_idw_exact_at_source_and_bounded():
-    grid = Grid(np.array([40.70, 40.71]), np.array([-74.00, -73.99]))
-    da = _links([40.70, 40.71], [-74.00, -73.99], [2.0, 8.0])
-    m = idw_map(da, grid)
-    assert m.sel(lat=40.70, lon=-74.00).item() == pytest.approx(2.0)
-    assert m.sel(lat=40.71, lon=-73.99).item() == pytest.approx(8.0)
-    assert 2.0 < m.sel(lat=40.70, lon=-73.99).item() < 8.0
-
-
-def test_idw_nan_policies_and_radius():
-    grid = Grid(np.array([40.70]), np.array([-73.995]))
-    da = _links([40.70, 40.70], [-74.00, -73.99], [np.nan, 4.0])
-    assert idw_map(da, grid, nan_policy="exclude").item() == pytest.approx(4.0)
-    assert idw_map(da, grid, nan_policy="zero").item() == pytest.approx(2.0)
-    far = idw_map(da, Grid(np.array([41.5]), np.array([-73.99])), radius_m=10_000)
-    assert np.isnan(far.item())
-
-
-def test_idw_nnear():
-    W = idw_weights(np.array([0.0, 100.0, 1000.0]), np.zeros(3), np.array([50.0]), np.zeros(1), nnear=2)
-    assert W[0, 2] == 0 and W[0, 0] > 0 and W[0, 1] > 0
-
-
-def test_accumulate_hour_ending():
-    t = pd.date_range("2024-01-01 00:01", "2024-01-01 02:00", freq="1min")
-    da = xr.DataArray(np.full((1, t.size), 6.0), dims=("link", "time"), coords={"time": t})
-    acc = accumulate(da, "1h")
-    assert list(pd.DatetimeIndex(acc.time.values)) == list(pd.to_datetime(["2024-01-01 01:00", "2024-01-01 02:00"]))
-    assert np.allclose(acc.values, 6.0)
 
 
 def test_detect_events_gap_rule():
@@ -155,27 +39,6 @@ def test_classify_rules():
     assert classify(_ev(0.0, {"rain": 30, "mix": 3})) == "mix"
     assert classify(_ev(0.3, {"rain": 10, "snow": 10})) == "mix"
     assert classify(_ev(float("nan"), {})) == "unclassified"
-
-
-def test_scores():
-    s = scores([1, 2, 3, np.nan], [1, 2, 5, 1])
-    assert s["n"] == 3 and s["bias"] == pytest.approx(-2 / 3)
-    assert s["nrmse"] == pytest.approx(np.sqrt(4 / 3) / (8 / 3))
-    assert s["csi"] == 1.0
-
-
-def test_accumulate_coverage_and_infill():
-    t = pd.date_range("2024-01-01 00:01", "2024-01-01 02:00", freq="1min")
-    v = np.full(t.size, 6.0)
-    v[:30] = np.nan                         # first hour half missing -> NaN
-    v[60:66] = np.nan                       # second hour 90 % present -> infilled
-    acc = accumulate(xr.DataArray(v, dims="time", coords={"time": t}), "1h")
-    assert np.isnan(acc.values[0]) and acc.values[1] == pytest.approx(6.0)
-
-
-def test_trailing_min_skipna():
-    x = np.array([[5.0, np.nan, 3.0, 4.0]])
-    assert np.allclose(bl.trailing_min(x, 2, skipna=True), [[5, 5, 3, 3]])
 
 
 def test_selection_paths_group_same_and_reverse():

@@ -30,10 +30,10 @@ import pandas as pd
 import xarray as xr
 
 from core.geo import Grid
-from .scores import scores
+from core.maps.scores import scores
 from core.opensense import openmesh as om
 from core.asos import NYC_STATIONS, fetch_asos, hourly_precip
-from .idw import idw_map
+from core.maps.idw import idw_map
 
 log = logging.getLogger(__name__)
 

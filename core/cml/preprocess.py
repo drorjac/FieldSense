@@ -1,8 +1,9 @@
 """Signal preprocessing: total loss, gap handling and aggregation.
 
-OpenMesh has no transmitted-power record, so total loss is ``TL = TSL - RSL`` with a
-constant TSL (0 dBm by default); only changes in TL matter because every method
-subtracts a baseline.
+Total loss is ``TL = TSL - RSL``. Where the link set carries a measured ``tsl`` (OpenMRG,
+OpenRainER) it is used; OpenMesh has no transmitted-power record, so there TSL is a
+constant (0 dBm by default). Only changes in TL matter because every method subtracts a
+baseline.
 
 Gap handling is where the two implementations differ most, and it matters: during
 heavy rain a link can lose sync and report nothing, so a gap is *evidence of rain*, not
@@ -25,10 +26,21 @@ from core.geo import haversine_m
 
 
 def total_loss(links: xr.Dataset, tsl: float = 0.0) -> xr.DataArray:
-    """Total path loss ``TSL - RSL`` (dB), same shape as ``links.rsl``."""
-    tl = tsl - links["rsl"]
+    """Total path loss ``TSL - RSL`` (dB), same shape as ``links.rsl``.
+
+    A measured ``links["tsl"]`` is used when present, with its own gaps bridged from
+    the neighbouring samples (transmit power changes in steps, and a missing TSL
+    sample must not turn a valid RSL sample into a gap); otherwise ``tsl`` is the
+    assumed constant.
+    """
+    if "tsl" in links.data_vars:
+        measured = links["tsl"].ffill("time").bfill("time")
+        tl = measured - links["rsl"]
+        tl.attrs = {"units": "dB", "tsl": "measured"}
+    else:
+        tl = tsl - links["rsl"]
+        tl.attrs = {"units": "dB", "tsl_assumed_dBm": tsl}
     tl.name = "total_loss"
-    tl.attrs = {"units": "dB", "tsl_assumed_dBm": tsl}
     return tl
 
 

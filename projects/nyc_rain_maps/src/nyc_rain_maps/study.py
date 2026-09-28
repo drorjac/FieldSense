@@ -35,7 +35,7 @@ import pandas as pd
 import xarray as xr
 
 from .settings import VERSION as __version__
-from .scores import scores
+from core.maps.scores import scores
 from .pipeline import DEFAULT_METHODS, METHODS, run_event
 
 log = logging.getLogger(__name__)

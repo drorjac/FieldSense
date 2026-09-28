@@ -42,7 +42,7 @@ import requests
 import xarray as xr
 
 from core.geo import NYC, Domain, haversine_m
-from .scores import scores
+from core.maps.scores import scores
 from core.opensense import openmesh as om
 from core.asos import NYC_STATIONS, fetch_asos, hourly_precip, hourly_ptype
 from core.radar.mrms import MRMSClient, decode_grib, file_url

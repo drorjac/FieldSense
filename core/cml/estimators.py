@@ -12,7 +12,7 @@ and returns an ``xarray.Dataset`` with ``rain`` plus method diagnostics
 
 Gap handling (``gap_fill``) is a parameter of every estimator, because it is the main
 practical difference between the two implementations - see
-:mod:`nyc_rain_maps.preprocess` and ``docs/METHODS.md``:
+:mod:`core.cml.preprocess` and ``projects/nyc_rain_maps/docs/METHODS.md``:
 
 * ``"none"`` - gaps stay NaN (rain is NaN there);
 * ``"min_rsl"`` - implementation_2 (all gaps -> deepest fade);
@@ -228,7 +228,7 @@ class PycomlinkRSD(RainEstimator):
             return np.asarray(self.threshold_values)
         ref = self.threshold_links if self.threshold_links is not None else links
         ref = ref.sel(link=links.link.values)
-        trsl = (-ref["rsl"]).interpolate_na("time", method="linear", max_gap=pd.Timedelta("5min"))
+        trsl = pp.total_loss(ref).interpolate_na("time", method="linear", max_gap=pd.Timedelta("5min"))
         rsd = trsl.rolling(time=self.window, center=True, min_periods=1).std()
         return rsd.quantile(self.quantile, dim="time", skipna=True).values
 
@@ -312,7 +312,8 @@ class NearbyLinks(RainEstimator):
         from pycomlink.processing.wet_dry import nearby_wetdry as nw
 
         ids = [str(x) for x in links.link.values]
-        rsl = links["rsl"].interpolate_na("time", method="linear", max_gap=pd.Timedelta("5min"))
+        # received level net of transmit-power changes (= RSL where TSL is not recorded)
+        rsl = (-pp.total_loss(links)).interpolate_na("time", method="linear", max_gap=pd.Timedelta("5min"))
         rsl = xr.DataArray(rsl.values, dims=("cml_id", "time"),
                            coords={"cml_id": ids, "time": links.time.values})
         # Same windows as implementation_2 (left-closed); stamps moved to interval END.
@@ -358,7 +359,7 @@ class NearbyLinks(RainEstimator):
 class PyNNcmlGRU(RainEstimator):
     """PyNNcml pretrained two-step GRU on 15-min min/max RSL (implementation_2).
 
-    Caveats (documented in docs/METHODS.md): the network was trained on OpenMRG
+    Caveats (documented in projects/nyc_rain_maps/docs/METHODS.md): the network was trained on OpenMRG
     links at 18-25 GHz, and its length normalisation suggests metres, while
     implementation_2 passes km (``length_unit`` reproduces either). Output is clipped at
     0 and stamped interval-ENDING.

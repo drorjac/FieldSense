@@ -44,9 +44,9 @@ import xarray as xr
 
 from core.geo import haversine_m
 from core.opensense import openmesh as om
-from . import baseline as bl
-from .estimators import DynamicBaseline
-from .link_qc import QCConfig, metadata_qc
+from core.cml import baseline as bl
+from core.cml.estimators import DynamicBaseline
+from core.cml.link_qc import QCConfig, metadata_qc
 
 log = logging.getLogger(__name__)
 

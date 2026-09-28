@@ -62,11 +62,8 @@ nyc_rain_maps/
 ├── src/
 │   ├── run.py                   # command line
 │   └── nyc_rain_maps/
-│       ├── estimators.py        # the retrieval methods, one class each (+ baseline, preprocess, power_law)
-│       ├── link_qc.py           # metadata / time-series / retrieval QC of links
+│       ├── (methods, QC, IDW, scores: core/cml/ and core/maps/)
 │       ├── link_selection.py    # gauge-calibrated link selection
-│       ├── idw.py               # IDW maps on the MRMS grid; hourly accumulation
-│       ├── scores.py            # NRMSE, bias, corr, POD/FAR/CSI; maps and per-link vs radar
 │       ├── events.py            # event detection and rain/snow/mix classification
 │       ├── pipeline.py          # run_event: links -> rain -> maps -> scores vs MRMS
 │       ├── compare.py           # CML, PWS, MRMS and ASOS on one grid, pairwise
@@ -81,7 +78,8 @@ nyc_rain_maps/
 └── tests/
 ```
 
-Shared pieces live in `core/`: the MRMS client (`core/radar/mrms/`, documented in
+Shared pieces live in `core/`: the retrieval methods and link QC (`core/cml/`), IDW maps and
+scores (`core/maps/`), the MRMS client (`core/radar/mrms/`, documented in
 `core/radar/MRMS.md`), ASOS (`core/asos.py`), the OpenMesh full-record loader
 (`core/opensense/openmesh.py`) and lat/lon grids (`core/geo.py`).
 
