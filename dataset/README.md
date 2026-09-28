@@ -1,73 +1,60 @@
-# FieldSense Dataset Collection
+# Datasets
 
-This directory contains a collection of open datasets for opportunistic sensing, environmental monitoring, and multi-sensor data fusion. All datasets follow the [OpenSense-1.0 naming convention](https://github.com/OpenSenseAction/opensense_example_data) and are formatted as NetCDF files for interoperability.
+The open datasets FieldSense works with. **No data is stored in git**: this
+folder holds documentation only, and the files are downloaded on request
+into the git-ignored folders described below.
 
-## 📁 Directory Structure
+## Two ways to get the data
 
-```
-dataset/
-├── open_datasets/          # Raw/open datasets from various sources
-│   ├── OpenMesh_NYC/       # NYC Community Mesh Network data
-│   ├── OpenMRG_Sweden/     # Swedish microwave link, radar, and gauge data
-│   ├── CML_Netherlands/    # Netherlands commercial microwave link data
-│   └── OpenRainER_Italy/   # Italian precipitation dataset
-└── README.md
-```
+| | example subsets | full records |
+|---|---|---|
+| what | a few days of each dataset, already on the OpenSense conventions | months to years, as published |
+| size | about 60 MB in all | hundreds of MB to several GB per dataset |
+| source | [OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data) | Zenodo (below) |
+| code | `core/opensense/example_data.py` | `core/opensense/fetch.py` |
+| lands in | `open_datasets/_example_subsets/` | `open_datasets/<dataset>/raw/` |
+| list | `python -m core.opensense.example_data --list` | `python -m core.opensense.fetch --list` |
 
-> **Note:** This folder holds the published data only. Large data files are git-ignored
-> (see the root `.gitignore`); only metadata, small samples and reader scripts are tracked.
-> Downloads and conversion are code, and live elsewhere - see
-> [Data Processing Workflow](#-data-processing-workflow).
+Start with the example subsets; the notebooks in [`examples/`](../examples/)
+read them. The full records are for work that needs more than a few days:
+`projects/opensense_pipeline/src/ingest_*.py` turns them into OpenSense
+NetCDF files under `open_datasets/<dataset>/processed/`.
 
-## OpenSense example subsets
+## The datasets
 
-Small cuts of these datasets, already on the OpenSense conventions, are
-published at
-[OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data)
-and read by `core.opensense.example_data`. They download on first use into
-`open_datasets/_example_subsets/` (git-ignored).
+| dataset | region, period | sensors | example subset | full record | license |
+|---|---|---|---|---|---|
+| **OpenMRG** | Gothenburg, Sweden; Jun-Aug 2015 | 364 CMLs, radar, 11 gauges | `openmrg` (`8d`, `5min_2h`) | `fetch --dataset openmrg`, 318 MB | CC BY-SA 4.0 |
+| **OpenRainER** | Emilia-Romagna, Italy; 2021-2022 | CMLs, radar, gauges | `openrainer` (`8d`) | `fetch --dataset openrainer`, 1.4 GB by default | CC BY 4.0 |
+| **OpenMesh** | New York City; Oct 2023 - Jul 2024 | NYC Mesh community-network links, PWS, ASOS | `openmesh` (`1d`, `1w`, `20d`) | `fetch --dataset openmesh` (+ `openmesh_pws`) | CC BY 4.0 (links), CC BY-NC 4.0 (PWS) |
+| **Amsterdam PWS** | Amsterdam, Netherlands; 2016-2018 | 134 Netatmo PWS, radar reference | `ams_pws` (`full_period`) | - | CC BY 4.0 |
+| **CML Netherlands** | Netherlands; 2011-2015 | nationwide CMLs | - | not automated yet | see source |
 
-| folder | subsets | sensors | notebook |
-|---|---|---|---|
-| `OpenMRG` | `8d`, `5min_2h` | cml, radar, gauge_municipal, gauge_smhi | `examples/01_openmrg.ipynb` |
-| `OpenRainER` | `8d` | cml, radar, gauge | `examples/02_openrainer.ipynb` |
-| `OpenMesh` | `1d`, `1w`, `20d` | cml, pws, asos *(20d only)* | `examples/03_openmesh.ipynb` |
-| `AMS_PWS` | `full_period` | pws, gauge (radar-derived) | `examples/04_ams_pws.ipynb` |
+### Sources and citations
 
-```bash
-python -m core.opensense.example_data --list
-python -m core.opensense.example_data --all      # about 60 MB
-```
+Cite the original dataset in anything that uses it.
 
-## 🌐 Available Datasets
+- **OpenMRG** - Andersson, J. et al. (2022). The OpenMRG data set, v1.1.
+  [doi:10.5281/zenodo.7107689](https://doi.org/10.5281/zenodo.7107689).
+  [OpenSense page](https://opensenseaction.eu/datasets/openmrg-open-data-from-microwave-links-radar-and-gauges/).
+- **OpenRainER** - Covi, E. and Roversi, G. OpenRainER, v2.0.3.
+  [doi:10.5281/zenodo.22829808](https://doi.org/10.5281/zenodo.22829808).
+  [OpenSense page](https://opensenseaction.eu/news/new-open-cml-dataset-from-italy-openrainer/).
+- **OpenMesh** - Jacoby, D. et al. (2026). OpenMesh: Wireless Signal Dataset for
+  Opportunistic Urban Weather Sensing in New York City. *Earth System Science
+  Data* 18, 5817-5836. [doi:10.5194/essd-18-5817-2026](https://doi.org/10.5194/essd-18-5817-2026).
+  Links: [doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692);
+  PWS: [doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286);
+  code: [drorjac/OpenMesh](https://github.com/drorjac/OpenMesh);
+  network: [NYC Mesh](https://www.nycmesh.net/).
+- **Amsterdam PWS** - de Vos, L. et al. (2019). Quality control for crowdsourced
+  personal weather stations to enable operational rainfall monitoring.
+  *Geophysical Research Letters*. [doi:10.1029/2019GL083731](https://doi.org/10.1029/2019GL083731).
+  Data at [4TU](https://data.4tu.nl/articles/dataset/Rainfall_observations_datasets_from_Personal_Weather_Stations/12703250).
+- **CML Netherlands** - Overeem, A., Walraven, B. and Leijnse, H. (2024).
+  Four-year commercial microwave link dataset for the Netherlands.
+  [doi:10.4121/be252844-b672-471e-8d69-27269a862ec1.v1](https://doi.org/10.4121/be252844-b672-471e-8d69-27269a862ec1.v1).
 
-### 1. OpenMesh (NYC Community Mesh Network)
-
-**Location:** `open_datasets/OpenMesh_NYC/`
-
-**Description:** Wireless signal dataset from the NYC Community Mesh Network for opportunistic urban weather sensing. Contains microwave link data, personal weather stations (PWS), and ASOS station observations.
-
-**Data Coverage:**
-- **Links Data:** October 2023 - July 2024 (complete)
-- **PWS Data:** January 15-30, 2024 (sample)
-- **Network:** 75 links with 3 sublinks each
-- **Time Resolution:** Variable (5-minute to hourly)
-
-**Contents:**
-- `maps/` - Interactive network topology visualizations
-- `links/`, `weather stations/` - link and station measurements, downloaded
-  from Zenodo rather than tracked (the folder name with a space matches the
-  published layout)
-
-The collection pipelines, the exploration notebooks and the dataset paper live
-in `projects/openmesh_nyc/`.
-
-**Dataset Links:**
-- **Zenodo:** [10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692)
-- **GitHub Repository:** [github.com/drorjac/OpenMesh](https://github.com/drorjac/OpenMesh)
-- **Network Source:** [NYC Mesh Network](https://www.nycmesh.net/)
-
-**Citation:**
 ```bibtex
 @article{jacoby2026openmesh,
   title={OpenMesh: Wireless Signal Dataset for Opportunistic Urban Weather Sensing in New York City},
@@ -80,225 +67,37 @@ in `projects/openmesh_nyc/`.
 }
 ```
 
-**Format:** OpenSense-1.0 (grouped NetCDF4)
+## Folder layout
 
----
-
-### 2. OpenMRG (Sweden)
-
-**Location:** `open_datasets/OpenMRG_Sweden/`
-
-**Description:** Open data from Sweden combining Commercial Microwave Links (CML), weather radar, and rain gauge measurements for hydrological and meteorological analysis. Covers the Gothenburg region during summer 2015.
-
-**Data Coverage:**
-- **Period:** June-August 2015 (JJA)
-- **Region:** Gothenburg, Sweden
-- **Sensors:** CML links, SMHI rain gauges, weather radar
-
-**Contents:**
-- `cml/` - Commercial microwave link data (NetCDF format)
-- `gauges/` - Rain gauge data (SMHI and City gauges)
-- `radar/` - Weather radar data
-- Example reading scripts and metadata
-
-**Dataset Links:**
-- **OpenSense Action:** [OpenMRG Dataset](https://opensenseaction.eu/datasets/openmrg-open-data-from-microwave-links-radar-and-gauges/)
-- **Zenodo:** [10.5281/zenodo.6673750](https://doi.org/10.5281/zenodo.6673750)
-- **License:** CC BY-SA 4.0
-
-**Format:** NetCDF (CF conventions) and CSV
-
----
-
-### 3. CML Netherlands
-
-**Location:** `open_datasets/CML_Netherlands/`
-
-**Description:** Four-year comprehensive dataset of commercial microwave link data from the Netherlands (2011-2015), used for rainfall estimation and related studies.
-
-**Data Coverage:**
-- **Period:** 2011-2015 (4 years)
-- **Region:** Netherlands
-- **Network:** Commercial microwave link infrastructure
-
-**Dataset Links:**
-- **TU Delft Data Repository:** [10.4121/be252844-b672-471e-8d69-27269a862ec1.v1](https://doi.org/10.4121/be252844-b672-471e-8d69-27269a862ec1.v1)
-- **OpenSense Action:** [Four-year CML Dataset](https://opensenseaction.eu/datasets/four-year-commercial-microwave-link-dataset-for-the-netherlands/)
-
-**Format:** NetCDF
-
----
-
-### 4. OpenRainER (Italy)
-
-**Location:** `open_datasets/OpenRainER_Italy/`
-
-**Description:** Precipitation dataset from the Emilia-Romagna region in Italy containing two years of multi-sensor precipitation data including weather radar, rain gauge, and Commercial Microwave Link (CML) measurements.
-
-**Data Coverage:**
-- **Period:** 2021-2022 (2 years)
-- **Region:** Emilia-Romagna, Italy
-- **Sensors:** Weather radar, rain gauges, CML links
-
-**Dataset Links:**
-- **Zenodo:** [10.5281/zenodo.10593848](https://zenodo.org/record/10593848)
-- **OpenSense Action:** [OpenRainER Dataset](https://opensenseaction.eu/news/new-open-cml-dataset-from-italy-openrainer/)
-
-**Format:** NetCDF
-
----
-
-## 📊 Data Format Standards
-
-All datasets in this collection follow standardized formats for interoperability:
-
-### OpenSense-1.0 Convention
-
-The [OpenSense-1.0 naming convention](https://github.com/OpenSenseAction/opensense_example_data) provides:
-- Standardized NetCDF structure for CML data
-- Consistent variable naming and metadata
-- Grouped NetCDF4 format for multi-link datasets
-- CF conventions compliance where applicable
-
-**Key Features:**
-- **Dimensions:** `time`, `cml_id`, `sublink_id`
-- **Coordinates:** Spatial coordinates, frequency, polarization, link length
-- **Variables:** `rsl` (Received Signal Level), `tsl` (Transmitted Signal Level)
-- **Metadata:** Comprehensive global attributes following OpenSense standards
-
-### Example Reading Code
-
-```python
-import xarray as xr
-
-# Load OpenSense-1.0 formatted dataset
-ds = xr.open_dataset('path/to/dataset.nc')
-
-# Access link data
-rsl = ds.rsl  # Received Signal Level
-time = ds.time  # Time coordinates
-cml_ids = ds.cml_id  # Link identifiers
+```
+dataset/open_datasets/
+├── _example_subsets/     # example subsets, one folder per dataset       (downloaded)
+├── OpenMRG_Sweden/       # README, SMHI's readme, example reader scripts
+│   ├── raw/              #   the Zenodo archive                          (downloaded)
+│   └── processed/        #   OpenSense NetCDF made by ingest_openmrg.py  (generated)
+├── OpenRainER_Italy/     # README; raw/ and processed/ as above
+├── OpenMesh_NYC/         # the Zenodo package's README.txt, network maps (HTML)
+└── CML_Netherlands/      # README only
 ```
 
-See individual dataset folders for specific example notebooks.
+## The OpenSense data format
 
----
+All NetCDF files here follow, or are converted to, the conventions of the
+[OpenSense](https://opensenseaction.eu/) community: CML data on dimensions
+`cml_id`, `sublink_id` and `time`, with `rsl` (received signal level) and,
+where published, `tsl` (transmitted), and link geometry as `site_0_lat`,
+`site_0_lon`, `site_1_lat`, `site_1_lon`, `length`, `frequency`,
+`polarization`. Point sensors (gauges, PWS) use `id` and `time`.
 
-## 🔄 Data Processing Workflow
+The published files still differ in units and names - frequency in MHz
+without a unit, radar accumulations named like rates, `station_id` instead of
+`id`. `example_data.load()` normalizes these; `core/opensense/conventions.py`
+documents each case.
 
-1. **Fetch** → `core/opensense/fetch.py` downloads the full archives into
-   `open_datasets/<dataset>/raw/` (resumable, size-checked).
-   `core/opensense/example_data.py` fetches the small OpenSense example subsets into
-   `open_datasets/_example_subsets/`.
-2. **Ingest** → `projects/opensense_pipeline/src/ingest_*.py` convert raw archives to
-   OpenSense-1.0 netCDFs under `open_datasets/<dataset>/processed/`.
+## Adding a dataset
 
-`raw/`, `processed/` and `_example_subsets/` are git-ignored and can be rebuilt
-from those scripts.
-
----
-
-## 📚 Example Notebooks
-
-Notebooks live with the project that owns the analysis, not beside the raw
-data. Each dataset folder documents its own format; the notebooks that read it
-demonstrate:
-- Data loading and reading
-- Basic visualization
-- Data quality assessment
-- Format compliance checking
-
-**Notable Examples:**
-- `examples/` - one reading notebook per OpenSense example dataset
-- `OpenMRG_Sweden/cml/example_read_cml.nc.py` - CML data reading
-- `projects/openmesh_nyc/notebooks/` - OpenMesh link, PWS and ASOS notebooks
-- `projects/cml_retrieval/notebooks/` - PyNNcml retrieval on OpenMRG
-- `projects/opensense_pipeline/` - full retrieval + merging on OpenMRG and OpenRainER
-
----
-
-## 🔗 Related Resources
-
-### OpenSense Action
-- **Website:** [opensenseaction.eu](https://opensenseaction.eu/)
-- **GitHub:** [github.com/OpenSenseAction](https://github.com/OpenSenseAction)
-- **Example Data Repository:** [github.com/OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data)
-
-### Standards and Conventions
-- **OpenSense-1.0:** [OpenSense naming convention](https://github.com/OpenSenseAction)
-- **CF Conventions:** [cfconventions.org](http://cfconventions.org/)
-- **NetCDF:** [unidata.ucar.edu/software/netcdf](https://www.unidata.ucar.edu/software/netcdf/)
-
-### Tools and Libraries
-- **xarray:** Multi-dimensional arrays with labeled dimensions
-- **netCDF4:** Python interface to NetCDF files
-- **PyNNcml:** Neural network tools for CML data analysis
-
----
-
-## 📝 Dataset Usage Guidelines
-
-### Citation Requirements
-
-When using datasets from this collection:
-1. **Cite the original dataset** using the provided DOI/citation
-2. **Acknowledge data sources** (e.g., NYC Mesh Network, SMHI, NOAA)
-3. **Reference this repository** if using processed versions
-
-### License Information
-
-Each dataset maintains its original license:
-- **OpenMesh:** CC BY 4.0
-- **OpenMRG:** CC BY-SA 4.0
-- **CML Netherlands:** Check original repository
-- **OpenRainER:** Check Zenodo record
-
-### Data Access
-
-- **Sample data** is included in this repository
-- **Complete datasets** may require download from original sources
-- **Fetch and ingest scripts** are provided for data conversion (see above)
-
----
-
-## 🛠️ Contributing
-
-To add a new dataset:
-
-1. Create a folder in `open_datasets/` following naming convention
-2. Include a `README.md` with:
-   - Dataset description and coverage
-   - Original source links and citations
-   - Data format and structure
-   - Example usage code
-3. Add a fetch entry in `core/opensense/fetch.py` if the data is downloadable
-4. Update this main README with dataset information
-
----
-
-## 📧 Contact
-
-For questions about datasets or data processing:
-- Check individual dataset README files
-- Refer to original dataset repositories
-- Open an issue in the project repository
-
----
-
-## 🔄 Version History
-
-- **2025-01:** Initial dataset collection structure
-- Datasets follow OpenSense-1.0 conventions
-- Standardized NetCDF format for interoperability
-
----
-
-## 📖 Additional Documentation
-
-- **Fetch & ingest:** `core/opensense/` and `projects/opensense_pipeline/`
-- **Example notebooks:** in the projects that use the data (see above)
-- **Dataset-Specific Docs:** See individual dataset folders
-
----
-
-*Last Updated: September 2025*
+1. Create `open_datasets/<Name_Region>/README.md`: what it is, the official
+   source and DOI, the license.
+2. Add a `Source` to `core/opensense/fetch.py` (for a full record) or an
+   `ExampleDataset` to `core/opensense/example_data.py` (for a subset).
+3. Add it to the tables above.
