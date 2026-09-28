@@ -19,6 +19,26 @@ dataset/
 > Downloads and conversion are code, and live elsewhere - see
 > [Data Processing Workflow](#-data-processing-workflow).
 
+## OpenSense example subsets
+
+Small cuts of these datasets, already on the OpenSense conventions, are
+published at
+[OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data)
+and read by `core.opensense.example_data`. They download on first use into
+`open_datasets/_example_subsets/` (git-ignored).
+
+| folder | subsets | sensors | notebook |
+|---|---|---|---|
+| `OpenMRG` | `8d`, `5min_2h` | cml, radar, gauge_municipal, gauge_smhi | `examples/01_openmrg.ipynb` |
+| `OpenRainER` | `8d` | cml, radar, gauge | `examples/02_openrainer.ipynb` |
+| `OpenMesh` | `1d`, `1w`, `20d` | cml, pws, asos *(20d only)* | `examples/03_openmesh.ipynb` |
+| `AMS_PWS` | `full_period` | pws, gauge (radar-derived) | `examples/04_ams_pws.ipynb` |
+
+```bash
+python -m core.opensense.example_data --list
+python -m core.opensense.example_data --all      # about 60 MB
+```
+
 ## 🌐 Available Datasets
 
 ### 1. OpenMesh (NYC Community Mesh Network)
@@ -186,6 +206,7 @@ demonstrate:
 - Format compliance checking
 
 **Notable Examples:**
+- `examples/` - one reading notebook per OpenSense example dataset
 - `OpenMRG_Sweden/cml/example_read_cml.nc.py` - CML data reading
 - `projects/openmesh_nyc/notebooks/` - OpenMesh link, PWS and ASOS notebooks
 - `projects/cml_retrieval/notebooks/` - PyNNcml retrieval on OpenMRG

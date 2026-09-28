@@ -98,8 +98,8 @@ example_data.load("openmrg", "8d", time=slice("2015-07-28", "2015-07-28"),
                   components=("cml", "radar"))  # a window, before reading
 ```
 
-`notebooks/01_read_opensense_data.ipynb` walks through reading all four
-datasets and plotting them with `poligrain`, including the units trap below.
+`examples/` at the repository root has a notebook per dataset: reading it,
+its structure, the traps in its files, and first plots with `poligrain`.
 
 | dataset | subsets | components |
 |---|---|---|
@@ -788,7 +788,6 @@ opensense_pipeline/
 │   ├── plots_retrieval.py      #   ... for retrieval_benchmark
 │   └── run_pipeline.py         # entry point
 ├── notebooks/
-│   ├── 01_read_opensense_data.ipynb   # reading all four datasets
 │   └── 02_end_to_end.ipynb            # one day through every stage
 ├── results/
 ├── PLAN.md

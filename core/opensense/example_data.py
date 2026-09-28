@@ -37,6 +37,7 @@ Ported from ``poligrain.example_data``, with four changes:
 from __future__ import annotations
 
 import argparse
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -217,6 +218,11 @@ def normalize_radar(ds: xr.Dataset, crs: str) -> xr.Dataset:
     if "R" not in ds.data_vars and "rainfall_amount" in ds.data_vars:
         ds = ds.rename({"rainfall_amount": "R"})
     units = str(ds.R.attrs.get("units", "")).strip().lower()
+    # OpenMRG's 5min_2h radar declares its accumulation as "sum 5min"
+    summed = re.fullmatch(r"sum\s*(\d+)\s*min", units)
+    if summed:
+        ds.R.attrs["accum_time_h"] = int(summed.group(1)) / 60.0
+        units = "mm"
     if units == "mm":
         hours = float(ds.R.attrs.get("accum_time_h",
                                      sampling_interval_s(ds.time) / 3600.0))
@@ -228,8 +234,8 @@ def normalize_radar(ds: xr.Dataset, crs: str) -> xr.Dataset:
                           comment=f"converted from {hours:g} h accumulation in mm")
     elif units not in ("mm/h", "mm h-1", "mm hr-1", ""):
         raise ValueError(f"unexpected radar units {units!r}")
-    lon = next(c for c in ("lon", "longitude") if c in ds.variables)
-    lat = next(c for c in ("lat", "latitude") if c in ds.variables)
+    lon = next(c for c in ("lon", "longitude", "longitudes") if c in ds.variables)
+    lat = next(c for c in ("lat", "latitude", "latitudes") if c in ds.variables)
     return cv.project_grid(ds, crs, lon=lon, lat=lat)
 
 
@@ -254,7 +260,12 @@ def _normalize_points(ds: xr.Dataset, crs: str) -> xr.Dataset:
     Gauge and PWS files store the accumulation per time step (1 min for
     OpenMRG's municipal gauges, 15 min for OpenRainER's), so every caller
     used to convert by hand with its own hardcoded factor.
+
+    OpenMRG's 5min_2h gauges name the station dimension ``station_id``; it is
+    renamed to the ``id`` every other point file uses.
     """
+    if "station_id" in ds.dims and "id" not in ds.dims:
+        ds = ds.rename({"station_id": "id"})
     lon = next((c for c in ("lon", "longitude") if c in ds.coords), None)
     lat = next((c for c in ("lat", "latitude") if c in ds.coords), None)
     if lon and lat:

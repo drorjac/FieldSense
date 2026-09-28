@@ -70,6 +70,24 @@ def test_radar_accumulation_is_converted_to_a_rate():
     assert float(step.R.max()) == pytest.approx(4.0)
 
 
+def test_openmrg_5min_subset_radar_and_gauges_normalize():
+    """OpenMRG's 5min_2h files: "sum 5min" units, 2-D longitudes, station_id."""
+    radar = _radar("sum 5min").rename({"R": "rainfall_amount"})
+    out = example_data.normalize_radar(radar, "EPSG:32632")
+    assert float(out.R.max()) == pytest.approx(12.0)
+    assert out.R.attrs["units"] == "mm h-1"
+
+    time = pd.date_range("2015-07-25", periods=3, freq="5min").as_unit("ns")
+    gauge = xr.Dataset(
+        {"rainfall_amount": (("time", "station_id"), np.full((3, 2), 0.5))},
+        coords={"time": time, "station_id": [0, 1],
+                "lon": ("station_id", [11.9, 12.0]),
+                "lat": ("station_id", [57.7, 57.7])})
+    pts = example_data._normalize_points(gauge, "EPSG:32632")
+    assert "id" in pts.dims and "station_id" not in pts.dims
+    assert float(pts.R.max()) == pytest.approx(6.0)
+
+
 def test_project_grid_attaches_what_mergeplg_and_poligrain_read():
     out = cv.project_grid(_radar("mm/h"), "EPSG:32632")
     assert out.R.dims == ("time", "y", "x")
