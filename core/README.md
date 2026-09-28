@@ -10,6 +10,8 @@ script or notebook, with no `sys.path` edits.
 core/
 ├── itu_p838.py              # ITU-R P.838-3 rain attenuation (k, alpha) tables
 ├── viz_style.py             # shared palette and matplotlib defaults
+├── geo.py                   # lat/lon Domain and MRMS-aligned Grid; NYC and OpenMesh domains
+├── asos.py                  # NWS ASOS reports from IEM: hourly rain, present weather (rain/snow/mix)
 ├── simulation/              # synthetic rain fields + CML network sampling
 │   ├── rain_fields.py           # stratiform / convective / frontal models, statistics
 │   ├── moving_fields.py         # the same fields in time: translation, growth, evolution
@@ -18,6 +20,7 @@ core/
 ├── opensense/               # OpenSense data: pull, normalize, retrieve, score
 │   ├── fetch.py                 # Zenodo full records, resumable + verified
 │   ├── example_data.py          # curated OpenSense example subsets, normalized on load
+│   ├── openmesh.py              # the full OpenMesh record (links + PWS) as link sets
 │   ├── conventions.py           # units, polarization, projected geometry across sources
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)
 │   ├── wet_dry.py               # radar, nearby-link and CNN wet/dry masks (poligrain, pycomlink)
@@ -26,7 +29,9 @@ core/
 │   ├── plots.py                 # standard figures (network, retrieval steps, hexbins, maps)
 │   └── evaluation.py            # poligrain matching of lines/points/grids + metrics
 ├── radar/
-│   └── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
+│   ├── nexrad.py                # KOKX NEXRAD for the OpenMesh NYC days
+│   ├── mrms/                    # NOAA MRMS: fetch, decode (ecCodes), crop, cache; rainfall maps
+│   └── MRMS.md                  # products, sources, processing, validation
 └── scientific_packages/
     ├── PYSINDY.md  PYSR.md  PYNNcml.md   # reference notes
     ├── pynncml_compat.py                 # PyNNcml 0.3.7 workarounds: GMZ bugs, NumPy 2, local OpenMRG
@@ -40,6 +45,7 @@ core/
 | `simulation.*` | rainfall_field_sim | rainfall_field_sim, opensense_pipeline, physics_ml, spatial_interpolation |
 | `opensense.*` | opensense_pipeline | opensense_pipeline, cml_retrieval, physics_ml, openmesh_nyc (notebook) |
 | `radar.nexrad` | openmesh_nyc | openmesh_nyc (notebook), opensense_pipeline |
+| `radar.mrms`, `asos`, `geo`, `opensense.openmesh` | pcpn_maps (see `projects/nyc_rain_maps`) | nyc_rain_maps |
 | `scientific_packages.pynncml_compat`, `pynncml_rnn` | cml_retrieval | cml_retrieval, spatial_interpolation |
 
 The command-line tools run as modules from the repo root:
@@ -70,6 +76,7 @@ ev.rainfall_metrics(ev.radar_along_links(data["radar"].R, cml),
 |---|---|---|
 | `fetch` | full Zenodo records, md5-verified, resumable | `requests` |
 | `example_data` | curated subsets; `time=` and `components=` select before reading | ported from `poligrain.example_data` |
+| `openmesh` | the full OpenMesh record: `sublinks_table`, `load_links(start, end, links)` as `rsl(link, time)`, `load_pws`; downloads through `fetch` | `netCDF4` |
 | `conventions` | m/km, MHz/GHz, polarization spellings, `project_cml`, `project_grid` | `poligrain.spatial` |
 | `retrieval` | `retrieve_dataset`, `retrieve_improved`, `combine_sublinks`, and each step as a function | ITU-R P.838-3, `pycomlink` wet-antenna models |
 | `wet_dry` | `from_radar`, `nearby_links` (Overeem 2016), `cnn` (Polz 2020), `fill_undecided` | `poligrain`, `pycomlink`, PyTorch |
@@ -101,6 +108,29 @@ predictions match pycomlink's to 4e-8.
 
 `pycomlink` is imported lazily, only by the non-default wet-antenna models and
 the nearby-link mask.
+
+## `radar/`, `asos.py`, `geo.py`
+
+Reference observations over New York City, and the grid they share.
+
+| module | what | built on |
+|---|---|---|
+| `radar.nexrad` | KOKX NEXRAD reflectivity frames for chosen days, Z-R by rain or snow | IEM archive |
+| `radar.mrms` | MRMS products (QPE 1 h Pass 1/2, radar-only, 24 h, rate, PrecipFlag, RQI): download from NOAA AWS with IEM as fallback, decode, crop to a `Domain`, cache per day; `hourly_rainfall`, `event_accumulation`, `rain_rate`, `to_grid`, `sample_points`, `path_average` | `eccodes` (`pip install -e ".[mrms]"`) |
+| `asos` | METAR from IEM for NYC, LGA, JFK, EWR: `hourly_precip`, `hourly_ptype` (rain / snow / mix / freezing), 1-min precipitation | `requests` |
+| `geo` | `Domain` (lat/lon box) and `Grid` (cell centres on MRMS's 0.01° lattice), `NYC`, `OPENMESH`, `haversine_m` | - |
+
+Downloads are cached under `dataset/open_datasets/MRMS/` and `ASOS/` and not tracked.
+`radar/MRMS.md` documents the products, the processing and how the data was validated.
+
+```python
+from core.geo import NYC
+from core.radar.mrms import hourly_rainfall
+from core.asos import fetch_asos, hourly_precip
+
+qpe = hourly_rainfall("2024-01-09 16:00", "2024-01-10 11:00", NYC)       # (time, lat, lon), mm
+gauges = hourly_precip(fetch_asos("2024-01-09 16:00", "2024-01-10 11:00"))
+```
 
 ## `simulation/`
 
