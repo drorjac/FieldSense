@@ -1,10 +1,9 @@
 """
 Data analysis functions for hybrid rain retrieval
 """
-import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Dict, Any
 from sklearn.model_selection import train_test_split
 
 from rain_simulator import RainAttenuationGenerator, rain_params_from_itu, get_k_alpha

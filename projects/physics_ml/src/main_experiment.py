@@ -70,7 +70,7 @@ def main():
 
     # Step 1: Analyze synthetic data
     print("\nStep 1: Data Analysis")
-    gen = analyze_synthetic_data(config, save_plots=True)
+    analyze_synthetic_data(config, save_plots=True)
 
     pause("Press Enter to continue with dataset generation and training...")
 
@@ -113,7 +113,7 @@ def analyze_data_only():
     print("DATA ANALYSIS MODE")
     print("=" * 30)
 
-    gen = analyze_synthetic_data(config, save_plots=True)
+    analyze_synthetic_data(config, save_plots=True)
 
     # Additional detailed analysis for single frequency
     print(f"\nDetailed analysis for 24 GHz:")

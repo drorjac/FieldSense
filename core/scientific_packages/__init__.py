@@ -1,28 +1,9 @@
 """
-Scientific Packages Module
+Shared code for third-party scientific packages.
 
-This module contains implementations and wrappers for scientific computing packages
-used in the FieldSense project, including:
-- SINDy (Sparse Identification of Nonlinear Dynamics)
-- PySR (PySymbolic Regression)
-- PyNNcml (Neural Network-based CML Rain Estimation)
-- Other physics-informed machine learning tools
+``pynncml_compat``  workarounds that let PyNNcml 0.3.7 run here (GMZ bugs,
+                    NumPy 2, reading the local OpenMRG copy)
+``pynncml_rnn``     the two-step RNN retrieval: loss, windowing, training, prediction
+
+``PYNNcml.md``, ``PYSINDY.md`` and ``PYSR.md`` are reference notes.
 """
-
-__version__ = "0.1.0"
-
-# Import wrappers if available
-__all__ = []
-
-try:
-    from . import pynncml_wrapper
-    __all__.append('pynncml_wrapper')
-except ImportError:
-    pass
-
-try:
-    from . import sindy_wrapper
-    __all__.append('sindy_wrapper')
-except ImportError:
-    pass
-

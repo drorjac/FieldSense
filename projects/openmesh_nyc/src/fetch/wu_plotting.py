@@ -7,8 +7,7 @@ Functions for visualizing and analyzing WU PWS data.
 
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
-from typing import Optional, Dict, List
+from typing import Dict
 import numpy as np
 
 # Set default style

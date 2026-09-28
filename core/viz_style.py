@@ -9,7 +9,6 @@ what this project needs.
 """
 
 import matplotlib as mpl
-import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
 # --- categorical slots (documented order) ---------------------------------

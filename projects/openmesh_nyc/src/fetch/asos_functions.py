@@ -16,7 +16,6 @@ import pandas as pd
 import numpy as np
 import requests
 from io import StringIO
-from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pathlib import Path
 
@@ -933,12 +932,6 @@ def plot_precip_by_type(data_dict, start_date=None, end_date=None, figsize=(14, 
         if col not in df.columns:
             ax.plot(df['datetime'], df['precip_mm'], lw=0.5, alpha=0.7, color='black')
         else:
-            # Get y max for axvspan
-            if ylim:
-                ymax = ylim[1]
-            else:
-                ymax = df['precip_mm'].max() * 1.1 if df['precip_mm'].max() > 0 else 1
-            
             # Paint intervals by type (axvspan for each contiguous block)
             df = df.sort_values('datetime').reset_index(drop=True)
             

@@ -225,7 +225,6 @@ def read_pws_metadata(custom_path=None):
         DataFrame with PWS metadata
     """
     import pandas as pd
-    from pathlib import Path
     
     if custom_path:
         df = pd.read_csv(custom_path)
@@ -267,7 +266,6 @@ def convert_wu_columns(df, keep_original=False):
     Returns:
         DataFrame with renamed columns
     """
-    import pandas as pd
 
     # Make a copy
     df_clean = df.copy()
@@ -911,7 +909,6 @@ def export_wu_data(
         end_date: End date for filename
         export_all: If True, export all formats (CSV, JSON, metadata)
     """
-    import os
     from pathlib import Path
     
     if results is None:
