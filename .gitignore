@@ -84,3 +84,11 @@ dataset/open_datasets/OpenMesh_NYC/nyc_rain_maps/
 projects/nyc_rain_maps/results/study/events/
 !projects/nyc_rain_maps/results/**/*.csv
 !projects/nyc_rain_maps/events/*.csv
+
+# multisensor_maps and cml_rnn: built datasets, trained models and intermediate files (the
+# RNN is rebuilt by projects/cml_rnn/src/run.py); their result tables are tracked
+dataset/open_datasets/_cml_rnn/
+dataset/open_datasets/_multisensor_maps/
+!projects/multisensor_maps/results/*.csv
+!projects/cml_rnn/results/*.csv
+!projects/cml_rnn/results/**/*.csv

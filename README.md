@@ -19,6 +19,7 @@ installing, and opening your first dataset.
  open data  ──►  signal loss to rain rate  ──►  rainfall map, merged with radar  ──►  forecast
  examples/       cml_retrieval                  opensense_pipeline                    spatial_interpolation
  openmesh_nyc    physics_ml                     nyc_rain_maps
+                 cml_rnn                        multisensor_maps
 
  and why the results look the way they do:  rainfall_field_sim (simulation), physics_ml
 ```
@@ -29,6 +30,8 @@ installing, and opening your first dataset.
 | [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and paper | `notebooks/openmesh_data.ipynb` |
 | [`cml_retrieval`](projects/cml_retrieval/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
 | [`opensense_pipeline`](projects/opensense_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
+| [`cml_rnn`](projects/cml_rnn/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
+| [`multisensor_maps`](projects/multisensor_maps/) | links, gauges and radar mapped on one grid on three networks; retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ) | `notebooks/01_three_networks.ipynb` |
 | [`nyc_rain_maps`](projects/nyc_rain_maps/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges, over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
 | [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
 | [`rainfall_field_sim`](projects/rainfall_field_sim/) | on simulated rain: does the error come from the sensors or from where the links are? | `python src/run_demo.py` |
@@ -38,6 +41,17 @@ installing, and opening your first dataset.
 
 Each is computed in the project named, where the details and caveats are.
 
+- **A trained network beats the power law, per link and in maps.** PyNNcml's two-step RNN,
+  trained on three networks against the average of radar and gauges and given the power-law
+  rate of the excess loss and what the neighbouring links see, has lower error and higher
+  correlation than every power-law method on held-out weeks in Gothenburg, Emilia-Romagna and
+  New York - against the radar alone and each gauge network alone (e.g. New York: correlation
+  0.78 against 0.50 for the best power law). On the ten largest storms of each network its maps
+  are the best link maps against the radar and at held-out gauges. *(cml_rnn, multisensor_maps)*
+- **Retrieval matters more than interpolation.** Across three networks, line IDW (virtual gauges
+  along each path) is the best interpolation for power-law retrievals and GMZ adds nothing to it,
+  but the spread between retrievals is several times the spread between interpolations.
+  *(multisensor_maps)*
 - **Merging helps only where the links are weak.** On the dense Swedish
   network the links alone beat radar and every merge against held-out gauges
   (RMSE 4.45 vs 6.16 mm/h); on the sparse Italian network merging only edges
@@ -87,9 +101,11 @@ FieldSense/
 ├── examples/             # one notebook per OpenSense example dataset
 ├── projects/             # the research projects above; each has src/, notebooks/, README
 ├── core/                 # code more than one project imports (see core/README.md)
-│   ├── opensense/            # data: fetch, example subsets, conventions, retrieval, wet/dry, PWS QC, scoring
+│   ├── opensense/            # data: fetch, example subsets, three networks on one grid, retrieval, PWS QC
 │   ├── simulation/           # synthetic rain fields, moving fields, CML network, reconstruction
 │   ├── scientific_packages/  # PyNNcml compatibility and RNN training; PySINDy/PySR notes
+│   ├── cml/                  # link retrieval methods: power law (four), PyNNcml RNN
+│   ├── maps/                 # IDW, line IDW, GMZ; scores
 │   ├── radar/                # KOKX NEXRAD and MRMS for New York
 │   ├── asos.py, geo.py       # NWS airport gauges; lat/lon domains and grids
 │   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
