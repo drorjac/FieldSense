@@ -32,7 +32,13 @@ from core.opensense.retrieval import (RetrievalConfig, combine_sublinks,  # noqa
                                       retrieve, retrieve_improved,
                                       total_loss_from)
 
-RAW = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/raw/extracted"
+from core import data_paths as dp  # noqa: E402
+
+# inputs, from ~/data/cml (or data/interim): see core/data_paths.py
+CML_NC = dp.data_path(dp.OPENMRG_CML)
+CML_META = dp.data_path(dp.OPENMRG_CML_META)
+RADAR_NC = dp.data_path(dp.OPENMRG_RADAR)
+GAUGES = dp.data_path(dp.OPENMRG_GAUGES)
 PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/processed"
 
 # UTM 32N covers Gothenburg; mergeplg needs a projected CRS in metres.
@@ -79,7 +85,7 @@ EVENTS = {
 # --------------------------------------------------------------------------
 def load_cml_metadata() -> pd.DataFrame:
     """Sublink metadata: geometry, frequency, polarization, length."""
-    df = pd.read_csv(RAW / "cml/cml_metadata.csv")
+    df = pd.read_csv(CML_META)
     df["Sublink"] = df["Sublink"].astype(int)
     return df.set_index("Sublink")
 
@@ -225,7 +231,7 @@ def sublinks_to_cmls(ds_sub: xr.Dataset) -> xr.Dataset:
 # --------------------------------------------------------------------------
 def load_radar(start: str, end: str) -> xr.Dataset:
     """Radar window as rain rate (mm/h) on a projected grid."""
-    ds = xr.open_dataset(RAW / "radar/radar.nc").sel(time=slice(start, end))
+    ds = xr.open_dataset(RADAR_NC).sel(time=slice(start, end))
 
     # xarray applies scale_factor/add_offset on read, so ds.data is already
     # dBZ - applying the 0.4/-30 transform again would be double-scaling. The
@@ -267,10 +273,10 @@ def load_radar(start: str, end: str) -> xr.Dataset:
 # --------------------------------------------------------------------------
 def load_city_gauges(start: str, end: str) -> xr.Dataset:
     """Municipal tipping-bucket gauges as rain rate (mm/h)."""
-    values = pd.read_csv(RAW / "gauges/city/CityGauges-2015JJA.csv",
+    values = pd.read_csv(GAUGES / "city/CityGauges-2015JJA.csv",
                          parse_dates=["Time_UTC"]).set_index("Time_UTC")
     values = values.loc[start:end]
-    meta = pd.read_csv(RAW / "gauges/city/CityGauges-metadata.csv")
+    meta = pd.read_csv(GAUGES / "city/CityGauges-metadata.csv")
 
     name_col = next(c for c in meta.columns if "ame" in c)
     lat_col = next(c for c in meta.columns if "atitude" in c)
@@ -331,7 +337,7 @@ def build_event(event: Event, resample: str = "5min",
     # anchor on, so the raw window is padded and trimmed back afterwards.
     pad = pd.Timedelta(hours=baseline_margin_h)
     print(f"  cml     loading raw TSL/RSL (+/-{baseline_margin_h} h for baseline)")
-    raw = xr.open_dataset(RAW / "cml/cml.nc").sel(
+    raw = xr.open_dataset(CML_NC).sel(
         time=slice(str(pd.Timestamp(event.start) - pad),
                    str(pd.Timestamp(event.end) + pad))).load()
     meta = load_cml_metadata()

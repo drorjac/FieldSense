@@ -30,7 +30,7 @@ python -m core.opensense.fetch --dataset openmrg      # once; the notebooks read
 python -m pytest projects/cml_retrieval/tests
 ```
 
-The notebooks read OpenMRG from `dataset/open_datasets/OpenMRG_Sweden/raw/`.
+The notebooks read OpenMRG from the shared store `~/data/cml/openmrg/` (see `DATA.md`).
 PyNNcml's own loader would download 318 MB into `./data/` next to each
 notebook and re-extract the 4.6 GB archive on every call;
 `pynncml_compat.openmrg_data_path()` points it at the shared copy instead.

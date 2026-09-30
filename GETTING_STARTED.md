@@ -116,7 +116,7 @@ Or open the file directly with plain `xarray` after the first download:
 
 ```python
 import xarray as xr
-ds = xr.open_dataset("dataset/open_datasets/_example_subsets/OpenMRG/openmrg_cml_8d.nc")
+ds = xr.open_dataset(example_data.sample_dir("openmrg") / "openmrg_cml_8d.nc")   # ~/data/cml/openmrg/_sample_8d/
 ```
 
 Read the notebook's section "The frequency trap" before using the raw file
@@ -146,13 +146,13 @@ learning and for most experiments.
 
 - Source: [OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data),
   published by the [OpenSense](https://opensenseaction.eu/) community.
-- Fetched by `core/opensense/example_data.py` into `dataset/open_datasets/_example_subsets/`.
+- Fetched by `core/opensense/example_data.py` into `~/data/cml/<dataset>/_sample*/` (see [`DATA.md`](DATA.md)).
 - `python -m core.opensense.example_data --list` shows them all.
 
 **Full records** - months to years, hundreds of MB to several GB. Use them
 when a few days is not enough.
 
-- Fetched by `core/opensense/fetch.py` into `dataset/open_datasets/<dataset>/raw/`.
+- Fetched by `core/opensense/fetch.py` into `~/data/cml/<dataset>/_download/` (see [`DATA.md`](DATA.md)).
 - `python -m core.opensense.fetch --list` shows every file and its size.
 - For example, all of OpenMRG (a 318 MB zip): `python -m core.opensense.fetch --dataset openmrg`
 

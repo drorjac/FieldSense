@@ -54,7 +54,10 @@ import xarray as xr
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
-CACHE = REPO_ROOT / "dataset" / "open_datasets" / "OpenMesh_NYC" / "radar"
+# downloads, in ~/data/cml (or data/interim): see core/data_paths.py
+from core import data_paths as dp  # noqa: E402
+CACHE = dp.data_path(dp.NEXRAD_CACHE)
+ASOS_CACHE = dp.data_path(dp.IEM_CACHE)
 
 IEM_ARCHIVE = "https://mesonet.agron.iastate.edu/archive/data"
 IEM_ASOS = "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py"
@@ -106,8 +109,8 @@ def _asos_frame(start: str = PERIOD[0], end: str = PERIOD[1]) -> pd.DataFrame:
               ("trace", "0.0001")]
     params += [("station", st) for st in ASOS_STATIONS]
 
-    CACHE.mkdir(parents=True, exist_ok=True)
-    cached = CACHE / f"asos_{s.date()}_{e.date()}.csv"
+    ASOS_CACHE.mkdir(parents=True, exist_ok=True)
+    cached = ASOS_CACHE / f"asos_{s.date()}_{e.date()}.csv"
     if cached.exists():
         return pd.read_csv(cached, parse_dates=["valid"])
 
@@ -332,7 +335,7 @@ def main() -> None:
             for d in best_days(kind, 8):
                 print(f"{d.date:>12}{d.precip_mm:>11.1f}"
                       f"{d.snow_obs:>10d}{d.rain_obs:>10d}")
-        print(f"\ncached under {CACHE.relative_to(REPO_ROOT)}/")
+        print(f"\ncached under {CACHE}/")
         return
 
     if args.best:

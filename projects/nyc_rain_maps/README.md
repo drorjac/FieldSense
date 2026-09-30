@@ -41,7 +41,8 @@ pip install -r projects/nyc_rain_maps/requirements.txt
 | `notebooks/04_results.ipynb` | the results over all events, read from `results/` |
 
 The first run downloads the OpenMesh record from Zenodo (28 MB) and the MRMS and ASOS data it
-needs; everything is cached under `dataset/open_datasets/` and not tracked.
+needs into the shared store `~/data/cml/openmesh/` (see `DATA.md`); intermediate files go
+under `dataset/open_datasets/OpenMesh_NYC/nyc_rain_maps/`. Nothing is tracked.
 
 Command line (`python projects/nyc_rain_maps/src/run.py --help`):
 

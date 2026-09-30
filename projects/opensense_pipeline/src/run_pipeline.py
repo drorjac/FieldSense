@@ -287,7 +287,7 @@ def build_from_example(dataset: str, resample: str | None = None,
                                           retrieve_improved, sampling_interval_s)
 
     key, subset, gauge_component, label = EXAMPLE_EVENTS[dataset]
-    cache = example_data.CACHE / example_data.DATASETS[key].folder
+    cache = example_data.sample_dir(key)
     if offline and not cache.exists():
         raise SystemExit(
             f"--offline but no cached subset at {cache}.\n"

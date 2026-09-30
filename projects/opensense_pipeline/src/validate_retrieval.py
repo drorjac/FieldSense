@@ -45,7 +45,7 @@ WINDOWS = {
 
 def load_reference(offline: bool = False) -> xr.Dataset:
     """OpenMRG 8d subset: raw tsl/rsl plus the reference retrieval R."""
-    cache = example_data.CACHE / "OpenMRG" / "openmrg_cml_8d.nc"
+    cache = example_data.sample_dir("openmrg") / "openmrg_cml_8d.nc"
     if offline:
         if not cache.exists():
             raise SystemExit(

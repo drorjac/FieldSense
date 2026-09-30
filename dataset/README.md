@@ -1,8 +1,9 @@
 # Datasets
 
 The open datasets FieldSense works with. **No data is stored in git**: this
-folder holds documentation only, and the files are downloaded on request
-into the git-ignored folders described below.
+folder holds documentation only. Input files live in the shared data store
+`~/data/cml/` (or a local override in `data/interim/`) — see
+[`../DATA.md`](../DATA.md) for every file FieldSense reads and what it is.
 
 ## Two ways to get the data
 
@@ -12,7 +13,7 @@ into the git-ignored folders described below.
 | size | about 60 MB in all | hundreds of MB to several GB per dataset |
 | source | [OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data) | Zenodo (below) |
 | code | `core/opensense/example_data.py` | `core/opensense/fetch.py` |
-| lands in | `open_datasets/_example_subsets/` | `open_datasets/<dataset>/raw/` |
+| lands in | `~/data/cml/<dataset>/_sample*/` | `~/data/cml/<dataset>/_download/` (+ extracted files) |
 | list | `python -m core.opensense.example_data --list` | `python -m core.opensense.fetch --list` |
 
 Start with the example subsets; the notebooks in [`examples/`](../examples/)
@@ -77,17 +78,17 @@ Cite the original dataset in anything that uses it.
 
 ## Folder layout
 
+Inputs (downloaded) are in `~/data/cml/`, laid out as in [`../DATA.md`](../DATA.md).
+This folder holds documentation and what FieldSense generates:
+
 ```
 dataset/open_datasets/
-├── _example_subsets/     # example subsets, one folder per dataset       (downloaded)
 ├── OpenMRG_Sweden/       # README, SMHI's readme, example reader scripts
-│   ├── raw/              #   the Zenodo archive                          (downloaded)
-│   └── processed/        #   OpenSense NetCDF made by ingest_openmrg.py  (generated)
-├── OpenRainER_Italy/     # README; raw/ and processed/ as above
-├── OpenMesh_NYC/         # the Zenodo package's README.txt, network maps (HTML)
-│   └── raw/              #   OpenMesh.zip, PWS_NYC_WU.zip and their extracted files   (downloaded)
-├── MRMS/cache/           # NOAA MRMS radar crops over NYC, one NetCDF per day          (downloaded)
-├── ASOS/                 # NWS airport reports from IEM                              (downloaded)
+│   ├── processed/        #   OpenSense NetCDF made by ingest_openmrg.py  (generated)
+│   └── pynncml_view/     #   symlinks onto ~/data in the Zenodo layout, for PyNNcml (generated)
+├── OpenRainER_Italy/     # README; processed/ as above
+├── OpenMesh_NYC/         # the Zenodo package's README.txt, network maps (HTML); processed/
+├── _cml_rnn/             # datasets and models built by projects/cml_rnn (generated)
 └── CML_Netherlands/      # README only
 ```
 

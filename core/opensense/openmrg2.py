@@ -21,10 +21,10 @@ from __future__ import annotations
 import xarray as xr
 
 from core.opensense import example_data
-from core.opensense.fetch import DATA_ROOT, SOURCES
+from core import data_paths as dp
 
 CRS = "EPSG:32632"
-RAW = DATA_ROOT / SOURCES["openmrg2_pws"].folder / "raw"
+RAW = dp.data_path(dp.OPENMRG2)     # ~/data/cml (or data/interim): see core/data_paths.py
 
 
 def _points(ds: xr.Dataset) -> xr.Dataset:

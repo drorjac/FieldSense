@@ -111,6 +111,7 @@ FieldSense/
 │   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
 │   └── viz_style.py          # shared palette and matplotlib defaults
 ├── dataset/              # dataset documentation; data is downloaded, never committed
+├── DATA.md               # every input file FieldSense reads (in ~/data/cml or data/interim/), and what it is
 ├── tests/                # pytest for core/ (synthetic data, no downloads)
 └── pyproject.toml        # installs core/ as a package
 ```

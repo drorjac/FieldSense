@@ -22,6 +22,10 @@ env/
 .DS_Store
 Thumbs.db
 
+# Local data override (see DATA.md): never committed, except its README
+data/interim/*
+!data/interim/README.md
+
 # Large files
 *.csv
 *.nc

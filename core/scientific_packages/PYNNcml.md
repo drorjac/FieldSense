@@ -95,7 +95,7 @@ rain_rates = estimator.estimate(rsl_data, wet_dry_labels)
 ## Dataset Integration
 
 ### OpenMRG Dataset (Sweden)
-- Available in `dataset/open_datasets/OpenMRG_Sweden/`
+- Available in `~/data/cml/openmrg/` (see `DATA.md`)
 - Includes CML data in NetCDF format (`cml.nc`)
 - Contains RSL and TSL (Transmitted Signal Level) measurements
 - Metadata in `cml_metadata.csv`
@@ -191,9 +191,9 @@ If using PyNNcml in research, consider citing:
 
 ## Related Datasets in FieldSense
 
-- **OpenMRG (Sweden)**: `dataset/open_datasets/OpenMRG_Sweden/`
+- **OpenMRG (Sweden)**: `~/data/cml/openmrg/`
 - **CML Netherlands**: `dataset/open_datasets/CML_Netherlands/`
-- **OpenRainER (Italy)**: `dataset/open_datasets/OpenRainER_Italy/`
+- **OpenRainER (Italy)**: `~/data/cml/openrainer/`
 
 ## Integration with Other Tools
 

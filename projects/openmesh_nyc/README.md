@@ -52,14 +52,15 @@ record under 1 mm in 20 days against ~70 mm at the rest. Seven of those are
 and pypwsqc's faulty-zero filter flags 88% of its record.
 ```
 
-The published data itself stays in `dataset/open_datasets/OpenMesh_NYC/`,
-alongside the other open datasets — see *Data* below.
+The published data itself is in the shared store `~/data/cml/openmesh/`,
+alongside the other open datasets — see *Data* below and `DATA.md`.
 
 ## Data
 
 Network maps and the dataset description live in
-`dataset/open_datasets/OpenMesh_NYC/`. The measurement files are not in git;
-`python -m core.opensense.fetch --dataset openmesh` fetches them from Zenodo.
+`dataset/open_datasets/OpenMesh_NYC/`. The measurement files are not in git: they are
+read from `~/data/cml/openmesh/release_v1/` (see `DATA.md`), and
+`python -m core.opensense.fetch --dataset openmesh` fetches them there from Zenodo.
 
 The notebooks locate `src/` by walking up from their own directory, so they
 run from anywhere inside this project without path fiddling.

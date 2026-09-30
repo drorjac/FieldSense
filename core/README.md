@@ -155,7 +155,7 @@ Reference observations over New York City, and the grid they share.
 | `asos` | METAR from IEM for NYC, LGA, JFK, EWR: `hourly_precip`, `hourly_ptype` (rain / snow / mix / freezing), 1-min precipitation | `requests` |
 | `geo` | `Domain` (lat/lon box) and `Grid` (cell centres on MRMS's 0.01° lattice), `NYC`, `OPENMESH`, `haversine_m` | - |
 
-Downloads are cached under `dataset/open_datasets/MRMS/` and `ASOS/` and not tracked.
+Downloads are cached in the shared data store `~/data/cml/openmesh/weather/` (see `DATA.md`) and not tracked.
 `radar/MRMS.md` documents the products, the processing and how the data was validated.
 
 ```python

@@ -45,7 +45,7 @@ import requests
 import xarray as xr
 
 from core.geo import Domain
-from core.opensense.fetch import DATA_ROOT
+from core import data_paths as dp
 from .products import MRMSProduct, get_product
 
 log = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ AWS_BASE = "https://noaa-mrms-pds.s3.amazonaws.com"
 IEM_BASE = "https://mtarchive.geol.iastate.edu"
 SOURCES = ("aws", "iem")
 USER_AGENT = "FieldSense (+https://github.com/drorjac/FieldSense)"
-MRMS_ROOT = DATA_ROOT / "MRMS"          # crops cached here, not tracked
+MRMS_CACHE = dp.data_path(dp.MRMS_CACHE)   # crops cached in ~/data/cml (see core/data_paths.py)
 
 
 class MRMSError(RuntimeError):
@@ -197,8 +197,8 @@ class MRMSClient:
                  keep_raw: bool = False, max_workers: int = 8, retries: int = 4,
                  timeout: float = 60.0, session: requests.Session | None = None,
                  processes: int | None = None):
-        self.cache_dir = Path(cache_dir) if cache_dir else MRMS_ROOT / "cache"
-        self.raw_dir = MRMS_ROOT / "raw"
+        self.cache_dir = Path(cache_dir) if cache_dir else MRMS_CACHE
+        self.raw_dir = MRMS_CACHE.parent / "mrms_raw"
         for s in sources:
             if s not in SOURCES:
                 raise ValueError(f"unknown source {s!r}")
