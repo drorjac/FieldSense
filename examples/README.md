@@ -24,7 +24,7 @@ jupyter lab examples/
 ```
 
 The first run downloads the files (about 60 MB in all) into
-`dataset/open_datasets/_example_subsets/`, which is git-ignored; later runs
+`~/data/cml/<dataset>/_sample*/` (outside the repo, see `DATA.md`); later runs
 read them from there. To fetch everything up front:
 
 ```bash

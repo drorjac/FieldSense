@@ -31,7 +31,7 @@ installing, and opening your first dataset.
 | [`cml_retrieval`](projects/cml_retrieval/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
 | [`opensense_pipeline`](projects/opensense_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
 | [`cml_rnn`](projects/cml_rnn/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
-| [`multisensor_maps`](projects/multisensor_maps/) | links, gauges and radar mapped on one grid on three networks; retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ) | `notebooks/01_three_networks.ipynb` |
+| [`multisensor_maps`](projects/multisensor_maps/) | links, gauges and radar mapped on one grid on three networks; retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ); the three merged every way (`pcpn_maps` and `mergeplg` methods) | `notebooks/01_three_networks.ipynb` |
 | [`nyc_rain_maps`](projects/nyc_rain_maps/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges, over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
 | [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
 | [`rainfall_field_sim`](projects/rainfall_field_sim/) | on simulated rain: does the error come from the sensors or from where the links are? | `python src/run_demo.py` |
@@ -52,6 +52,12 @@ Each is computed in the project named, where the details and caveats are.
   along each path) is the best interpolation for power-law retrievals and GMZ adds nothing to it,
   but the spread between retrievals is several times the spread between interpolations.
   *(multisensor_maps)*
+- **What links add to a merged map depends on the other sensors.** Merging radar, links and
+  gauges every way (seven methods from `pcpn_maps` and `mergeplg`) on 29 storms, scored at
+  held-out gauges: in Gothenburg, where the radar is weakest, radar + RNN links is best (NRMSE
+  1.01 with the gauges, 1.03 without, radar 1.47); in Emilia-Romagna the 319 gauges fix a radar
+  that reads 51% high (KED, 2.21 to 1.27) and the links add nothing; in New York the PWS
+  and gauge-corrected radar are best (0.88) and links make merged maps worse. *(multisensor_maps)*
 - **Merging helps only where the links are weak.** On the dense Swedish
   network the links alone beat radar and every merge against held-out gauges
   (RMSE 4.45 vs 6.16 mm/h); on the sparse Italian network merging only edges
@@ -111,6 +117,7 @@ FieldSense/
 │   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
 │   └── viz_style.py          # shared palette and matplotlib defaults
 ├── dataset/              # dataset documentation; data is downloaded, never committed
+├── DATA.md               # every input file FieldSense reads (in ~/data/cml or data/interim/), and what it is
 ├── tests/                # pytest for core/ (synthetic data, no downloads)
 └── pyproject.toml        # installs core/ as a package
 ```

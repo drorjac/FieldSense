@@ -4,6 +4,7 @@ Command line for multisensor_maps.
     python projects/multisensor_maps/src/run.py events                  # the study events per network
     python projects/multisensor_maps/src/run.py event --network openrainer --start "2021-09-26 06:00" --end "2021-09-26 19:00"
     python projects/multisensor_maps/src/run.py study                   # -> results/report.md
+    python projects/multisensor_maps/src/run.py merge                   # -> results/merging/report.md
 """
 
 from __future__ import annotations
@@ -48,6 +49,16 @@ def study(extra_factory=None) -> Path:
     return out / "report.md"
 
 
+def merge(networks=("openmrg", "openrainer", "openmesh"), refresh: bool = False) -> Path:
+    """Links, gauges and radar merged every way, scored at held-out gauges."""
+    from multisensor_maps.merging import run_merging
+    from multisensor_maps.merging_report import write_report
+
+    s = run_merging(networks, extra_factory=rnn_factory(), refresh=refresh)
+    s.save()
+    return write_report(s)
+
+
 def _first_day(s, key):
     ev = s.events[s.events.network == key].iloc[0]
     return ev.start, ev.end
@@ -62,6 +73,9 @@ def main(argv=None) -> None:
     p.add_argument("--start", required=True)
     p.add_argument("--end", required=True)
     sub.add_parser("study")
+    p = sub.add_parser("merge")
+    p.add_argument("--network", action="append", choices=["openmrg", "openrainer", "openmesh"])
+    p.add_argument("--refresh", action="store_true", help="rescore every event (inputs stay cached)")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -77,6 +91,10 @@ def main(argv=None) -> None:
         print(res.point_check()[["estimate", "stations", "rel_bias", "nrmse", "corr"]].round(2).to_string())
     elif args.cmd == "study":
         print(study())
+    elif args.cmd == "merge":
+        for name in ("pycomlink", "core.cml", "multisensor_maps.event"):
+            logging.getLogger(name).setLevel(logging.WARNING)
+        print(merge(tuple(args.network or ("openmrg", "openrainer", "openmesh")), args.refresh))
 
 
 if __name__ == "__main__":

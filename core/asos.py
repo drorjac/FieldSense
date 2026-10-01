@@ -19,13 +19,13 @@ import time
 import pandas as pd
 import requests
 
-from core.opensense.fetch import DATA_ROOT
+from core import data_paths as dp
 
 log = logging.getLogger(__name__)
 
 IEM_ASOS_URL = "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py"
 NYC_STATIONS = ("NYC", "LGA", "JFK", "EWR")
-CACHE = DATA_ROOT / "ASOS"          # downloaded reports, not tracked
+CACHE = dp.data_path(dp.IEM_CACHE)  # downloaded reports, in ~/data/cml (see core/data_paths.py)
 
 # METAR present-weather precipitation groups, in priority order for classification.
 _FREEZING = re.compile(r"FZ(RA|DZ)")

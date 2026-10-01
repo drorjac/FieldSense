@@ -31,12 +31,14 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from core import data_paths as dp
 from core.opensense import fetch
 
 log = logging.getLogger(__name__)
 
-RAW = fetch.DATA_ROOT / "OpenMesh_NYC" / "raw"
-EXTRACTED = RAW / "extracted"
+# inputs, from ~/data/cml (or data/interim): see core/data_paths.py
+RAW = dp.data_path(dp.OPENMESH_ZIPS)            # OpenMesh.zip, PWS_NYC_WU.zip
+EXTRACTED = dp.data_path(dp.OPENMESH_RELEASE)   # their contents
 
 OPENMESH_FILE = "ds_openmesh.nc"
 LINKS_META_FILE = "links_metadata.csv"
@@ -50,7 +52,7 @@ PWS_META_FILE = "pws_metadata.csv"
 def openmesh_path(download: bool = True) -> Path:
     """Path to ``ds_openmesh.nc``.
 
-    Resolution: ``$OPENMESH_NC`` (a copy you already have) -> ``raw/extracted/`` ->
+    Resolution: ``$OPENMESH_NC`` (a copy you already have) -> ``~/data/cml/openmesh/release_v1/`` ->
     download ``OpenMesh.zip`` from Zenodo with :mod:`core.opensense.fetch` (checksum
     verified) and extract it, if ``download``.
     """
@@ -59,7 +61,7 @@ def openmesh_path(download: bool = True) -> Path:
 
 
 def pws_path(download: bool = True) -> Path:
-    """Path to ``pws_wu_os.nc`` (``$OPENMESH_PWS_NC`` -> ``raw/extracted/`` -> Zenodo)."""
+    """Path to ``pws_wu_os.nc`` (``$OPENMESH_PWS_NC`` -> ``~/data/cml/openmesh/release_v1/`` -> Zenodo)."""
     return _locate("OPENMESH_PWS_NC", PWS_FILE, "openmesh_pws", "PWS_NYC_WU.zip",
                    (PWS_FILE, PWS_META_FILE), download)
 

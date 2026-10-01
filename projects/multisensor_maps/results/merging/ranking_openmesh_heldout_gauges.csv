@@ -1,0 +1,217 @@
+product,coverage,n,mean_ref,mean_est,bias,rel_bias,mae,rmse,nrmse,corr,pod,far,csi,family,radar,retrieval,interp,source,method,package,uses_gauges,variogram,median_event_nrmse,event_wins
+radar only idw_mul [gauges],1.0,4618,2.5246,2.5035,-0.0211,-0.0084,1.0211,2.2152,0.8774,0.8015,0.938,0.1355,0.8178,R+G,radar only,,,gauges,idw_mul,mergeplg,True,,0.8785,0
+radar only idw_add [gauges],1.0,4618,2.5246,2.5003,-0.0243,-0.0096,1.0179,2.2173,0.8783,0.8009,0.9441,0.1411,0.8173,R+G,radar only,,,gauges,idw_add,mergeplg,True,,0.9032,2
+radar idw_add [gauges],1.0,4618,2.5246,2.4921,-0.0325,-0.0129,1.019,2.2242,0.881,0.7997,0.9246,0.1202,0.8209,R+G,radar,,,gauges,idw_add,mergeplg,True,,0.8882,0
+radar idw_mul [gauges],1.0,4618,2.5246,2.4976,-0.027,-0.0107,1.0185,2.2273,0.8822,0.7992,0.9261,0.1208,0.8216,R+G,radar,,,gauges,idw_mul,mergeplg,True,,0.8776,0
+radar only mul [gauges],1.0,4618,2.5246,2.4023,-0.1223,-0.0485,1.0521,2.2301,0.8833,0.7985,0.9575,0.1665,0.8038,R+G,radar only,,,gauges,mul,pcpn_maps,True,,0.8756,1
+radar mul [gauges],1.0,4618,2.5246,2.5015,-0.0231,-0.0092,1.0214,2.2366,0.8859,0.7969,0.9351,0.1328,0.818,R+G,radar,,,gauges,mul,pcpn_maps,True,,0.8764,1
+radar only add [gauges],1.0,4618,2.5246,2.4954,-0.0292,-0.0116,1.0312,2.2396,0.8871,0.7965,0.9575,0.1459,0.8229,R+G,radar only,,,gauges,add,pcpn_maps,True,,0.9001,0
+radar add [gauges],1.0,4618,2.5246,2.4964,-0.0282,-0.0112,1.0331,2.2474,0.8902,0.7949,0.9595,0.1419,0.8282,R+G,radar,,,gauges,add,pcpn_maps,True,,0.887,0
+gauges,1.0,4618,2.5246,2.4943,-0.0303,-0.012,1.0286,2.252,0.892,0.794,0.9642,0.1446,0.8291,G,,,,,,,True,,0.9271,0
+radar only mfb [gauges],1.0,4618,2.5246,2.5209,-0.0037,-0.0015,1.0363,2.2806,0.9034,0.7874,0.9494,0.1472,0.8157,R+G,radar only,,,gauges,mfb,pcpn_maps,True,,0.8802,2
+radar only okrig_add [gauges] (5 km variogram),1.0,4618,2.5246,2.463,-0.0616,-0.0244,1.0592,2.2997,0.9109,0.7847,0.9427,0.1388,0.8183,R+G,radar only,,,gauges,okrig_add,mergeplg,True,mergeplg default,0.8766,0
+radar okrig_add [gauges] (5 km variogram),1.0,4618,2.5246,2.4582,-0.0664,-0.0263,1.0572,2.3029,0.9122,0.7842,0.9237,0.1171,0.8229,R+G,radar,,,gauges,okrig_add,mergeplg,True,mergeplg default,0.8901,0
+radar mfb [gauges],1.0,4618,2.5246,2.5393,0.0147,0.0058,1.0291,2.3126,0.916,0.7809,0.9316,0.1264,0.821,R+G,radar,,,gauges,mfb,pcpn_maps,True,,0.9356,0
+radar okrig_add [gauges],1.0,4618,2.5246,2.4339,-0.0907,-0.0359,1.075,2.3171,0.9178,0.7835,0.9203,0.1177,0.8196,R+G,radar,,,gauges,okrig_add,mergeplg,True,radar fit,0.9153,1
+radar only okrig_add [gauges],1.0,4618,2.5246,2.4409,-0.0837,-0.0331,1.0805,2.3188,0.9185,0.7829,0.9366,0.1403,0.8124,R+G,radar only,,,gauges,okrig_add,mergeplg,True,radar fit,0.898,0
+radar,1.0,4618,2.5246,2.5394,0.0148,0.0059,1.0229,2.3389,0.9264,0.7746,0.9351,0.1328,0.818,R,radar,,,,,,False,,0.9469,1
+radar only mfb [nearby + gauges],1.0,4618,2.5246,2.1259,-0.3987,-0.1579,1.1364,2.3748,0.9407,0.7856,0.9453,0.1464,0.8134,R+L+G,radar only,nearby,,nearby + gauges,mfb,pcpn_maps,True,,0.9226,0
+radar only mfb [rnn + gauges],1.0,4618,2.5246,2.4307,-0.0939,-0.0372,1.1542,2.3926,0.9477,0.7684,0.9511,0.1441,0.8199,R+L+G,radar only,rnn,,rnn + gauges,mfb,pcpn_maps,True,,0.9348,1
+radar mfb [nearby + gauges],1.0,4618,2.5246,2.1372,-0.3874,-0.1534,1.1408,2.3949,0.9486,0.7792,0.9328,0.1279,0.8205,R+L+G,radar,nearby,,nearby + gauges,mfb,pcpn_maps,True,,0.9556,0
+radar only mfb [constant + gauges],1.0,4618,2.5246,2.0879,-0.4367,-0.173,1.1557,2.4033,0.9519,0.7763,0.9508,0.1554,0.8093,R+L+G,radar only,constant,,constant + gauges,mfb,pcpn_maps,True,,0.9629,0
+radar mfb [rnn + gauges],1.0,4618,2.5246,2.4401,-0.0845,-0.0335,1.1521,2.4124,0.9555,0.7627,0.9331,0.1279,0.8208,R+L+G,radar,rnn,,rnn + gauges,mfb,pcpn_maps,True,,0.9581,0
+radar mfb [constant + gauges],1.0,4618,2.5246,2.0873,-0.4373,-0.1732,1.1544,2.4177,0.9577,0.7719,0.9307,0.1281,0.8187,R+L+G,radar,constant,,constant + gauges,mfb,pcpn_maps,True,,0.9783,0
+radar only mfb [pycomlink + gauges],1.0,4618,2.5246,1.9493,-0.5753,-0.2279,1.1971,2.4193,0.9583,0.783,0.9406,0.1384,0.8172,R+L+G,radar only,pycomlink,,pycomlink + gauges,mfb,pcpn_maps,True,,0.9271,0
+radar only idw_add [rnn + gauges],1.0,4618,2.5246,2.3402,-0.1844,-0.0731,1.2099,2.4356,0.9648,0.7589,0.9366,0.1426,0.8104,R+L+G,radar only,rnn,,rnn + gauges,idw_add,mergeplg,True,,0.9536,0
+radar idw_add [rnn + gauges],1.0,4618,2.5246,2.3402,-0.1844,-0.0731,1.2108,2.4393,0.9662,0.7577,0.9272,0.1305,0.814,R+L+G,radar,rnn,,rnn + gauges,idw_add,mergeplg,True,,0.9557,0
+radar mfb [pycomlink + gauges],1.0,4618,2.5246,1.9601,-0.5645,-0.2236,1.2042,2.4406,0.9667,0.7756,0.9272,0.1213,0.822,R+L+G,radar,pycomlink,,pycomlink + gauges,mfb,pcpn_maps,True,,0.9583,0
+radar only idw_mul [rnn + gauges],1.0,4618,2.5246,2.3495,-0.1751,-0.0694,1.219,2.4428,0.9676,0.7562,0.9302,0.136,0.8114,R+L+G,radar only,rnn,,rnn + gauges,idw_mul,mergeplg,True,,0.9529,0
+radar only mfb [dynamic + gauges],1.0,4618,2.5246,3.0748,0.5502,0.2179,1.4135,2.4468,0.9692,0.7644,0.9595,0.1753,0.797,R+L+G,radar only,dynamic,,dynamic + gauges,mfb,pcpn_maps,True,,0.9433,0
+radar okrig_add [rnn + gauges] (5 km variogram),1.0,4618,2.5246,2.2986,-0.226,-0.0895,1.2041,2.4701,0.9784,0.7491,0.9299,0.1287,0.8176,R+L+G,radar,rnn,,rnn + gauges,okrig_add,mergeplg,True,mergeplg default,0.9739,0
+radar only ked [gauges] (5 km variogram),1.0,4618,2.5246,2.7202,0.1956,0.0775,1.1328,2.4711,0.9788,0.7617,0.9537,0.1756,0.7927,R+G,radar only,,,gauges,ked,mergeplg,True,mergeplg default,0.9869,0
+radar okrig_add [rnn + gauges],1.0,4618,2.5246,2.2455,-0.2791,-0.1106,1.1985,2.4753,0.9805,0.7481,0.9267,0.1308,0.8133,R+L+G,radar,rnn,,rnn + gauges,okrig_add,mergeplg,True,radar fit,0.9363,0
+radar only okrig_add [rnn + gauges] (5 km variogram),1.0,4618,2.5246,2.2952,-0.2294,-0.0909,1.2055,2.4774,0.9813,0.7473,0.9386,0.1382,0.8158,R+L+G,radar only,rnn,,rnn + gauges,okrig_add,mergeplg,True,mergeplg default,0.9811,0
+radar mfb [dynamic + gauges],1.0,4618,2.5246,3.0766,0.552,0.2187,1.3929,2.4821,0.9832,0.7566,0.9351,0.1328,0.818,R+L+G,radar,dynamic,,dynamic + gauges,mfb,pcpn_maps,True,,0.9694,0
+radar only okrig_add [rnn + gauges],1.0,4618,2.5246,2.2431,-0.2815,-0.1115,1.2035,2.4894,0.986,0.7445,0.9319,0.1365,0.8123,R+L+G,radar only,rnn,,rnn + gauges,okrig_add,mergeplg,True,radar fit,0.9482,0
+radar mul [rnn + gauges],1.0,4618,2.5246,2.3202,-0.2044,-0.0809,1.2138,2.4993,0.99,0.7434,0.9351,0.1328,0.818,R+L+G,radar,rnn,,rnn + gauges,mul,pcpn_maps,True,,0.978,0
+radar ked [gauges] (5 km variogram),1.0,4618,2.5246,2.7175,0.1929,0.0764,1.1285,2.5158,0.9965,0.7525,0.9299,0.1327,0.814,R+G,radar,,,gauges,ked,mergeplg,True,mergeplg default,0.969,0
+radar only mul [rnn + gauges],1.0,4618,2.5246,2.2345,-0.2901,-0.1149,1.2479,2.5257,1.0004,0.7435,0.9572,0.169,0.8012,R+L+G,radar only,rnn,,rnn + gauges,mul,pcpn_maps,True,,0.9887,0
+radar only add [rnn + gauges],1.0,4618,2.5246,2.3325,-0.1921,-0.0761,1.2695,2.5296,1.002,0.7353,0.9453,0.1575,0.8034,R+L+G,radar only,rnn,,rnn + gauges,add,pcpn_maps,True,,0.983,0
+radar add [rnn + gauges],1.0,4618,2.5246,2.3358,-0.1888,-0.0748,1.2731,2.5378,1.0052,0.7327,0.9432,0.1533,0.8056,R+L+G,radar,rnn,,rnn + gauges,add,pcpn_maps,True,,0.9869,0
+links rnn + gauges,1.0,4618,2.5246,2.3315,-0.1931,-0.0765,1.2739,2.5403,1.0062,0.7325,0.9514,0.1557,0.8094,L+G,,rnn,,,,,True,,0.9812,0
+radar ked [gauges],1.0,4618,2.5246,2.7244,0.1998,0.0792,1.1483,2.5437,1.0075,0.7508,0.9304,0.1324,0.8147,R+G,radar,,,gauges,ked,mergeplg,True,radar fit,0.9938,0
+radar only ked [gauges],1.0,4618,2.5246,2.7266,0.202,0.08,1.1711,2.5443,1.0078,0.7506,0.9526,0.1754,0.7921,R+G,radar only,,,gauges,ked,mergeplg,True,radar fit,1.0095,0
+radar okrig_add [nearby + gauges],1.0,4618,2.5246,2.0127,-0.5119,-0.2028,1.2821,2.5816,1.0226,0.7292,0.9171,0.1206,0.8146,R+L+G,radar,nearby,,nearby + gauges,okrig_add,mergeplg,True,radar fit,0.9738,0
+radar only idw_mul [nearby + gauges],1.0,4618,2.5246,1.9645,-0.5601,-0.2218,1.3278,2.5821,1.0228,0.7333,0.9194,0.1276,0.8104,R+L+G,radar only,nearby,,nearby + gauges,idw_mul,mergeplg,True,,1.0135,0
+radar only idw_add [nearby + gauges],1.0,4618,2.5246,1.9622,-0.5624,-0.2228,1.3296,2.5828,1.0231,0.7335,0.9255,0.1323,0.811,R+L+G,radar only,nearby,,nearby + gauges,idw_add,mergeplg,True,,1.0142,0
+radar idw_add [nearby + gauges],1.0,4618,2.5246,1.9595,-0.5651,-0.2239,1.3318,2.588,1.0251,0.7321,0.9115,0.1242,0.8072,R+L+G,radar,nearby,,nearby + gauges,idw_add,mergeplg,True,,1.0159,0
+radar only okrig_add [nearby + gauges],1.0,4618,2.5246,2.0141,-0.5105,-0.2022,1.2875,2.5918,1.0266,0.7265,0.9243,0.1296,0.8125,R+L+G,radar only,nearby,,nearby + gauges,okrig_add,mergeplg,True,radar fit,0.9827,0
+radar okrig_add [nearby + gauges] (5 km variogram),1.0,4618,2.5246,1.9863,-0.5383,-0.2132,1.2783,2.5934,1.0272,0.728,0.9139,0.119,0.8135,R+L+G,radar,nearby,,nearby + gauges,okrig_add,mergeplg,True,mergeplg default,0.9818,0
+radar only okrig_add [nearby + gauges] (5 km variogram),1.0,4618,2.5246,1.9864,-0.5382,-0.2132,1.2809,2.599,1.0295,0.7266,0.9269,0.131,0.8133,R+L+G,radar only,nearby,,nearby + gauges,okrig_add,mergeplg,True,mergeplg default,0.976,0
+radar idw_mul [nearby + gauges],1.0,4618,2.5246,1.9641,-0.5605,-0.222,1.3351,2.5996,1.0297,0.7285,0.9109,0.1176,0.8124,R+L+G,radar,nearby,,nearby + gauges,idw_mul,mergeplg,True,,1.0147,0
+radar only ked [rnn + gauges] (5 km variogram),1.0,4618,2.5246,2.4982,-0.0264,-0.0105,1.3118,2.6247,1.0397,0.7057,0.9412,0.1678,0.7911,R+L+G,radar only,rnn,,rnn + gauges,ked,mergeplg,True,mergeplg default,1.0187,0
+radar only ked [rnn + gauges],1.0,4618,2.5246,2.4881,-0.0365,-0.0145,1.3153,2.645,1.0477,0.7023,0.9363,0.1672,0.7881,R+L+G,radar only,rnn,,rnn + gauges,ked,mergeplg,True,radar fit,1.0143,0
+radar only mul [nearby + gauges],1.0,4618,2.5246,1.9164,-0.6082,-0.2409,1.3585,2.6517,1.0503,0.7212,0.9569,0.1684,0.8016,R+L+G,radar only,nearby,,nearby + gauges,mul,pcpn_maps,True,,1.0339,0
+radar mul [nearby + gauges],1.0,4618,2.5246,2.0013,-0.5233,-0.2073,1.331,2.6587,1.0531,0.7098,0.9351,0.1328,0.818,R+L+G,radar,nearby,,nearby + gauges,mul,pcpn_maps,True,,1.019,0
+radar only idw_mul [pycomlink + gauges],1.0,4618,2.5246,1.8061,-0.7185,-0.2846,1.4043,2.6602,1.0537,0.7213,0.8795,0.1225,0.7833,R+L+G,radar only,pycomlink,,pycomlink + gauges,idw_mul,mergeplg,True,,1.0304,0
+radar only idw_add [pycomlink + gauges],1.0,4618,2.5246,1.8063,-0.7183,-0.2845,1.4064,2.6605,1.0538,0.7211,0.8783,0.1277,0.7782,R+L+G,radar only,pycomlink,,pycomlink + gauges,idw_add,mergeplg,True,,1.0312,0
+radar idw_add [pycomlink + gauges],1.0,4618,2.5246,1.8054,-0.7192,-0.2849,1.4061,2.662,1.0544,0.7208,0.8731,0.1161,0.7833,R+L+G,radar,pycomlink,,pycomlink + gauges,idw_add,mergeplg,True,,1.033,0
+radar okrig_add [pycomlink + gauges] (5 km variogram),1.0,4618,2.5246,1.8329,-0.6917,-0.274,1.3665,2.6866,1.0642,0.7126,0.874,0.1107,0.7882,R+L+G,radar,pycomlink,,pycomlink + gauges,okrig_add,mergeplg,True,mergeplg default,1.0508,0
+radar only okrig_add [pycomlink + gauges] (5 km variogram),1.0,4618,2.5246,1.8313,-0.6933,-0.2746,1.3696,2.692,1.0663,0.7113,0.8821,0.1247,0.7836,R+L+G,radar only,pycomlink,,pycomlink + gauges,okrig_add,mergeplg,True,mergeplg default,1.0406,0
+radar ked [rnn + gauges] (5 km variogram),1.0,4618,2.5246,2.4682,-0.0564,-0.0223,1.2975,2.6994,1.0692,0.6874,0.9185,0.1308,0.807,R+L+G,radar,rnn,,rnn + gauges,ked,mergeplg,True,mergeplg default,1.0008,0
+radar ked [rnn + gauges],1.0,4618,2.5246,2.4584,-0.0662,-0.0262,1.2926,2.7004,1.0696,0.6884,0.9141,0.1294,0.8048,R+L+G,radar,rnn,,rnn + gauges,ked,mergeplg,True,radar fit,1.0043,0
+radar okrig_add [pycomlink + gauges],1.0,4618,2.5246,1.8348,-0.6898,-0.2732,1.3771,2.7068,1.0722,0.7076,0.8754,0.1148,0.7862,R+L+G,radar,pycomlink,,pycomlink + gauges,okrig_add,mergeplg,True,radar fit,1.0407,0
+radar only okrig_add [pycomlink + gauges],1.0,4618,2.5246,1.8341,-0.6905,-0.2735,1.3837,2.7188,1.0769,0.7045,0.8804,0.126,0.7812,R+L+G,radar only,pycomlink,,pycomlink + gauges,okrig_add,mergeplg,True,radar fit,1.0342,0
+radar mul [pycomlink + gauges],1.0,4618,2.5246,1.8685,-0.6561,-0.2599,1.4218,2.754,1.0909,0.6908,0.9351,0.1328,0.818,R+L+G,radar,pycomlink,,pycomlink + gauges,mul,pcpn_maps,True,,1.0344,0
+radar only mul [pycomlink + gauges],1.0,4618,2.5246,1.7864,-0.7382,-0.2924,1.4434,2.7659,1.0956,0.6934,0.9552,0.167,0.8017,R+L+G,radar only,pycomlink,,pycomlink + gauges,mul,pcpn_maps,True,,1.0498,0
+radar okrig_add [constant + gauges] (5 km variogram),1.0,4618,2.5246,1.923,-0.6016,-0.2383,1.4135,2.7713,1.0977,0.6862,0.883,0.1198,0.7883,R+L+G,radar,constant,,constant + gauges,okrig_add,mergeplg,True,mergeplg default,1.0614,0
+radar only add [nearby + gauges],1.0,4618,2.5246,1.9623,-0.5623,-0.2227,1.4172,2.7717,1.0979,0.6795,0.9147,0.1587,0.7801,R+L+G,radar only,nearby,,nearby + gauges,add,pcpn_maps,True,,1.0546,0
+radar only okrig_add [constant + gauges] (5 km variogram),1.0,4618,2.5246,1.9179,-0.6067,-0.2403,1.4124,2.7732,1.0985,0.6859,0.8944,0.128,0.7906,R+L+G,radar only,constant,,constant + gauges,okrig_add,mergeplg,True,mergeplg default,1.0542,0
+radar add [nearby + gauges],1.0,4618,2.5246,1.9652,-0.5594,-0.2216,1.4229,2.7792,1.1008,0.6772,0.9115,0.1556,0.7805,R+L+G,radar,nearby,,nearby + gauges,add,pcpn_maps,True,,1.058,0
+radar mul [rnn],1.0,4618,2.5246,2.225,-0.2996,-0.1187,1.383,2.7796,1.101,0.6705,0.9351,0.1328,0.818,R+L,radar,rnn,,rnn,mul,pcpn_maps,False,,1.0003,0
+radar only mfb [rnn],1.0,4618,2.5246,2.3116,-0.213,-0.0844,1.4477,2.7803,1.1013,0.6674,0.9325,0.1412,0.8085,R+L,radar only,rnn,,rnn,mfb,pcpn_maps,False,,0.9678,0
+links nearby + gauges,1.0,4618,2.5246,1.9587,-0.5659,-0.2241,1.4196,2.7843,1.1029,0.676,0.9188,0.1563,0.7851,L+G,,nearby,,,,,True,,1.0653,0
+radar idw_mul [pycomlink + gauges],1.0,4618,2.5246,1.8311,-0.6935,-0.2747,1.4362,2.7876,1.1042,0.6863,0.8719,0.112,0.7855,R+L+G,radar,pycomlink,,pycomlink + gauges,idw_mul,mergeplg,True,,1.0308,0
+radar mfb [rnn],1.0,4618,2.5246,2.3113,-0.2133,-0.0845,1.4486,2.7924,1.1061,0.6627,0.9165,0.1258,0.8097,R+L,radar,rnn,,rnn,mfb,pcpn_maps,False,,0.9835,0
+radar only idw_add [constant + gauges],1.0,4618,2.5246,1.9124,-0.6122,-0.2425,1.4836,2.7938,1.1066,0.6804,0.8946,0.1326,0.787,R+L+G,radar only,constant,,constant + gauges,idw_add,mergeplg,True,,1.0656,0
+radar only idw_mul [constant + gauges],1.0,4618,2.5246,1.9137,-0.6109,-0.242,1.4826,2.7966,1.1078,0.6799,0.892,0.13,0.7871,R+L+G,radar only,constant,,constant + gauges,idw_mul,mergeplg,True,,1.0763,0
+radar idw_add [constant + gauges],1.0,4618,2.5246,1.9104,-0.6142,-0.2433,1.4836,2.7971,1.1079,0.6797,0.8813,0.1213,0.7857,R+L+G,radar,constant,,constant + gauges,idw_add,mergeplg,True,,1.0788,0
+radar only mul [rnn],1.0,4618,2.5246,2.1493,-0.3753,-0.1486,1.4132,2.8041,1.1107,0.671,0.9566,0.1689,0.8009,R+L,radar only,rnn,,rnn,mul,pcpn_maps,False,,1.0198,0
+radar okrig_add [constant + gauges],1.0,4618,2.5246,1.9261,-0.5985,-0.2371,1.4472,2.8103,1.1131,0.6778,0.8786,0.1209,0.784,R+L+G,radar,constant,,constant + gauges,okrig_add,mergeplg,True,radar fit,1.0694,0
+radar only idw_add [rnn],1.0,4618,2.5246,2.2592,-0.2654,-0.1051,1.461,2.813,1.1142,0.6583,0.9179,0.142,0.7969,R+L,radar only,rnn,,rnn,idw_add,mergeplg,False,,0.9934,0
+radar only okrig_add [constant + gauges],1.0,4618,2.5246,1.9248,-0.5998,-0.2376,1.4512,2.8196,1.1169,0.6754,0.8865,0.1277,0.7846,R+L+G,radar only,constant,,constant + gauges,okrig_add,mergeplg,True,radar fit,1.0791,0
+radar only okrig_add [rnn] (5 km variogram),1.0,4618,2.5246,2.2572,-0.2674,-0.1059,1.4674,2.8202,1.1171,0.6556,0.9188,0.1405,0.7988,R+L,radar only,rnn,,rnn,okrig_add,mergeplg,False,mergeplg default,1.0068,0
+radar idw_add [rnn],1.0,4618,2.5246,2.2604,-0.2642,-0.1046,1.4657,2.8252,1.1191,0.6533,0.9109,0.1344,0.7981,R+L,radar,rnn,,rnn,idw_add,mergeplg,False,,1.0258,0
+radar only ked [pycomlink + gauges] (5 km variogram),1.0,4618,2.5246,2.4048,-0.1198,-0.0474,1.4334,2.8285,1.1204,0.6815,0.9336,0.1728,0.7813,R+L+G,radar only,pycomlink,,pycomlink + gauges,ked,mergeplg,True,mergeplg default,0.9926,0
+radar okrig_add [rnn] (5 km variogram),1.0,4618,2.5246,2.2598,-0.2648,-0.1049,1.4712,2.8295,1.1208,0.6515,0.9098,0.1307,0.8003,R+L,radar,rnn,,rnn,okrig_add,mergeplg,False,mergeplg default,1.0357,0
+radar only ked [nearby + gauges] (5 km variogram),1.0,4618,2.5246,2.3675,-0.1571,-0.0622,1.4222,2.8381,1.1242,0.6654,0.9278,0.1683,0.7812,R+L+G,radar only,nearby,,nearby + gauges,ked,mergeplg,True,mergeplg default,1.0562,0
+radar only add [rnn],1.0,4618,2.5246,2.262,-0.2626,-0.104,1.4894,2.8405,1.1251,0.6487,0.9284,0.1556,0.7927,R+L,radar only,rnn,,rnn,add,pcpn_maps,False,,1.0074,0
+radar only idw_mul [rnn],1.0,4618,2.5246,2.2809,-0.2437,-0.0965,1.4803,2.8429,1.1261,0.6456,0.9086,0.1373,0.7938,R+L,radar only,rnn,,rnn,idw_mul,mergeplg,False,,0.9918,0
+radar ked [nearby + gauges] (5 km variogram),1.0,4618,2.5246,2.3602,-0.1644,-0.0651,1.3903,2.843,1.1261,0.6647,0.9118,0.1317,0.8011,R+L+G,radar,nearby,,nearby + gauges,ked,mergeplg,True,mergeplg default,1.0212,0
+radar ked [pycomlink + gauges] (5 km variogram),1.0,4618,2.5246,2.3882,-0.1364,-0.054,1.4108,2.8458,1.1272,0.6758,0.9124,0.1325,0.8008,R+L+G,radar,pycomlink,,pycomlink + gauges,ked,mergeplg,True,mergeplg default,0.9978,0
+radar only okrig_add [rnn],1.0,4618,2.5246,2.1739,-0.3507,-0.1389,1.4805,2.8514,1.1294,0.6496,0.9121,0.1385,0.7954,R+L,radar only,rnn,,rnn,okrig_add,mergeplg,False,radar fit,1.0258,0
+radar only add [pycomlink + gauges],1.0,4618,2.5246,1.7649,-0.7597,-0.3009,1.516,2.8525,1.1299,0.6712,0.853,0.1437,0.7462,R+L+G,radar only,pycomlink,,pycomlink + gauges,add,pcpn_maps,True,,1.0744,0
+radar add [rnn],1.0,4618,2.5246,2.2655,-0.2591,-0.1026,1.4944,2.8539,1.1304,0.6432,0.9281,0.1514,0.7963,R+L,radar,rnn,,rnn,add,pcpn_maps,False,,1.0389,0
+links rnn idw,1.0,4618,2.5246,2.2576,-0.267,-0.1058,1.4993,2.8541,1.1305,0.6442,0.9278,0.1528,0.7948,L,,rnn,idw,,,,False,,1.0106,0
+radar only mul [constant + gauges],1.0,4618,2.5246,1.8928,-0.6318,-0.2503,1.4892,2.8554,1.131,0.6601,0.9552,0.1672,0.8015,R+L+G,radar only,constant,,constant + gauges,mul,pcpn_maps,True,,1.062,0
+radar mul [constant + gauges],1.0,4618,2.5246,1.9723,-0.5523,-0.2188,1.4711,2.8563,1.1314,0.6592,0.9351,0.1328,0.818,R+L+G,radar,constant,,constant + gauges,mul,pcpn_maps,True,,1.0482,0
+radar add [pycomlink + gauges],1.0,4618,2.5246,1.7687,-0.7559,-0.2994,1.5206,2.8571,1.1317,0.6697,0.8536,0.1399,0.7496,R+L+G,radar,pycomlink,,pycomlink + gauges,add,pcpn_maps,True,,1.0778,0
+links rnn line,1.0,4618,2.5246,2.3299,-0.1947,-0.0771,1.509,2.8573,1.1318,0.6404,0.9366,0.1523,0.8017,L,,rnn,line,,,,False,,1.0114,0
+links pycomlink + gauges,1.0,4618,2.5246,1.7616,-0.763,-0.3022,1.5193,2.8613,1.1334,0.6687,0.8565,0.142,0.7502,L+G,,pycomlink,,,,,True,,1.0835,0
+radar okrig_add [rnn],1.0,4618,2.5246,2.1793,-0.3453,-0.1368,1.4851,2.8626,1.1339,0.6445,0.9042,0.1297,0.7969,R+L,radar,rnn,,rnn,okrig_add,mergeplg,False,radar fit,1.05,0
+radar only ked [pycomlink + gauges],1.0,4618,2.5246,2.4764,-0.0482,-0.0191,1.4725,2.8868,1.1435,0.6751,0.931,0.1708,0.7812,R+L+G,radar only,pycomlink,,pycomlink + gauges,ked,mergeplg,True,radar fit,1.0088,0
+radar only mfb [dynamic],1.0,4618,2.5246,3.5743,1.0497,0.4158,1.9484,2.8913,1.1453,0.693,0.9595,0.1753,0.797,R+L,radar only,dynamic,,dynamic,mfb,pcpn_maps,False,,1.0639,0
+radar ked [nearby + gauges],1.0,4618,2.5246,2.4462,-0.0784,-0.031,1.4235,2.8927,1.1458,0.6598,0.9112,0.1303,0.8018,R+L+G,radar,nearby,,nearby + gauges,ked,mergeplg,True,radar fit,1.0751,0
+radar only,1.0,4618,2.5246,1.8557,-0.6689,-0.265,1.487,2.8961,1.1472,0.6839,0.9595,0.1753,0.797,R,radar only,,,,,,False,,1.1132,0
+radar only ked [nearby + gauges],1.0,4618,2.5246,2.459,-0.0656,-0.026,1.4611,2.903,1.1499,0.6591,0.9281,0.1669,0.7826,R+L+G,radar only,nearby,,nearby + gauges,ked,mergeplg,True,radar fit,1.1011,0
+radar ked [pycomlink + gauges],1.0,4618,2.5246,2.461,-0.0636,-0.0252,1.4422,2.9042,1.1504,0.6682,0.9101,0.1324,0.7991,R+L+G,radar,pycomlink,,pycomlink + gauges,ked,mergeplg,True,radar fit,1.0379,0
+radar mfb [dynamic],1.0,4618,2.5246,3.5709,1.0463,0.4145,1.9283,2.9239,1.1582,0.6867,0.9351,0.1328,0.818,R+L,radar,dynamic,,dynamic,mfb,pcpn_maps,False,,1.0692,0
+radar only mfb [nearby],1.0,4618,2.5246,1.5041,-1.0205,-0.4042,1.4875,2.9278,1.1597,0.7305,0.9261,0.1419,0.8031,R+L,radar only,nearby,,nearby,mfb,pcpn_maps,False,,1.1168,0
+radar mfb [nearby],1.0,4618,2.5246,1.5119,-1.0127,-0.4011,1.4971,2.9396,1.1644,0.7216,0.9214,0.1261,0.8133,R+L,radar,nearby,,nearby,mfb,pcpn_maps,False,,1.0948,0
+radar mfb [constant],1.0,4618,2.5246,1.535,-0.9896,-0.392,1.5029,2.9452,1.1666,0.6789,0.9107,0.1225,0.8079,R+L,radar,constant,,constant,mfb,pcpn_maps,False,,1.1175,0
+radar only ked [rnn] (5 km variogram),1.0,4618,2.5246,2.2706,-0.254,-0.1006,1.5414,2.9614,1.173,0.603,0.9319,0.1631,0.7887,R+L,radar only,rnn,,rnn,ked,mergeplg,False,mergeplg default,1.1268,0
+radar only mfb [constant],1.0,4618,2.5246,1.5366,-0.988,-0.3913,1.5135,2.9636,1.1739,0.6714,0.9214,0.1526,0.7903,R+L,radar only,constant,,constant,mfb,pcpn_maps,False,,1.1575,0
+radar only add [constant + gauges],1.0,4618,2.5246,1.8994,-0.6252,-0.2477,1.5894,2.9774,1.1794,0.6322,0.8687,0.166,0.7407,R+L+G,radar only,constant,,constant + gauges,add,pcpn_maps,True,,1.1018,0
+radar ked [rnn] (5 km variogram),1.0,4618,2.5246,2.2119,-0.3127,-0.1239,1.5187,2.9815,1.181,0.5977,0.9112,0.1279,0.8039,R+L,radar,rnn,,rnn,ked,mergeplg,False,mergeplg default,1.1076,0
+radar add [constant + gauges],1.0,4618,2.5246,1.9034,-0.6212,-0.2461,1.5951,2.9844,1.1821,0.6303,0.8647,0.1629,0.7402,R+L+G,radar,constant,,constant + gauges,add,pcpn_maps,True,,1.1117,0
+links constant + gauges,1.0,4618,2.5246,1.8968,-0.6278,-0.2487,1.5926,2.986,1.1828,0.6295,0.8743,0.1663,0.7445,L+G,,constant,,,,,True,,1.1153,0
+radar only ked [rnn],1.0,4618,2.5246,2.2203,-0.3043,-0.1205,1.5494,2.9918,1.1851,0.5943,0.922,0.1632,0.7815,R+L,radar only,rnn,,rnn,ked,mergeplg,False,radar fit,1.0999,0
+radar idw_mul [constant + gauges],1.0,4618,2.5246,1.942,-0.5826,-0.2308,1.5175,2.9987,1.1878,0.6317,0.8845,0.1127,0.7951,R+L+G,radar,constant,,constant + gauges,idw_mul,mergeplg,True,,1.0797,0
+radar ked [rnn],1.0,4618,2.5246,2.1557,-0.3689,-0.1461,1.5329,3.0091,1.1919,0.5901,0.8996,0.1273,0.7952,R+L,radar,rnn,,rnn,ked,mergeplg,False,radar fit,1.1219,0
+radar only mul [dynamic + gauges],1.0,4618,2.5246,3.046,0.5214,0.2065,1.7198,3.0232,1.1975,0.6538,0.9584,0.1751,0.7964,R+L+G,radar only,dynamic,,dynamic + gauges,mul,pcpn_maps,True,,1.1002,0
+radar mfb [pycomlink],1.0,4618,2.5246,1.2669,-1.2577,-0.4982,1.6302,3.0236,1.1976,0.7172,0.8914,0.1153,0.7987,R+L,radar,pycomlink,,pycomlink,mfb,pcpn_maps,False,,1.2156,0
+radar only mfb [pycomlink],1.0,4618,2.5246,1.2589,-1.2657,-0.5014,1.6235,3.0244,1.198,0.7208,0.8958,0.1278,0.7919,R+L,radar only,pycomlink,,pycomlink,mfb,pcpn_maps,False,,1.2136,0
+radar ked [constant + gauges] (5 km variogram),1.0,4618,2.5246,2.6846,0.16,0.0634,1.5341,3.0828,1.2211,0.6458,0.9162,0.1335,0.8029,R+L+G,radar,constant,,constant + gauges,ked,mergeplg,True,mergeplg default,1.1203,0
+radar only ked [constant + gauges] (5 km variogram),1.0,4618,2.5246,2.7137,0.1891,0.0749,1.5608,3.0954,1.2261,0.6458,0.9374,0.1745,0.7824,R+L+G,radar only,constant,,constant + gauges,ked,mergeplg,True,mergeplg default,1.0647,0
+radar mul [pycomlink],1.0,4618,2.5246,1.5062,-1.0184,-0.4034,1.7019,3.1848,1.2615,0.5814,0.9351,0.1328,0.818,R+L,radar,pycomlink,,pycomlink,mul,pcpn_maps,False,,1.1947,0
+radar mul [nearby],1.0,4618,2.5246,1.5991,-0.9255,-0.3666,1.649,3.1912,1.264,0.5639,0.9351,0.1328,0.818,R+L,radar,nearby,,nearby,mul,pcpn_maps,False,,1.186,0
+radar ked [constant + gauges],1.0,4618,2.5246,2.7733,0.2487,0.0985,1.5964,3.1942,1.2652,0.6344,0.9159,0.1323,0.8036,R+L+G,radar,constant,,constant + gauges,ked,mergeplg,True,radar fit,1.1699,0
+radar only mul [nearby],1.0,4618,2.5246,1.5277,-0.9969,-0.3949,1.6672,3.1956,1.2658,0.5726,0.9517,0.1698,0.7966,R+L,radar only,nearby,,nearby,mul,pcpn_maps,False,,1.2006,0
+radar only mul [pycomlink],1.0,4618,2.5246,1.4326,-1.092,-0.4325,1.7205,3.2148,1.2734,0.5763,0.9517,0.1665,0.7997,R+L,radar only,pycomlink,,pycomlink,mul,pcpn_maps,False,,1.2081,0
+radar only idw_add [pycomlink],1.0,4618,2.5246,1.3236,-1.201,-0.4757,1.7806,3.2197,1.2753,0.5901,0.7215,0.1262,0.6534,R+L,radar only,pycomlink,,pycomlink,idw_add,mergeplg,False,,1.2704,0
+radar only ked [constant + gauges],1.0,4618,2.5246,2.8049,0.2803,0.111,1.6258,3.221,1.2759,0.6335,0.9334,0.172,0.7818,R+L+G,radar only,constant,,constant + gauges,ked,mergeplg,True,radar fit,1.1167,0
+radar only idw_add [nearby],1.0,4618,2.5246,1.4945,-1.0301,-0.408,1.7124,3.2234,1.2768,0.5637,0.8667,0.1443,0.7562,R+L,radar only,nearby,,nearby,idw_add,mergeplg,False,,1.2142,0
+radar idw_add [pycomlink],1.0,4618,2.5246,1.3269,-1.1977,-0.4744,1.7879,3.2255,1.2776,0.5876,0.7116,0.1161,0.6508,R+L,radar,pycomlink,,pycomlink,idw_add,mergeplg,False,,1.2737,0
+radar idw_add [nearby],1.0,4618,2.5246,1.5002,-1.0244,-0.4058,1.7166,3.2288,1.2789,0.5606,0.8597,0.1229,0.7673,R+L,radar,nearby,,nearby,idw_add,mergeplg,False,,1.228,0
+radar only idw_mul [pycomlink],1.0,4618,2.5246,1.3122,-1.2124,-0.4802,1.7851,3.2293,1.2791,0.5881,0.6985,0.1196,0.638,R+L,radar only,pycomlink,,pycomlink,idw_mul,mergeplg,False,,1.2761,0
+radar mul [dynamic + gauges],1.0,4618,2.5246,3.1676,0.643,0.2547,1.7341,3.2307,1.2797,0.643,0.9351,0.1328,0.818,R+L+G,radar,dynamic,,dynamic + gauges,mul,pcpn_maps,True,,1.1583,0
+radar only idw_mul [nearby],1.0,4618,2.5246,1.4988,-1.0258,-0.4063,1.7168,3.2328,1.2805,0.5591,0.8772,0.1379,0.7693,R+L,radar only,nearby,,nearby,idw_mul,mergeplg,False,,1.2149,0
+radar okrig_add [nearby] (5 km variogram),1.0,4618,2.5246,1.4309,-1.0937,-0.4332,1.7018,3.2434,1.2847,0.565,0.8565,0.1223,0.7652,R+L,radar,nearby,,nearby,okrig_add,mergeplg,False,mergeplg default,1.2152,0
+radar only okrig_add [nearby] (5 km variogram),1.0,4618,2.5246,1.423,-1.1016,-0.4364,1.6985,3.2441,1.285,0.5662,0.8679,0.1391,0.7611,R+L,radar only,nearby,,nearby,okrig_add,mergeplg,False,mergeplg default,1.2087,0
+radar only okrig_add [pycomlink] (5 km variogram),1.0,4618,2.5246,1.3006,-1.224,-0.4848,1.7644,3.2453,1.2855,0.5841,0.7174,0.1281,0.649,R+L,radar only,pycomlink,,pycomlink,okrig_add,mergeplg,False,mergeplg default,1.2879,0
+radar okrig_add [pycomlink] (5 km variogram),1.0,4618,2.5246,1.3053,-1.2193,-0.483,1.7705,3.247,1.2862,0.5831,0.7061,0.1169,0.6457,R+L,radar,pycomlink,,pycomlink,okrig_add,mergeplg,False,mergeplg default,1.2934,0
+links nearby line,1.0,4618,2.5246,1.5403,-0.9843,-0.3899,1.7075,3.2484,1.2867,0.5473,0.8653,0.1515,0.7494,L,,nearby,line,,,,False,,1.2288,0
+radar idw_mul [nearby],1.0,4618,2.5246,1.5107,-1.0139,-0.4016,1.7339,3.2785,1.2986,0.5386,0.8685,0.1211,0.7757,R+L,radar,nearby,,nearby,idw_mul,mergeplg,False,,1.226,0
+radar idw_add [dynamic + gauges],1.0,4618,2.5246,3.4461,0.9215,0.365,1.9631,3.307,1.3099,0.6325,0.9563,0.1602,0.8088,R+L+G,radar,dynamic,,dynamic + gauges,idw_add,mergeplg,True,,1.2179,0
+links pycomlink line,1.0,4618,2.5246,1.3614,-1.1632,-0.4607,1.8077,3.3098,1.311,0.5543,0.7145,0.134,0.6433,L,,pycomlink,line,,,,False,,1.3106,0
+radar okrig_add [dynamic + gauges],1.0,4618,2.5246,3.127,0.6024,0.2386,1.8589,3.3101,1.3111,0.6155,0.9304,0.1484,0.8007,R+L+G,radar,dynamic,,dynamic + gauges,okrig_add,mergeplg,True,radar fit,1.2276,0
+radar only okrig_add [pycomlink],1.0,4618,2.5246,1.3842,-1.1404,-0.4517,1.8233,3.3254,1.3172,0.5543,0.6834,0.1326,0.6187,R+L,radar only,pycomlink,,pycomlink,okrig_add,mergeplg,False,radar fit,1.2733,0
+radar okrig_add [pycomlink],1.0,4618,2.5246,1.3898,-1.1348,-0.4495,1.8259,3.3285,1.3184,0.5532,0.6746,0.1233,0.6162,R+L,radar,pycomlink,,pycomlink,okrig_add,mergeplg,False,radar fit,1.2694,0
+radar only idw_add [dynamic + gauges],1.0,4618,2.5246,3.5166,0.992,0.3929,2.0352,3.3441,1.3246,0.6253,0.9689,0.1912,0.7883,R+L+G,radar only,dynamic,,dynamic + gauges,idw_add,mergeplg,True,,1.2112,0
+radar only okrig_add [dynamic + gauges],1.0,4618,2.5246,3.1753,0.6507,0.2577,1.9131,3.3593,1.3306,0.6053,0.9418,0.1722,0.7875,R+L+G,radar only,dynamic,,dynamic + gauges,okrig_add,mergeplg,True,radar fit,1.2549,0
+radar only add [pycomlink],1.0,4618,2.5246,1.3508,-1.1738,-0.465,1.8651,3.3676,1.3339,0.538,0.7034,0.1468,0.6275,R+L,radar only,pycomlink,,pycomlink,add,pcpn_maps,False,,1.3182,0
+radar add [pycomlink],1.0,4618,2.5246,1.356,-1.1686,-0.4629,1.8731,3.3742,1.3365,0.5356,0.6988,0.1446,0.6249,R+L,radar,pycomlink,,pycomlink,add,pcpn_maps,False,,1.3279,0
+radar mul [constant],1.0,4618,2.5246,1.7696,-0.755,-0.2991,1.8039,3.3766,1.3375,0.5188,0.9351,0.1328,0.818,R+L,radar,constant,,constant,mul,pcpn_maps,False,,1.2174,0
+radar only mul [constant],1.0,4618,2.5246,1.6935,-0.8311,-0.3292,1.8087,3.3777,1.3379,0.5112,0.9526,0.1668,0.8,R+L,radar only,constant,,constant,mul,pcpn_maps,False,,1.2337,0
+radar only idw_mul [dynamic + gauges],1.0,4618,2.5246,3.4903,0.9657,0.3825,2.0217,3.3797,1.3387,0.6229,0.9531,0.1671,0.8001,R+L+G,radar only,dynamic,,dynamic + gauges,idw_mul,mergeplg,True,,1.207,0
+radar only okrig_add [constant] (5 km variogram),1.0,4618,2.5246,1.5575,-0.9671,-0.3831,1.8342,3.3811,1.3393,0.5224,0.7512,0.1356,0.672,R+L,radar only,constant,,constant,okrig_add,mergeplg,False,mergeplg default,1.2966,0
+radar okrig_add [constant] (5 km variogram),1.0,4618,2.5246,1.5622,-0.9624,-0.3812,1.8377,3.3844,1.3406,0.5222,0.7488,0.1251,0.6764,R+L,radar,constant,,constant,okrig_add,mergeplg,False,mergeplg default,1.3007,0
+links pycomlink idw,1.0,4618,2.5246,1.3351,-1.1895,-0.4712,1.8749,3.3854,1.341,0.5332,0.6813,0.1409,0.6128,L,,pycomlink,idw,,,,False,,1.3261,0
+radar only add [nearby],1.0,4618,2.5246,1.5232,-1.0014,-0.3967,1.8082,3.3872,1.3417,0.4977,0.8353,0.1586,0.7216,R+L,radar only,nearby,,nearby,add,pcpn_maps,False,,1.2446,0
+radar okrig_add [dynamic + gauges] (5 km variogram),1.0,4618,2.5246,3.2661,0.7415,0.2937,1.9019,3.3932,1.344,0.6084,0.9529,0.1577,0.8086,R+L+G,radar,dynamic,,dynamic + gauges,okrig_add,mergeplg,True,mergeplg default,1.2706,0
+radar add [nearby],1.0,4618,2.5246,1.5283,-0.9963,-0.3947,1.816,3.395,1.3448,0.4947,0.835,0.1554,0.7238,R+L,radar,nearby,,nearby,add,pcpn_maps,False,,1.2495,0
+links nearby idw,1.0,4618,2.5246,1.509,-1.0156,-0.4023,1.8197,3.4078,1.3498,0.4909,0.8335,0.1547,0.7232,L,,nearby,idw,,,,False,,1.2453,0
+radar only idw_add [constant],1.0,4618,2.5246,1.6228,-0.9018,-0.3572,1.8883,3.4266,1.3573,0.5098,0.7646,0.1393,0.6804,R+L,radar only,constant,,constant,idw_add,mergeplg,False,,1.2984,0
+radar idw_add [constant],1.0,4618,2.5246,1.6252,-0.8994,-0.3562,1.8951,3.4331,1.3599,0.5087,0.757,0.1269,0.682,R+L,radar,constant,,constant,idw_add,mergeplg,False,,1.3022,0
+radar idw_mul [pycomlink],1.0,4618,2.5246,1.364,-1.1606,-0.4597,1.8449,3.4359,1.361,0.5149,0.6962,0.1085,0.6418,R+L,radar,pycomlink,,pycomlink,idw_mul,mergeplg,False,,1.3155,0
+radar only idw_mul [constant],1.0,4618,2.5246,1.612,-0.9126,-0.3615,1.8914,3.4415,1.3632,0.506,0.7538,0.137,0.6733,R+L,radar only,constant,,constant,idw_mul,mergeplg,False,,1.3168,0
+radar only okrig_add [dynamic + gauges] (5 km variogram),1.0,4618,2.5246,3.3276,0.803,0.3181,1.9687,3.4421,1.3634,0.5981,0.9616,0.1866,0.7878,R+L+G,radar only,dynamic,,dynamic + gauges,okrig_add,mergeplg,True,mergeplg default,1.2749,0
+radar okrig_add [nearby],1.0,4618,2.5246,1.4014,-1.1232,-0.4449,1.8412,3.4748,1.3764,0.4715,0.8166,0.1267,0.7302,R+L,radar,nearby,,nearby,okrig_add,mergeplg,False,radar fit,1.3034,0
+radar only ked [pycomlink] (5 km variogram),1.0,4618,2.5246,2.0869,-0.4377,-0.1734,1.85,3.4821,1.3793,0.5479,0.8795,0.1804,0.7369,R+L,radar only,pycomlink,,pycomlink,ked,mergeplg,False,mergeplg default,1.2406,0
+radar only okrig_add [nearby],1.0,4618,2.5246,1.3918,-1.1328,-0.4487,1.8424,3.4826,1.3795,0.4691,0.8225,0.1442,0.7224,R+L,radar only,nearby,,nearby,okrig_add,mergeplg,False,radar fit,1.3108,0
+radar ked [pycomlink] (5 km variogram),1.0,4618,2.5246,2.0241,-0.5005,-0.1982,1.7975,3.4841,1.3801,0.5417,0.8647,0.1313,0.7647,R+L,radar,pycomlink,,pycomlink,ked,mergeplg,False,mergeplg default,1.2213,0
+links constant line,1.0,4618,2.5246,1.748,-0.7766,-0.3076,1.9189,3.4909,1.3828,0.4887,0.7925,0.1708,0.6813,L,,constant,line,,,,False,,1.3289,0
+radar only mul [dynamic],1.0,4618,2.5246,3.5103,0.9857,0.3905,2.1881,3.5516,1.4068,0.5812,0.9584,0.1753,0.7962,R+L,radar only,dynamic,,dynamic,mul,pcpn_maps,False,,1.2968,0
+radar ked [nearby] (5 km variogram),1.0,4618,2.5246,1.7653,-0.7593,-0.3008,1.856,3.5553,1.4083,0.4466,0.8524,0.1288,0.757,R+L,radar,nearby,,nearby,ked,mergeplg,False,mergeplg default,1.4044,0
+radar only ked [pycomlink],1.0,4618,2.5246,2.2559,-0.2687,-0.1065,1.9036,3.6039,1.4275,0.5636,0.869,0.1783,0.7311,R+L,radar only,pycomlink,,pycomlink,ked,mergeplg,False,radar fit,1.2609,0
+radar only okrig_add [constant],1.0,4618,2.5246,1.6581,-0.8665,-0.3432,1.9845,3.6075,1.4289,0.4722,0.6915,0.1344,0.6244,R+L,radar only,constant,,constant,okrig_add,mergeplg,False,radar fit,1.3997,0
+radar only add [constant],1.0,4618,2.5246,1.6861,-0.8385,-0.3321,2.0213,3.6093,1.4296,0.4643,0.7322,0.1836,0.6287,R+L,radar only,constant,,constant,add,pcpn_maps,False,,1.3436,0
+radar okrig_add [constant],1.0,4618,2.5246,1.664,-0.8606,-0.3409,1.9899,3.6148,1.4318,0.4708,0.6886,0.1282,0.6253,R+L,radar,constant,,constant,okrig_add,mergeplg,False,radar fit,1.396,0
+radar add [constant],1.0,4618,2.5246,1.693,-0.8316,-0.3294,2.0314,3.615,1.4319,0.463,0.7331,0.1795,0.6318,R+L,radar,constant,,constant,add,pcpn_maps,False,,1.3479,0
+links constant idw,1.0,4618,2.5246,1.6725,-0.8521,-0.3375,2.032,3.6279,1.437,0.4588,0.7293,0.1797,0.6289,L,,constant,idw,,,,False,,1.364,0
+radar only ked [nearby] (5 km variogram),1.0,4618,2.5246,1.7843,-0.7403,-0.2932,1.9119,3.6652,1.4518,0.4162,0.8708,0.1705,0.7386,R+L,radar only,nearby,,nearby,ked,mergeplg,False,mergeplg default,1.3977,0
+radar ked [pycomlink],1.0,4618,2.5246,2.1799,-0.3446,-0.1365,1.8704,3.682,1.4584,0.5425,0.8501,0.1325,0.7524,R+L,radar,pycomlink,,pycomlink,ked,mergeplg,False,radar fit,1.3015,0
+radar ked [nearby],1.0,4618,2.5246,1.8002,-0.7244,-0.2869,1.9322,3.6879,1.4608,0.421,0.8356,0.1287,0.7438,R+L,radar,nearby,,nearby,ked,mergeplg,False,radar fit,1.4014,0
+radar idw_mul [constant],1.0,4618,2.5246,1.6709,-0.8537,-0.3381,1.9583,3.7536,1.4868,0.4378,0.7459,0.1156,0.6797,R+L,radar,constant,,constant,idw_mul,mergeplg,False,,1.3182,0
+radar only ked [nearby],1.0,4618,2.5246,1.8071,-0.7175,-0.2842,2.0023,3.8067,1.5078,0.3888,0.851,0.1721,0.723,R+L,radar only,nearby,,nearby,ked,mergeplg,False,radar fit,1.3969,0
+radar mul [dynamic],1.0,4618,2.5246,3.6474,1.1228,0.4447,2.2424,3.8236,1.5145,0.5754,0.9351,0.1328,0.818,R+L,radar,dynamic,,dynamic,mul,pcpn_maps,False,,1.3959,0
+radar ked [dynamic + gauges],1.0,4618,2.5246,3.4468,0.9222,0.3653,2.153,3.8509,1.5254,0.558,0.8862,0.1302,0.7824,R+L+G,radar,dynamic,,dynamic + gauges,ked,mergeplg,True,radar fit,1.4325,0
+radar ked [dynamic + gauges] (5 km variogram),1.0,4618,2.5246,3.49,0.9654,0.3824,2.1652,3.8621,1.5298,0.5582,0.897,0.1306,0.7905,R+L+G,radar,dynamic,,dynamic + gauges,ked,mergeplg,True,mergeplg default,1.474,0
+radar only add [dynamic + gauges],1.0,4618,2.5246,3.7388,1.2142,0.481,2.3156,3.8845,1.5387,0.5428,0.9756,0.2409,0.7449,R+L+G,radar only,dynamic,,dynamic + gauges,add,pcpn_maps,True,,1.389,0
+links dynamic + gauges,1.0,4618,2.5246,3.7393,1.2147,0.4811,2.3183,3.8905,1.541,0.5402,0.9776,0.2423,0.7448,L+G,,dynamic,,,,,True,,1.3942,0
+radar add [dynamic + gauges],1.0,4618,2.5246,3.7426,1.218,0.4825,2.3159,3.8919,1.5416,0.5418,0.9753,0.2415,0.7442,R+L+G,radar,dynamic,,dynamic + gauges,add,pcpn_maps,True,,1.3978,0
+radar only ked [dynamic + gauges],1.0,4618,2.5246,3.6353,1.1107,0.44,2.3374,4.019,1.5919,0.5426,0.9028,0.1652,0.7659,R+L+G,radar only,dynamic,,dynamic + gauges,ked,mergeplg,True,radar fit,1.4474,0
+radar only ked [dynamic + gauges] (5 km variogram),1.0,4618,2.5246,3.6812,1.1566,0.4581,2.3431,4.0397,1.6001,0.5414,0.9133,0.1676,0.7714,R+L+G,radar only,dynamic,,dynamic + gauges,ked,mergeplg,True,mergeplg default,1.5076,0
+radar only ked [constant] (5 km variogram),1.0,4618,2.5246,2.723,0.1984,0.0786,2.1858,4.0546,1.606,0.4858,0.8917,0.1781,0.7473,R+L,radar only,constant,,constant,ked,mergeplg,False,mergeplg default,1.4427,0
+radar ked [constant] (5 km variogram),1.0,4618,2.5246,2.7445,0.2199,0.0871,2.0796,4.0825,1.6171,0.4958,0.8722,0.1318,0.7702,R+L,radar,constant,,constant,ked,mergeplg,False,mergeplg default,1.6275,0
+radar ked [constant],1.0,4618,2.5246,2.7662,0.2416,0.0957,2.1612,4.2069,1.6664,0.4818,0.8647,0.1331,0.7634,R+L,radar,constant,,constant,ked,mergeplg,False,radar fit,1.6717,0
+radar idw_add [dynamic],1.0,4618,2.5246,4.2289,1.7043,0.6751,2.7608,4.2148,1.6695,0.5241,0.9561,0.1616,0.8073,R+L,radar,dynamic,,dynamic,idw_add,mergeplg,False,,1.4697,0
+radar only idw_add [dynamic],1.0,4618,2.5246,4.3601,1.8355,0.727,2.8875,4.2699,1.6913,0.5123,0.9709,0.1948,0.7862,R+L,radar only,dynamic,,dynamic,idw_add,mergeplg,False,,1.4706,0
+radar only ked [constant],1.0,4618,2.5246,2.8477,0.3231,0.128,2.3279,4.3798,1.7349,0.4773,0.885,0.1777,0.743,R+L,radar only,constant,,constant,ked,mergeplg,False,radar fit,1.7706,0
+radar only idw_mul [dynamic],1.0,4618,2.5246,4.349,1.8244,0.7227,2.8903,4.3951,1.7409,0.5026,0.9543,0.1705,0.7978,R+L,radar only,dynamic,,dynamic,idw_mul,mergeplg,False,,1.5673,0
+links dynamic line,1.0,4618,2.5246,4.4296,1.905,0.7546,2.9342,4.4116,1.7475,0.4776,0.9971,0.25,0.7484,L,,dynamic,line,,,,False,,1.5594,0
+radar okrig_add [dynamic] (5 km variogram),1.0,4618,2.5246,4.2122,1.6876,0.6684,2.7976,4.4513,1.7632,0.4937,0.9511,0.1577,0.8073,R+L,radar,dynamic,,dynamic,okrig_add,mergeplg,False,mergeplg default,1.5499,0
+radar only okrig_add [dynamic] (5 km variogram),1.0,4618,2.5246,4.3523,1.8277,0.724,2.9377,4.5273,1.7933,0.4774,0.963,0.1882,0.7873,R+L,radar only,dynamic,,dynamic,okrig_add,mergeplg,False,mergeplg default,1.5346,0
+radar only add [dynamic],1.0,4618,2.5246,4.5649,2.0403,0.8082,3.1753,4.7008,1.862,0.4539,0.9715,0.2453,0.7383,R+L,radar only,dynamic,,dynamic,add,pcpn_maps,False,,1.66,0
+links dynamic idw,1.0,4618,2.5246,4.5625,2.0379,0.8072,3.1833,4.7073,1.8646,0.4503,0.9735,0.2458,0.7391,L,,dynamic,idw,,,,False,,1.6714,0
+radar add [dynamic],1.0,4618,2.5246,4.5686,2.044,0.8096,3.1774,4.7144,1.8674,0.4526,0.9718,0.2453,0.7386,R+L,radar,dynamic,,dynamic,add,pcpn_maps,False,,1.6599,0
+radar okrig_add [dynamic],1.0,4618,2.5246,4.5056,1.981,0.7847,3.1404,4.9288,1.9523,0.4652,0.9366,0.1556,0.7987,R+L,radar,dynamic,,dynamic,okrig_add,mergeplg,False,radar fit,1.7361,0
+radar only okrig_add [dynamic],1.0,4618,2.5246,4.6253,2.1007,0.8321,3.2596,4.9726,1.9697,0.4544,0.9505,0.1866,0.7804,R+L,radar only,dynamic,,dynamic,okrig_add,mergeplg,False,radar fit,1.7039,0
+radar idw_mul [rnn + gauges],1.0,4618,2.5246,2.439,-0.0856,-0.0339,1.3122,5.3161,2.1057,0.3457,0.9191,0.122,0.815,R+L+G,radar,rnn,,rnn + gauges,idw_mul,mergeplg,True,,0.955,0
+radar ked [dynamic] (5 km variogram),1.0,4618,2.5246,4.2411,1.7165,0.6799,3.1297,5.324,2.1088,0.4193,0.8696,0.1329,0.7673,R+L,radar,dynamic,,dynamic,ked,mergeplg,False,mergeplg default,2.052,0
+radar ked [dynamic],1.0,4618,2.5246,4.4832,1.9586,0.7758,3.4106,5.8221,2.3061,0.4071,0.858,0.1324,0.7586,R+L,radar,dynamic,,dynamic,ked,mergeplg,False,radar fit,2.1936,0
+radar only ked [dynamic] (5 km variogram),1.0,4618,2.5246,4.6645,2.1399,0.8476,3.466,8.1313,3.2208,0.264,0.9016,0.173,0.7586,R+L,radar only,dynamic,,dynamic,ked,mergeplg,False,mergeplg default,2.4644,0
+radar idw_mul [rnn],1.0,4618,2.5246,2.5095,-0.0151,-0.006,1.7178,9.4917,3.7597,0.1353,0.8958,0.1223,0.7964,R+L,radar,rnn,,rnn,idw_mul,mergeplg,False,,1.0151,0
+radar only ked [dynamic],1.0,4618,2.5246,5.0194,2.4948,0.9882,3.8238,11.31,4.4799,0.1984,0.8938,0.1693,0.756,R+L,radar only,dynamic,,dynamic,ked,mergeplg,False,radar fit,3.0697,0
+radar idw_mul [dynamic + gauges],1.0,4618,2.5246,3.9571,1.4325,0.5674,2.4881,22.3378,8.8481,0.092,0.9316,0.1302,0.8176,R+L+G,radar,dynamic,,dynamic + gauges,idw_mul,mergeplg,True,,1.2348,0
+radar idw_mul [dynamic],1.0,4618,2.5246,5.4942,2.9696,1.1763,4.0436,42.3196,16.7629,0.0344,0.9319,0.1318,0.8164,R+L,radar,dynamic,,dynamic,idw_mul,mergeplg,False,,1.6745,0

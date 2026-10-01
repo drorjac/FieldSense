@@ -56,8 +56,8 @@ jupyter lab projects/spatial_interpolation/notebooks/nowcasting.ipynb   # the pi
 python -m pytest projects/spatial_interpolation/tests
 ```
 
-`nowcasting.ipynb` reads OpenMRG from `dataset/open_datasets/` (`python -m
-core.opensense.fetch --dataset openmrg`). `advanced_models_colab_v2.ipynb`,
+`nowcasting.ipynb` reads OpenMRG from the shared store `~/data/cml/openmrg/`
+(see `DATA.md`; `python -m core.opensense.fetch --dataset openmrg` downloads it). `advanced_models_colab_v2.ipynb`,
 the source of the paper's numbers, was developed in Google Colab and mounts
 Drive for data; running it locally means repointing those paths.
 

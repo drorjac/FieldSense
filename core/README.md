@@ -20,6 +20,8 @@ core/
 ├── maps/                    # link and gauge values to fields on a lat/lon grid
 │   ├── idw.py                   # midpoint IDW; rates to hour-ending totals
 │   ├── gmz.py                   # line IDW and GMZ (Goldshtein-Messer-Zinevich) from path averages
+│   ├── merge.py                 # links + gauges IDW; radar adjusted by mean-field bias, additive, multiplicative
+│   ├── mergeplg_methods.py      # mergeplg's difference IDW, difference kriging and KED, at any cells
 │   └── scores.py                # NRMSE, bias, corr, POD/FAR/CSI; maps and links vs radar
 ├── simulation/              # synthetic rain fields + CML network sampling
 │   ├── rain_fields.py           # stratiform / convective / frontal models, statistics
@@ -58,6 +60,8 @@ core/
 | `radar.mrms`, `asos`, `geo`, `opensense.openmesh` | pcpn_maps (see `projects/nyc_rain_maps`) | nyc_rain_maps, multisensor_maps, cml_rnn |
 | `cml.*`, `maps.idw`, `maps.scores`, `events` | pcpn_maps / nyc_rain_maps | nyc_rain_maps, multisensor_maps, cml_rnn |
 | `opensense.networks`, `maps.gmz`, `cml.rnn` | - | multisensor_maps, cml_rnn |
+| `maps.merge` | pcpn_maps (`mapping/merge.py`) | multisensor_maps |
+| `maps.mergeplg_methods` | - (wraps `mergeplg` 0.1.0) | multisensor_maps |
 | `scientific_packages.pynncml_compat`, `pynncml_rnn` | cml_retrieval | cml_retrieval, spatial_interpolation |
 
 The command-line tools run as modules from the repo root:
@@ -155,7 +159,7 @@ Reference observations over New York City, and the grid they share.
 | `asos` | METAR from IEM for NYC, LGA, JFK, EWR: `hourly_precip`, `hourly_ptype` (rain / snow / mix / freezing), 1-min precipitation | `requests` |
 | `geo` | `Domain` (lat/lon box) and `Grid` (cell centres on MRMS's 0.01° lattice), `NYC`, `OPENMESH`, `haversine_m` | - |
 
-Downloads are cached under `dataset/open_datasets/MRMS/` and `ASOS/` and not tracked.
+Downloads are cached in the shared data store `~/data/cml/openmesh/weather/` (see `DATA.md`) and not tracked.
 `radar/MRMS.md` documents the products, the processing and how the data was validated.
 
 ```python

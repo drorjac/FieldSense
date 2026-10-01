@@ -48,7 +48,7 @@ Decoding a CONUS field takes ~0.3 s of CPU, so files are fetched and decoded in 
 
 ## Cache
 
-`dataset/open_datasets/MRMS/cache/<product>/<domain key>/<YYYYMMDD>.nc` — one NetCDF per day, zlib
+`~/data/cml/openmesh/weather/radar/mrms_cache/<product>/<domain key>/<YYYYMMDD>.nc` (see `DATA.md`) — one NetCDF per day, zlib
 compressed, containing whichever valid times were requested so far plus the list of confirmed
 missing times. The domain key contains a hash of the bounding box, so different crops never
 collide; writes are atomic (temp file + rename). A full year of hourly NYC QPE is ~20 MB.

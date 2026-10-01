@@ -38,8 +38,10 @@ from core.opensense import conventions as cv  # noqa: E402
 from core.opensense.retrieval import (RetrievalConfig, combine_sublinks,  # noqa: E402
                                       retrieve_dataset, retrieve_improved)
 
-RAW = REPO_ROOT / "dataset/open_datasets/OpenRainER_Italy/raw"
-EXTRACTED = RAW / "extracted"
+from core import data_paths as dp  # noqa: E402
+
+# inputs, from ~/data/cml (or data/interim): see core/data_paths.py
+RAW = dp.data_path(dp.OPENRAINER_DOWNLOAD)      # CML.tar, AWS.tar, RADrain.tar
 PROCESSED = REPO_ROOT / "dataset/open_datasets/OpenRainER_Italy/processed"
 
 # UTM 32N covers Emilia-Romagna.
@@ -75,36 +77,44 @@ EVENTS = {
 }
 
 
+def _product_dir(member: str) -> Path:
+    """The shared folder of one product's monthly files (``CML_...`` -> openrainer/cml)."""
+    return dp.data_path(dp.OPENRAINER_MONTHLY[member.split("_")[0]])
+
+
 def _ensure_extracted(member: str, archive: str) -> Path:
     """Extract one month from a tar, and gunzip it, if not already done."""
-    EXTRACTED.mkdir(parents=True, exist_ok=True)
-    target = EXTRACTED / member
+    folder = _product_dir(member)
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / member
     if target.exists():
         return target
 
-    gz = EXTRACTED / f"{member}.gz"
+    gz = folder / f"{member}.gz"
     if not gz.exists():
         tar = RAW / archive
         if not tar.exists():
             raise FileNotFoundError(
                 f"{tar} missing - run fetch.py --dataset openrainer first")
         print(f"  extracting {member}.gz from {archive}")
-        subprocess.run(["tar", "-xf", str(tar), "-C", str(EXTRACTED),
+        subprocess.run(["tar", "-xf", str(tar), "-C", str(folder),
                         f"{member}.gz"], check=True)
 
     print(f"  gunzip {member}.gz")
     with gzip.open(gz, "rb") as fin, target.open("wb") as fout:
         shutil.copyfileobj(fin, fout)
+    gz.unlink()
     return target
 
 
 
 def _cml_file(month: str) -> Path:
     """CML files are named by their full time span, so glob for the month."""
-    matches = sorted(EXTRACTED.glob(f"CML_{month}*.nc"))
+    folder = _product_dir("CML_")
+    matches = sorted(folder.glob(f"CML_{month}*.nc"))
     if matches:
         return matches[0]
-    gzs = sorted(EXTRACTED.glob(f"CML_{month}*.nc.gz"))
+    gzs = sorted(folder.glob(f"CML_{month}*.nc.gz"))
     if gzs:
         return _ensure_extracted(gzs[0].name[:-3], "CML.tar")
     # Ask the tar what the member is actually called.

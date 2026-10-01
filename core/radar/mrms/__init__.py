@@ -8,7 +8,7 @@ and the rainfall-map products built from it.
               radar at points and along link paths
 
 Decoding needs ``eccodes`` (``pip install -e ".[mrms]"``). Crops are cached under
-``dataset/open_datasets/MRMS/``.
+``~/data/cml/openmesh/weather/radar/mrms_cache/`` (see core/data_paths.py).
 
     from core.geo import NYC
     from core.radar.mrms import MRMSClient, hourly_rainfall

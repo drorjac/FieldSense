@@ -4,8 +4,8 @@ the direct links its authors publish).
 
 Downloads are resumable (HTTP Range), verified against the checksum Zenodo
 publishes, and idempotent - an already-complete, verified file is skipped. Raw
-archives land under ``dataset/open_datasets/<dataset>/raw/`` and are excluded
-from git by the root ``.gitignore`` (``*.zip``, ``*.tar``, ``*.nc``).
+archives land in the shared data store, ``~/data/cml/<dataset>/...`` (each
+source's ``raw_dir``; see ``core/data_paths.py`` and ``DATA.md``), never in git.
 
     python -m core.opensense.fetch --dataset openmrg
     python -m core.opensense.fetch --dataset openrainer --files CML.tar AWS.tar RADrain.tar
@@ -23,8 +23,12 @@ from pathlib import Path
 
 import requests
 
+from core import data_paths as dp
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = REPO_ROOT / "dataset" / "open_datasets"
+#: FieldSense's own outputs (processed/, _cml_rnn/, ...). Inputs are NOT read
+#: from here - they come from ``core.data_paths`` (~/data/cml).
+DATA_ROOT = dp.OUTPUTS
 
 CHUNK = 1 << 20  # 1 MiB
 
@@ -35,7 +39,8 @@ class Source:
 
     name: str
     record_id: str          # the concept/latest record id
-    folder: str             # folder under dataset/open_datasets/
+    folder: str             # outputs folder under dataset/open_datasets/
+    raw_dir: str            # where downloads land, relative to ~/data/cml
     license: str
     doi: str
     default_files: tuple    # files to fetch when --files is not given
@@ -49,6 +54,7 @@ SOURCES = {
         name="OpenMRG",
         record_id="7107689",
         folder="OpenMRG_Sweden",
+        raw_dir=dp.OPENMRG_DOWNLOAD,
         license="CC-BY-SA-4.0",
         doi="10.5281/zenodo.7107689",
         default_files=("OpenMRG.zip",),
@@ -57,6 +63,7 @@ SOURCES = {
         name="OpenRainER",
         record_id="22829808",
         folder="OpenRainER_Italy",
+        raw_dir=dp.OPENRAINER_DOWNLOAD,
         license="CC-BY-4.0",
         doi="10.5281/zenodo.22829808",
         # The three radar archives are ~1.6 GB each; RADrain (15-min accumulated
@@ -68,6 +75,7 @@ SOURCES = {
         name="OpenMesh",
         record_id="15287692",
         folder="OpenMesh_NYC",
+        raw_dir=dp.OPENMESH_ZIPS,
         license="CC-BY-4.0",
         doi="10.5281/zenodo.15287692",
         default_files=("OpenMesh.zip",),     # NYC Mesh CML, 13.7 MB
@@ -76,6 +84,7 @@ SOURCES = {
         name="OpenMesh PWS",
         record_id="17508286",
         folder="OpenMesh_NYC",
+        raw_dir=dp.OPENMESH_ZIPS,
         license="CC-BY-NC-4.0",              # non-commercial, unlike the CML
         doi="10.5281/zenodo.17508286",
         default_files=("PWS_NYC_WU.zip",),
@@ -87,6 +96,7 @@ SOURCES = {
         name="OpenMRG2 PWS preview (Netatmo, SMHI)",
         record_id="",
         folder="OpenMRG2_preview",
+        raw_dir=dp.OPENMRG2,
         license="CC-BY-4.0",
         doi="unpublished - see github.com/OpenSenseAction/OpenMRG2",
         default_files=("OpenMRGplus_rain.nc", "city_gauges.nc", "smhi_gauges.nc"),
@@ -257,7 +267,7 @@ def fetch(dataset: str, files: list[str] | None = None,
             f"available: {sorted(available)}"
         )
 
-    dest_dir = DATA_ROOT / source.folder / "raw"
+    dest_dir = dp.data_path(source.raw_dir)
     print(f"{source.name}  (DOI {source.doi}, {source.license})")
     print(f"  -> {dest_dir}")
     return [download(available[w], dest_dir, force) for w in wanted]

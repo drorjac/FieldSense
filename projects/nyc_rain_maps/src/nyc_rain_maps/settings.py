@@ -4,9 +4,9 @@
 ``results/``   generated summaries (tracked): link selection, the study, all events, validation
 ``DATA_DIR``   intermediate files (not tracked), under ``dataset/open_datasets/OpenMesh_NYC/``
 
-Downloaded data lives with the rest of FieldSense's data: MRMS crops in
-``dataset/open_datasets/MRMS/``, ASOS reports in ``dataset/open_datasets/ASOS/`` and the
-OpenMesh record in ``dataset/open_datasets/OpenMesh_NYC/raw/``.
+Inputs are read from the shared data store ``~/data/cml`` (or ``data/interim/``), see
+``core/data_paths.py`` and ``DATA.md``: MRMS crops, ASOS/METAR reports and the OpenMesh
+record all live under ``~/data/cml/openmesh/``.
 """
 
 from __future__ import annotations

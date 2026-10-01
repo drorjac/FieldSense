@@ -21,9 +21,23 @@ from unittest import mock
 
 import numpy as np
 
+from core import data_paths as dp
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OPENMRG_RAW = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/raw"
-OPENMRG_EXTRACTED = OPENMRG_RAW / "extracted"
+#: PyNNcml wants the Zenodo archive's own folder layout. It is rebuilt here as
+#: symlinks onto the shared copy in ~/data/cml (see core/data_paths.py), so
+#: nothing is copied or re-extracted.
+OPENMRG_VIEW = dp.OUTPUTS / "OpenMRG_Sweden" / "pynncml_view"
+_VIEW = {
+    "OpenMRG.zip": f"{dp.OPENMRG_DOWNLOAD}/OpenMRG.zip",
+    "cml/cml.nc": dp.OPENMRG_CML,
+    "cml/cml_metadata.csv": dp.OPENMRG_CML_META,
+    "radar/radar.nc": dp.OPENMRG_RADAR,
+    "gauges/city/CityGauges-2015JJA.csv": f"{dp.OPENMRG_GAUGES}/city/CityGauges-2015JJA.csv",
+    "gauges/city/CityGauges-metadata.csv": f"{dp.OPENMRG_GAUGES}/city/CityGauges-metadata.csv",
+    "gauges/smhi/GbgA-71420-2015JJA.csv": f"{dp.OPENMRG_GAUGES}/smhi/GbgA-71420-2015JJA.csv",
+    "gauges/smhi/GbgA-71420-metadata.csv": f"{dp.OPENMRG_GAUGES}/smhi/GbgA-71420-metadata.csv",
+}
 
 
 def quietly(fn, *args, **kwargs):
@@ -45,24 +59,26 @@ def apply() -> list[str]:
 
 
 def openmrg_data_path() -> str:
-    """Make PyNNcml read the repository's OpenMRG archive in place.
+    """Make PyNNcml read the shared OpenMRG archive in place.
 
     ``pynncml.datasets.load_open_mrg`` downloads to ``./data/`` relative to
     the working directory, reads the gauge CSVs from that same folder, and
     extracts the whole 4.6 GB archive again on every call. Here it is given
-    the already-extracted folder (``python -m core.opensense.fetch --dataset
-    openmrg``), finds the zip there through a symlink, and skips the
-    re-extraction. Nothing is copied.
+    a symlink view of the extracted archive in ``~/data/cml/openmrg``,
+    finds the zip there too, and skips the re-extraction. Nothing is copied.
     """
     from pynncml.datasets import loaders
 
-    if not (OPENMRG_EXTRACTED / "cml" / "cml.nc").exists():
-        raise FileNotFoundError(
-            f"{OPENMRG_EXTRACTED}/cml/cml.nc missing - run "
-            f"python -m core.opensense.fetch --dataset openmrg and extract it")
-    zip_link = OPENMRG_EXTRACTED / "OpenMRG.zip"
-    if not zip_link.exists():
-        zip_link.symlink_to(OPENMRG_RAW / "OpenMRG.zip")
+    for name, rel in _VIEW.items():
+        target, link = dp.data_path(rel), OPENMRG_VIEW / name
+        if not target.exists():
+            raise FileNotFoundError(
+                f"{target} missing - see DATA.md (OpenMRG) for where it comes from")
+        if link.is_symlink() and link.resolve() != target.resolve():
+            link.unlink()
+        if not link.is_symlink():
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(target)
 
     if not getattr(loaders, "_fieldsense_repo_archive", False):
         original = loaders.transform_open_mrg
@@ -73,7 +89,7 @@ def openmrg_data_path() -> str:
 
         loaders.transform_open_mrg = transform
         loaders._fieldsense_repo_archive = True
-    return str(OPENMRG_EXTRACTED) + "/"
+    return str(OPENMRG_VIEW) + "/"
 
 
 def patch_numpy2() -> list[str]:

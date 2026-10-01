@@ -44,6 +44,7 @@ import pandas as pd
 import xarray as xr
 
 from core.geo import NYC, OPENMESH, Domain, Grid, haversine_m
+from core import data_paths as dp
 from core.opensense.fetch import DATA_ROOT
 
 # Which edge of its interval each accumulation's time stamp names, from lagging each
@@ -221,12 +222,15 @@ class Network:
 # OpenMRG - Gothenburg, JJA 2015
 # ---------------------------------------------------------------------------
 class OpenMRG(Network):
-    RAW = DATA_ROOT / "OpenMRG_Sweden" / "raw" / "extracted"
-    PWS = DATA_ROOT / "OpenMRG2_preview" / "raw"
+    # inputs, from ~/data/cml (or data/interim): see core/data_paths.py
+    CML = dp.data_path(dp.OPENMRG_CML)
+    CML_META = dp.data_path(dp.OPENMRG_CML_META)
+    RADAR = dp.data_path(dp.OPENMRG_RADAR)
+    PWS = dp.data_path(dp.OPENMRG2)
 
     def links_table(self) -> pd.DataFrame:
         if self._table is None:
-            m = pd.read_csv(self.RAW / "cml" / "cml_metadata.csv")
+            m = pd.read_csv(self.CML_META)
             t = pd.DataFrame({
                 "cml_id": m.Link.astype(int), "sublink_id": m.Direction.astype(str),
                 "sublink": m.Sublink.astype(int), "frequency": m.Frequency_GHz.astype(float),
@@ -246,7 +250,7 @@ class OpenMRG(Network):
         meta = table.loc[labels]
         t0 = pd.Timestamp(start).floor("min")
         t1 = pd.Timestamp(end).floor("min") + pd.Timedelta("59s")
-        with xr.open_dataset(self.RAW / "cml" / "cml.nc") as raw:
+        with xr.open_dataset(self.CML) as raw:
             sub = raw.sel(time=slice(t0, t1), sublink=meta.sublink.to_numpy()).load()
         minute = sub.resample(time="1min", closed="left", label="left").mean()
         # (time, sublink) -> (link, time)
@@ -276,7 +280,7 @@ class OpenMRG(Network):
 
     def _build_radar_month(self, month: pd.Timestamp) -> xr.DataArray:
         end = month + pd.offsets.MonthBegin(1)
-        with xr.open_dataset(self.RAW / "radar" / "radar.nc") as ds:
+        with xr.open_dataset(self.RADAR) as ds:
             # 5-min scans ending in (month - 1h, end]
             ds = ds.sel(time=slice(month - pd.Timedelta("55min"), end)).load()
             za, zb = float(ds.data.attrs.get("zr_a", 200)), float(ds.data.attrs.get("zr_b", 1.5))
@@ -296,27 +300,31 @@ class OpenMRG(Network):
 # OpenRainER - Emilia-Romagna, 2021-2022
 # ---------------------------------------------------------------------------
 class OpenRainER(Network):
-    RAW = DATA_ROOT / "OpenRainER_Italy" / "raw"
-    EXTRACTED = RAW / "extracted"
+    # inputs, from ~/data/cml (or data/interim): see core/data_paths.py
+    RAW = dp.data_path(dp.OPENRAINER_DOWNLOAD)
 
     def _file(self, prefix: str, month: pd.Timestamp, archive: str) -> Path:
-        """Extract ``<prefix>_<YYYYMM>*.nc`` from its tar if needed; return the .nc path."""
+        """Extract ``<prefix>_<YYYYMM>*.nc`` from its tar if needed; return the .nc path.
+
+        Monthly files live one folder per product (``dp.OPENRAINER_MONTHLY``); a
+        missing month is unpacked from the tar into that same shared folder.
+        """
         tag = f"{prefix}_{month:%Y%m}"
-        found = sorted(p for p in self.EXTRACTED.glob(f"{tag}*.nc"))
+        folder = dp.data_path(dp.OPENRAINER_MONTHLY[prefix])
+        found = sorted(p for p in folder.glob(f"{tag}*.nc"))
         if found:
             return found[0]
-        self.EXTRACTED.mkdir(parents=True, exist_ok=True)
-        gz = sorted(self.EXTRACTED.glob(f"{tag}*.nc.gz"))
-        if not gz:
-            listing = subprocess.run(["tar", "-tf", str(self.RAW / archive)], capture_output=True,
-                                     text=True, check=True).stdout.split()
-            member = next(m for m in listing if m.startswith(tag))
-            subprocess.run(["tar", "-xf", str(self.RAW / archive), "-C", str(self.EXTRACTED), member],
-                           check=True)
-            gz = [self.EXTRACTED / member]
-        target = gz[0].with_suffix("")
-        with gzip.open(gz[0], "rb") as fin, target.open("wb") as fout:
+        folder.mkdir(parents=True, exist_ok=True)
+        listing = subprocess.run(["tar", "-tf", str(self.RAW / archive)], capture_output=True,
+                                 text=True, check=True).stdout.split()
+        member = next(m for m in listing if Path(m).name.startswith(tag))
+        subprocess.run(["tar", "-xf", str(self.RAW / archive), "-C", str(folder), member],
+                       check=True)
+        gz = folder / member
+        target = folder / Path(member).name.removesuffix(".gz")
+        with gzip.open(gz, "rb") as fin, target.open("wb") as fout:
             shutil.copyfileobj(fin, fout)
+        gz.unlink()
         return target
 
     def links_table(self) -> pd.DataFrame:

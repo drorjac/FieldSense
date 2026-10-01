@@ -51,7 +51,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BASE_URL = "https://github.com/OpenSenseAction/opensense_example_data"
 VERSION = "main"
 
-CACHE = REPO_ROOT / "dataset" / "open_datasets" / "_example_subsets"
+# The subsets live in ~/data/cml (or data/interim), one folder per dataset:
+# see core/data_paths.py SAMPLES. Derived files (CNN masks) go to OUTPUTS.
+from core import data_paths as dp  # noqa: E402
+CACHE = dp.OUTPUTS / "_example_subsets"      # derived files only (e.g. _masks/)
+
+
+def sample_dir(key: str) -> Path:
+    """Folder holding one dataset's example subsets, e.g. ``sample_dir("openmrg")``."""
+    return dp.data_path(dp.SAMPLES[DATASETS[key].folder])
 
 
 @dataclass(frozen=True)
@@ -134,7 +142,7 @@ def download(dataset: str, subset: str, cache_dir: Path | None = None,
     """Fetch every component of one subset. Returns {component: local path}."""
     spec = DATASETS[dataset]
     files = spec.files(subset)
-    dest = Path(cache_dir or CACHE) / spec.folder
+    dest = Path(cache_dir) / spec.folder if cache_dir else sample_dir(dataset)
     dest.mkdir(parents=True, exist_ok=True)
 
     out = {}
@@ -306,7 +314,7 @@ def main() -> None:
                 print(f"  {spec.note}")
             for subset, files in spec.subsets.items():
                 print(f"    {subset:12s} {', '.join(sorted(files))}")
-        print(f"\ncached under {CACHE.relative_to(REPO_ROOT)}/")
+        print(f"\ncached under {dp.SHARED}/<dataset>/_sample*/ (see core/data_paths.py)")
         return
 
     targets = ([(d, s) for d in DATASETS for s in DATASETS[d].subsets]

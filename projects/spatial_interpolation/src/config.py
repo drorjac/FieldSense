@@ -31,6 +31,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from core import data_paths as dp
+
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -67,7 +69,7 @@ class NowcastConfig:
 
     faithful: bool = True
     cache_dir: Path = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/processed/nowcast"
-    radar_nc: Path = REPO_ROOT / "dataset/open_datasets/OpenMRG_Sweden/raw/extracted/radar/radar.nc"
+    radar_nc: Path = dp.data_path(dp.OPENMRG_RADAR)   # ~/data/cml: see core/data_paths.py
     seed: int = 42
 
     def period(self, which: str) -> slice:
