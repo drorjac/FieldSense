@@ -176,6 +176,53 @@ leaves its input untouched.
 
 ---
 
+## mergeplg 0.1.0: multiplicative `MergeDifferenceIDW` has no bound on the adjustment factor
+
+**Repository:** OpenSenseAction/mergeplg
+
+`MergeDifferenceIDW.adjust(..., method="multiplicative")` interpolates
+`obs / rad` for every observation with `rad > 0` and multiplies the radar by
+the result. Nothing limits the ratio: a wet gauge or link over a radar value
+of 0.01 mm gives a factor of hundreds, which IDW then spreads to every cell
+within reach. The additive variant and the kriging methods do not have the
+problem.
+
+Reproduction (one time step):
+
+```python
+import numpy as np, xarray as xr
+from mergeplg.merge import MergeDifferenceIDW
+y, x = np.meshgrid(np.arange(10) * 1000.0, np.arange(10) * 1000.0, indexing="ij")
+rad = xr.DataArray(np.full((10, 10), 2.0), dims=("y", "x"),
+                   coords={"x_grid": (("y", "x"), x), "y_grid": (("y", "x"), y)})
+rad.values[5, 5] = 0.01                                   # a nearly dry cell
+ids = [f"g{i}" for i in range(7)]
+gx = np.array([5000., 1000, 8000, 2000, 7000, 3000, 9000]); gy = np.array([5000., 2000, 8000, 7000, 1000, 9000, 4000])
+g = xr.DataArray(np.full(7, 2.0), dims="id", coords={"id": ids, "x": ("id", gx), "y": ("id", gy),
+                                                   "lon": ("id", gx), "lat": ("id", gy)})
+g.values[0] = 3.0                                         # the gauge in that cell: 3 mm
+out = MergeDifferenceIDW().adjust(rad, da_gauge=g, method="multiplicative")
+print(float(out.max()))                                   # hundreds of mm, from 2 mm of radar
+```
+
+**Impact here:** on OpenRainER's ten largest storms the multiplicative
+difference IDW scores an hourly NRMSE of 37 at held-out gauges when merging
+the gauges (radar alone: 2.2; the additive variant: 1.3), and 428 with links,
+whose path-averaged radar is more often near zero
+(`projects/multisensor_maps/results/merging/report.md`).
+
+**Suggested fix:** clip the interpolated factor (e.g. to `[1/5, 5]`, as
+wradlib's `AdjustMultiply` and FieldSense's `core.maps.merge.adjust("mul")`
+do) and/or add a small offset to both sides of the ratio; or skip
+observations whose radar is below a threshold (`rad > 0` keeps 0.001 mm).
+
+**Status on `main` (dd380b1):** not checked.
+
+**Workaround in FieldSense:** none; `core.maps.mergeplg_methods` reproduces
+the method as released and the report shows the blow-ups.
+
+---
+
 ## mergeplg: a release of `main`
 
 **Repository:** OpenSenseAction/mergeplg

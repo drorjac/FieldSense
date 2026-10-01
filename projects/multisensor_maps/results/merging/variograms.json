@@ -1,0 +1,23 @@
+{
+  "openmrg": {
+    "sill": 1.0,
+    "range": 56345.410466225985,
+    "nugget": 0.13759429207785734,
+    "fitted": true,
+    "hours": 155
+  },
+  "openrainer": {
+    "sill": 1.0,
+    "range": 52978.8614782206,
+    "nugget": 0.0224534836588376,
+    "fitted": true,
+    "hours": 286
+  },
+  "openmesh": {
+    "sill": 1.0,
+    "range": 55159.901794699384,
+    "nugget": 0.012467459384411428,
+    "fitted": true,
+    "hours": 175
+  }
+}
