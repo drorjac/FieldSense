@@ -59,6 +59,7 @@ testpaths = [
     "projects/maps/archive_pipeline/tests",
     "projects/nowcasting/pysteps/tests",
     "projects/physics_ml/discovery/tests",
+    "projects/physics_ml/path_law_1d/tests",
     "projects/maps/radar_adjustment/tests",
     "projects/spatial_interpolation/tests",
 ]
