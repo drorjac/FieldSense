@@ -1,5 +1,13 @@
 # OpenSense Pipeline — from raw CML data to merged rainfall maps
 
+> **Frozen.** This was FieldSense's first end-to-end version; [`maps/multisensor`](../multisensor/),
+> [`maps/radar_adjustment`](../radar_adjustment/) and [`maps/nyc`](../nyc/) supersede it. Its
+> results are kept as computed. They predate one fix in `core/opensense/retrieval.py`
+> (October 2026): the default "saturating" wet-antenna model was inverted by 8 fixed-point
+> steps that do not converge on low-sensitivity links (about 15 GHz and below, or short 20-30
+> GHz links), where light rain came back as 0. A rerun would raise light rain on those links,
+> mostly on OpenRainER and OpenMesh.
+
 End-to-end path from **published open data** to **merged rainfall maps**, built
 on the [OpenSense](https://opensenseaction.eu/) software ecosystem
 ([`poligrain`](https://github.com/OpenSenseAction/poligrain),
