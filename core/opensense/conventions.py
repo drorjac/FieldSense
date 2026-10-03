@@ -89,7 +89,12 @@ def itu_coefficients(freq_ghz: np.ndarray, pol: np.ndarray) -> tuple:
     freq_ghz = np.asarray(freq_ghz, dtype=float)
     pol = np.asarray(pol)
     flat_f = freq_ghz.ravel()
-    flat_p = pol.ravel() if pol.size == flat_f.size else np.full(flat_f.size, "vertical")
+    if pol.size == flat_f.size:
+        flat_p = pol.ravel()
+    elif pol.size == 1:                     # one polarization for every link
+        flat_p = np.full(flat_f.size, str(pol.ravel()[0]))
+    else:                                   # no per-link match: ITU-R default
+        flat_p = np.full(flat_f.size, "vertical")
 
     k = np.empty(flat_f.size)
     alpha = np.empty(flat_f.size)
