@@ -44,8 +44,6 @@
  notebook next step, and the subject of [`physics_ml/path_law_1d`](../../physics_ml/path_law_1d/).
  notebook 
  notebook ## Running it
-
-Tutorial [11](../../../tutorials/11_dry_maps_and_link_weights.ipynb) teaches the method by hand on the OpenMRG subset.
  notebook 
  notebook ```bash
  notebook python projects/maps/link_weights/src/run.py    # ~1 min; needs maps/multisensor's event inputs

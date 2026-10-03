@@ -1,10 +1,10 @@
 # Tutorials
 
-Ten notebooks that teach the methods behind FieldSense, in the order of the chain: open
+Eleven notebooks that teach the methods behind FieldSense, in the order of the chain: open
 data, link signal to rain, a trained retrieval, weather radar, 2D rain maps, radar
 adjustment, nowcasting with pysteps and with a neural network, nowcasting with every
-sensor together, and a simulated rain field on which every method can be checked against the
-truth. Each method is written
+sensor together, a simulated rain field on which every method can be checked against the
+truth, and two corrections to link maps: maps that can be dry, and links weighted by their error. Each method is written
 out by hand first, then run with the library that implements it, on real data, with
 labelled figures and a list of references and links at the end.
 
@@ -24,6 +24,7 @@ outputs, so they can be read on GitHub without running anything.
 | 8 | [Learned nowcasting](08_learned_nowcasting.ipynb) | a nowcasting dataset without leakage; a U-Net in PyTorch; training with validation and early stopping; a like-for-like comparison with pysteps; why networks trained on squared error blur | OpenRainER | ~4-6 min |
 | 9 | [Links, radar and weather stations together](09_multisensor_nowcasting.ipynb) | every sensor on one 5-minute grid; link and PWS maps with gaps; radar adjusted with both; nowcasting a sensor map along its own motion or the radar's; scoring on the same cells and gauges; a U-Net with and without the sensors | OpenMRG, OpenMRG2 PWS | ~8 min |
 | 10 | [A simulated rain field and every sensor](10_simulated_rain_testbed.ipynb) | a Gaussian random field from its spectrum; the meta-Gaussian transform to rain; rain cells (Gaussian, HyCell); exact advection; what a link, a gauge and a radar measure, written out; a map's accuracy from street level to city scale; motion estimates against the true motion | simulated (no download) | ~1 min |
+| 11 | [Maps that can be dry, and links weighted by their error](11_dry_maps_and_link_weights.ipynb) | why IDW maps are wet everywhere; the wet probability (IDW of the wet indicator) by hand; a wet mask and IDW of the wet links only; wet-area ratio, false alarms and peaks; a link's error by its length against the radar along its path; inverse-variance link weights learned on four days and tested on four | OpenMRG | ~1 min |
 
 Runtimes are for a laptop CPU, after the data have downloaded.
 
@@ -55,15 +56,17 @@ report what holds up.
 
 | tutorial | project |
 |---|---|
-| 1 | [`openmesh_nyc`](../projects/data/openmesh_nyc/), [`examples/`](../examples/) |
-| 2 | [`cml_retrieval`](../projects/retrieval/openmrg/), [`opensense_pipeline`](../projects/maps/archive_pipeline/) |
-| 3 | [`cml_rnn`](../projects/retrieval/rnn_three_networks/), [`physics_ml`](../projects/physics_ml/discovery/) |
-| 4 | [`nyc_rain_maps`](../projects/maps/nyc/), [`multisensor_maps`](../projects/maps/multisensor/) |
-| 5 | [`multisensor_maps`](../projects/maps/multisensor/), [`rainfall_field_sim`](../projects/simulation/regimes/) |
-| 6 | [`radar_adjustment`](../projects/maps/radar_adjustment/), [`multisensor_maps`](../projects/maps/multisensor/), [`opensense_pipeline`](../projects/maps/archive_pipeline/) |
-| 7 | [`os_nowcasting`](../projects/nowcasting/pysteps/) |
-| 8 | [`spatial_interpolation`](../projects/spatial_interpolation/), [`multisensor_nowcasting`](../projects/nowcasting/multisensor/) |
-| 9 | [`multisensor_nowcasting`](../projects/nowcasting/multisensor/) |
+| 1 | [`data/openmesh_nyc`](../projects/data/openmesh_nyc/), [`examples/`](../examples/) |
+| 2 | [`retrieval/openmrg`](../projects/retrieval/openmrg/), [`maps/archive_pipeline`](../projects/maps/archive_pipeline/) |
+| 3 | [`retrieval/rnn_three_networks`](../projects/retrieval/rnn_three_networks/), [`physics_ml/discovery`](../projects/physics_ml/discovery/) |
+| 4 | [`maps/nyc`](../projects/maps/nyc/), [`maps/multisensor`](../projects/maps/multisensor/) |
+| 5 | [`maps/multisensor`](../projects/maps/multisensor/), [`simulation/regimes`](../projects/simulation/regimes/) |
+| 6 | [`maps/radar_adjustment`](../projects/maps/radar_adjustment/), [`maps/multisensor`](../projects/maps/multisensor/), [`maps/archive_pipeline`](../projects/maps/archive_pipeline/) |
+| 7 | [`nowcasting/pysteps`](../projects/nowcasting/pysteps/) |
+| 8 | [`spatial_interpolation`](../projects/spatial_interpolation/), [`nowcasting/multisensor`](../projects/nowcasting/multisensor/) |
+| 9 | [`nowcasting/multisensor`](../projects/nowcasting/multisensor/) |
+| 10 | [`simulation/testbed`](../projects/simulation/testbed/), [`simulation/regimes`](../projects/simulation/regimes/) |
+| 11 | [`maps/wet_area`](../projects/maps/wet_area/), [`maps/link_weights`](../projects/maps/link_weights/), [`physics_ml/path_law_1d`](../projects/physics_ml/path_law_1d/) |
 
 Every paper, dataset and package cited in the tutorials, with links:
 [docs/references.md](../docs/references.md).

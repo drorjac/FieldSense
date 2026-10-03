@@ -14,7 +14,7 @@ and tests where machine learning helps and where physics is enough.
 | if you want to | read |
 |---|---|
 | set up your copy and open a first dataset | [GETTING_STARTED.md](GETTING_STARTED.md) |
-| learn the methods, step by step, on real data | [`tutorials/`](tutorials/): nine executed notebooks, from the open datasets to multi-sensor nowcasting |
+| learn the methods, step by step, on real data | [`tutorials/`](tutorials/): eleven executed notebooks, from the open datasets to multi-sensor nowcasting and corrected link maps |
 | see what is in each open dataset | [`examples/`](examples/) |
 | know which files are read, and where they live | [DATA.md](DATA.md), [`dataset/README.md`](dataset/README.md) |
 | find a paper, dataset or package | [docs/references.md](docs/references.md) |
@@ -150,7 +150,7 @@ licence and citation.
 ```
 FieldSense/
 ├── GETTING_STARTED.md    # start here
-├── tutorials/            # nine executed notebooks: data, retrieval, training, radar, maps, merging, nowcasting
+├── tutorials/            # eleven executed notebooks: data, retrieval, training, radar, maps, merging, nowcasting, simulation, dry maps
 ├── examples/             # one notebook per OpenSense example dataset
 ├── projects/             # the projects above, by stage: projects/<stage>/<subproject>/ with src/, notebooks/, results/, README
 ├── core/                 # code more than one project imports (see core/README.md)
