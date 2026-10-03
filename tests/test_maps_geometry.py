@@ -89,3 +89,12 @@ def test_distance_to_links_km_matches_sampled_haversine():
 def test_path_average_intersect_rejects_unknown_plane():
     with pytest.raises(ValueError):
         g.path_average_intersect(_field(), xr.Dataset(), plane="polar")
+
+
+def test_apply_weights_excludes_nan_sources_per_step():
+    from core.maps.idw import apply_weights
+    W = np.array([[1.0, 1.0, 0.0], [0.0, 0.0, 0.0]])
+    V = np.array([[1.0, np.nan], [3.0, 3.0], [9.0, 9.0]])
+    out = apply_weights(W, V)
+    np.testing.assert_allclose(out[0], [2.0, 3.0])
+    assert np.isnan(out[1]).all()

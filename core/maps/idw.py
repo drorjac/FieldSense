@@ -53,6 +53,18 @@ def idw_weights(src_x, src_y, dst_x, dst_y, power: float = 2.0, radius_m: float 
     return w
 
 
+def apply_weights(W: np.ndarray, V: np.ndarray, valid_dtype=float) -> np.ndarray:
+    """``W (dst, src) @ V (src, ...)`` normalised per column, NaN sources excluded per step.
+
+    Destinations with no valid source in range are NaN. ``valid_dtype`` sets the precision
+    of the weight sums (float32 keeps a float32 pipeline in float32).
+    """
+    valid = np.isfinite(V)
+    num, den = W @ np.where(valid, V, 0.0), W @ valid.astype(valid_dtype)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        return np.where(den > 0, num / den, np.nan)
+
+
 def idw_map(link_rain: xr.DataArray, grid: Grid, power: float = 2.0,
             radius_m: float | None = 10_000.0, nnear: int | None = None,
             nan_policy: str = "exclude", eps: float = 0.0) -> xr.DataArray:
@@ -70,16 +82,11 @@ def idw_map(link_rain: xr.DataArray, grid: Grid, power: float = 2.0,
 
     V = link_rain.transpose("link", ...).values.reshape(link_rain.sizes["link"], -1)
     if nan_policy == "zero":
-        valid = np.ones_like(V)
-        V = np.nan_to_num(V, nan=0.0)
+        out = apply_weights(W, np.nan_to_num(V, nan=0.0))
     elif nan_policy == "exclude":
-        valid = np.isfinite(V).astype(float)
-        V = np.where(valid > 0, V, 0.0)
+        out = apply_weights(W, V)
     else:
         raise ValueError("nan_policy must be 'exclude' or 'zero'")
-    num, den = W @ V, W @ valid
-    with np.errstate(invalid="ignore", divide="ignore"):
-        out = np.where(den > 0, num / den, np.nan)
 
     other = [d for d in link_rain.dims if d != "link"]
     shape = [link_rain.sizes[d] for d in other]

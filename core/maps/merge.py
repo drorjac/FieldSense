@@ -32,7 +32,7 @@ import numpy as np
 import xarray as xr
 
 from core.geo import Grid, to_local_xy
-from core.maps.idw import idw_weights
+from core.maps.idw import apply_weights, idw_weights
 
 IDW = {"power": 2.0, "radius_m": 10_000.0, "nnear": None}
 ADJUSTMENTS = ("mfb", "add", "mul")
@@ -115,10 +115,7 @@ def _weights(obs: xr.DataArray, grid: Grid, idw: dict, kind_weights: dict | None
 
 def _interp(W: np.ndarray, V: np.ndarray) -> np.ndarray:
     """IDW of ``V(point, time)`` with NaN excluded per time step -> ``(cells, time)``."""
-    valid = np.isfinite(V).astype(float)
-    num, den = W @ np.where(valid > 0, V, 0.0), W @ valid
-    with np.errstate(invalid="ignore", divide="ignore"):
-        return np.where(den > 0, num / den, np.nan)
+    return apply_weights(W, V)
 
 
 def _field(values: np.ndarray, grid: Grid, times, name: str) -> xr.DataArray:

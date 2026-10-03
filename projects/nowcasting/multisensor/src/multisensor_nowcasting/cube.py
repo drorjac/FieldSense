@@ -42,7 +42,7 @@ from scipy.spatial import cKDTree
 
 from core.geo import Grid, haversine_m, to_local_xy
 from core.maps.gmz import virtual_gauges
-from core.maps.idw import idw_weights
+from core.maps.idw import apply_weights, idw_weights
 from core.nowcast.grid import square_grid
 from core.opensense.networks import LABELS, NETWORKS as SOURCES, regrid
 
@@ -90,11 +90,7 @@ def _bin_matrix(cells: np.ndarray, ncell: int) -> np.ndarray:
 
 def _interp(W: np.ndarray, V: np.ndarray) -> np.ndarray:
     """``W (cells, src) @ V (src, time)`` with NaN sources excluded per step -> (cells, time)."""
-    valid = np.isfinite(V)
-    num = W @ np.where(valid, V, 0.0)
-    den = W @ valid.astype("float32")
-    with np.errstate(invalid="ignore", divide="ignore"):
-        return np.where(den > 0, num / den, np.nan).astype("float32")
+    return apply_weights(W, V, valid_dtype="float32").astype("float32")
 
 
 def path_weights(grid: Grid, table: pd.DataFrame, n: int = 21) -> np.ndarray:
