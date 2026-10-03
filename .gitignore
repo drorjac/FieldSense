@@ -110,3 +110,8 @@ dataset/open_datasets/_multisensor_nowcasting/
 # os_nowcasting: caches under dataset/open_datasets/_os_nowcasting/ (ignored above); its result tables are tracked
 dataset/open_datasets/_os_nowcasting/
 !projects/nowcasting/pysteps/results/*.csv
+
+# maps/netherlands: retrieved link rain and maps (no trailing slash: may be a symlink to a
+# shared copy); its result tables are tracked
+dataset/open_datasets/_netherlands
+!projects/maps/netherlands/results/*.csv

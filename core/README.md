@@ -39,9 +39,10 @@ core/
 │   ├── benchmark.py             # every map, merging, motion and nowcast method scored against the truth
 │   └── reconstruct.py           # IDW variants, scoring, error decomposition
 ├── opensense/               # OpenSense data: pull, normalize, retrieve, score
-│   ├── fetch.py                 # Zenodo full records, resumable + verified
+│   ├── fetch.py                 # Zenodo (and 4TU) full records, resumable + verified
 │   ├── example_data.py          # curated OpenSense example subsets, normalized on load
 │   ├── openmesh.py              # the full OpenMesh record (links + PWS) as link sets
+│   ├── netherlands.py           # the Dutch CML archive (RAINLINK text) to monthly netCDF; RAINLINK retrieval; KNMI gauges
 │   ├── networks.py              # OpenMRG, OpenRainER, OpenMesh: links, point gauges, hourly radar on one grid
 │   ├── conventions.py           # units, polarization, projected geometry across sources
 │   ├── retrieval.py             # CML attenuation -> rain rate chain (arrays or xarray)

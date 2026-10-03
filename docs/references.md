@@ -12,7 +12,8 @@ DOIs were checked against Crossref or doi.org.
 | OpenRainER | 151 CMLs, ARPAE radar and gauges; Emilia-Romagna, 2021-2022 | [doi:10.5281/zenodo.22829808](https://doi.org/10.5281/zenodo.22829808); radar products [doi:10.5281/zenodo.10593848](https://doi.org/10.5281/zenodo.10593848) | Covi & Roversi (data description on Zenodo) |
 | OpenMesh | NYC Mesh links, Weather Underground PWS; New York City, 2023-2024 | links [doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692), PWS [doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286) | Jacoby et al. (2026), *ESSD* 18, 5817, [doi:10.5194/essd-18-5817-2026](https://doi.org/10.5194/essd-18-5817-2026) |
 | Amsterdam PWS | Netatmo stations, Amsterdam, 2016-2018 | [4TU](https://data.4tu.nl/articles/dataset/Rainfall_observations_datasets_from_Personal_Weather_Stations/12703250) | de Vos et al. (2019), *GRL*, [doi:10.1029/2019GL083731](https://doi.org/10.1029/2019GL083731) |
-| CML Netherlands | Dutch CML data | [doi:10.4121/be252844-b672-471e-8d69-27269a862ec1.v1](https://doi.org/10.4121/be252844-b672-471e-8d69-27269a862ec1.v1) | Overeem et al. |
+| CML Netherlands | T-Mobile NL CMLs, 15-min Pmin/Pmax, ~1818 paths; the Netherlands, 2011-2015 | [doi:10.4121/be252844-b672-471e-8d69-27269a862ec1.v1](https://doi.org/10.4121/be252844-b672-471e-8d69-27269a862ec1.v1) (4TU) | Overeem, Walraven, Leijnse & Uijlenhoet (2024), dataset README on 4TU |
+| KNMI hourly gauges | precipitation `RH` of KNMI's automatic stations | [daggegevens.knmi.nl/klimatologie/uurgegevens](https://www.daggegevens.knmi.nl/klimatologie/uurgegevens) | |
 | OpenSense example subsets | a few days of each dataset in the OpenSense format | [OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data) | |
 | NOAA MRMS | multi-radar multi-sensor QPE, CONUS | [NSSL MRMS](https://www.nssl.noaa.gov/projects/mrms/) | |
 | ASOS / METAR | airport gauges, via Iowa Environmental Mesonet | [IEM ASOS download](https://mesonet.agron.iastate.edu/request/download.phtml) | |
@@ -51,6 +52,7 @@ Where each file lives on disk: [`DATA.md`](../DATA.md); sources and licences:
 
 - Messer, Zinevich & Alpert (2006). Environmental monitoring by wireless communication networks. *Science* 312, 713. [doi:10.1126/science.1120034](https://doi.org/10.1126/science.1120034)
 - Overeem, Leijnse & Uijlenhoet (2013). Country-wide rainfall maps from cellular communication networks. *PNAS* 110, 2741-2745. [doi:10.1073/pnas.1217961110](https://doi.org/10.1073/pnas.1217961110)
+- Overeem, Leijnse & Uijlenhoet (2016). Retrieval algorithm for rainfall mapping from microwave links in a cellular communication network (RAINLINK). *AMT* 9, 2425-2444. [doi:10.5194/amt-9-2425-2016](https://doi.org/10.5194/amt-9-2425-2016)
 - ITU-R P.838-3 (2005). Specific attenuation model for rain for use in prediction methods. [itu.int](https://www.itu.int/rec/R-REC-P.838-3-200503-I/en)
 - Schleiss & Berne (2010). Identification of dry and rainy periods using telecommunication microwave links. *IEEE GRSL* 7, 611-615. [doi:10.1109/LGRS.2010.2043052](https://doi.org/10.1109/LGRS.2010.2043052)
 - Leijnse, Uijlenhoet & Stricker (2008). Microwave link rainfall estimation: effects of link length and frequency, temporal sampling, power resolution, and wet antenna attenuation. *Adv. Water Resour.* 31, 1481-1493. [doi:10.1016/j.advwatres.2008.03.004](https://doi.org/10.1016/j.advwatres.2008.03.004)
