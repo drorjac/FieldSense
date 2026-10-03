@@ -20,7 +20,7 @@ For every proposal, FieldSense provides five things:
 | 2 | **The chain up to the project's input**: processing, retrieval, maps, whatever the project consumes, tested | `core/` |
 | 3 | **A baseline with scores**: the standard method the project must beat, scored the way the proposal will be judged | `core/` + the starter notebook |
 | 4 | **Known truth**: a simulated version of the problem, so the method can be checked before real data | `core/simulation/` |
-| 5 | **Starter notebooks**: load the data, build inputs and targets, run the baseline, score it, and stop where the project's method goes | `examples/<project>/` |
+| 5 | **Starter notebooks**: load the data, build inputs and targets, run the baseline, score it, and stop where the project's method goes | `projects/<stage>/<project>/notebooks/` |
 
 If a proposal needs a piece that is missing, the piece is added to `core/`
 with tests. It is not written inside a starter notebook.
@@ -57,21 +57,25 @@ $\delta$ (wet antenna, with memory), with PySR and weak-form SINDy.
 | OpenMRG, OpenRainER | `core/data_paths.py`, `core/opensense/`, tutorial 01 | ready |
 | Processing chain: QC, wet/dry, baseline, wet antenna, power law | `core/cml/`, `core/opensense/` (`wet_dry`, `retrieval`, `intercomparison_chain`), tutorial 02 | ready |
 | Linear law $aR^bL$ as baseline | `core/cml/power_law.py` (`itu_ab`, `rain_from_attenuation`) | ready |
-| Literature wet-antenna models (Schleiss, Pastorek) | `core/cml/estimators.py`, `core/opensense/retrieval.py` | ready |
-| Radar along each link, nearest gauge | three separate `radar_along_links` functions | partial: to become one `path_sample` (plan T7) |
+| Literature wet-antenna models (constant, Schleiss, Pastorek) | `core/simulation/wet_antenna.py` (as functions), `core/cml/estimators.py`, `core/opensense/retrieval.py` (in the chain) | ready |
+| Radar along each link, nearest gauge | `core/opensense/evaluation.py` (`radar_along_links`, `closest_gauges`), used by the starter | ready; the three `radar_along_links` copies are still to become one `path_sample` (plan T7) |
 | Event split into training and test | `core/events.py` (`detect_events`) | ready |
-| Simulator: moving 2-D rain, links of many lengths, noise, quantization | `core/simulation/` (`generators`, `flows`, `cml_network.forward_model`) | ready, but `cml_network` has no tests (plan T13) |
+| Simulator: moving 2-D rain, links of many lengths, noise, quantization | `core/simulation/` (`generators`, `spacetime`, `cml_network.forward_model`, `forward_series`) | ready, tested in `tests/test_simulation_1d.py` |
 | Exact path integral vs linear law | `cml_network.sample_along_paths`, `path_averaging_bias` | ready |
-| $\delta$ with memory (wet antenna that builds up and dries) | `cml_network.wet_antenna_db` is static in rain | **gap**: add a dynamic wet-antenna model to the simulator |
+| $\delta$ with memory (wet antenna that builds up and dries) | `core/simulation/wet_antenna.py` (`DynamicWetAntenna`: separate wetting and drying times), opt-in in `cml_network.forward_model` and `forward_series` | ready (was a gap), tested in `tests/test_simulation_1d.py` |
 | SINDy and PySR set-up | `projects/physics_ml/discovery` (`01_sindy_basics`, `02_pysr_basics`, `discover_itu.py`) | ready |
 
-Starter notebooks (planned, `examples/1d_path_law/`):
-1. `01_simulated_path_law`: simulated links of many lengths; exact integral vs
-   $aR^bL$; the gap by length and regime, as a table ready for PySR.
-2. `02_real_links_and_radar`: OpenMRG links with radar along the path and the
-   nearest gauge; event split; linear-law baseline scored by link length.
-3. `03_wet_antenna_tails`: post-event drying tails; $\hat\delta = A - f(R, L)$;
-   literature models fitted per link as the baseline for SINDy.
+Starter notebooks, in [`projects/physics_ml/path_law_1d/`](../../projects/physics_ml/path_law_1d/)
+(README with the baseline numbers; helpers and their tests in `src/` and `tests/`):
+1. [`01_simulated_path_law`](../../projects/physics_ml/path_law_1d/notebooks/01_simulated_path_law.ipynb):
+   simulated links of many lengths and frequencies over six rain regimes; exact
+   integral vs $aR^bL$; the gap by length and regime, as a table ready for PySR.
+2. [`02_real_links_and_radar`](../../projects/physics_ml/path_law_1d/notebooks/02_real_links_and_radar.ipynb):
+   OpenMRG links with radar along the path and the nearest gauge; event split;
+   linear-law baseline (with and without the Pastorek correction) scored by link length.
+3. [`03_wet_antenna_tails`](../../projects/physics_ml/path_law_1d/notebooks/03_wet_antenna_tails.ipynb):
+   the dynamic wet antenna in simulation, then OpenMRG; post-event drying tails;
+   $\hat\delta = A - f(R, L)$; literature models fitted per link as the baseline for SINDy.
 
 ## 2-D: learned rain maps (`2d_project.md`)
 
