@@ -42,7 +42,7 @@ from scipy.spatial import cKDTree
 
 from core.geo import Grid, haversine_m, to_local_xy
 from core.maps.gmz import virtual_gauges
-from core.maps.idw import apply_weights, idw_weights
+from core.maps.idw import IDW, apply_weights, idw_weights
 from core.nowcast.grid import square_grid
 from core.opensense.networks import LABELS, NETWORKS as SOURCES, regrid
 
@@ -88,8 +88,13 @@ def _bin_matrix(cells: np.ndarray, ncell: int) -> np.ndarray:
     return B
 
 
-def _interp(W: np.ndarray, V: np.ndarray) -> np.ndarray:
-    """``W (cells, src) @ V (src, time)`` with NaN sources excluded per step -> (cells, time)."""
+def _interp(W, V: np.ndarray) -> np.ndarray:
+    """``W (cells, src) @ V (src, time)`` with NaN sources excluded per step -> (cells, time).
+
+    ``W`` is a weight matrix or a ``core.maps.idw.IDW`` (which picks the nearest valid
+    sources per step when it has ``nnear``)."""
+    if isinstance(W, IDW):
+        return W(V, valid_dtype="float32").astype("float32")
     return apply_weights(W, V, valid_dtype="float32").astype("float32")
 
 
@@ -349,10 +354,10 @@ def build(network: str, refresh: bool = False) -> Cube:
     mx, my = _xy(grid, table.mid_lat.values, table.mid_lon.values)
     A_link = path_weights(grid, table)
     A_pws = _bin_matrix(cell_index(grid, pws.lat.values, pws.lon.values), ncell).T
-    W_mc = idw_weights(mx, my, cx, cy, MERGE_IDW["power"], MERGE_IDW["radius_m"], MERGE_IDW["nnear"]).astype("float32")
-    W_mp = idw_weights(px, py, cx, cy, MERGE_IDW["power"], MERGE_IDW["radius_m"], MERGE_IDW["nnear"]).astype("float32")
-    W_mcp = idw_weights(np.r_[mx, px], np.r_[my, py], cx, cy, MERGE_IDW["power"], MERGE_IDW["radius_m"],
-                        MERGE_IDW["nnear"]).astype("float32")
+    W_mc = IDW(mx, my, cx, cy, MERGE_IDW["power"], MERGE_IDW["radius_m"], MERGE_IDW["nnear"], dtype="float32")
+    W_mp = IDW(px, py, cx, cy, MERGE_IDW["power"], MERGE_IDW["radius_m"], MERGE_IDW["nnear"], dtype="float32")
+    W_mcp = IDW(np.r_[mx, px], np.r_[my, py], cx, cy, MERGE_IDW["power"], MERGE_IDW["radius_m"],
+                MERGE_IDW["nnear"], dtype="float32")
 
     arrays = {c: np.lib.format.open_memmap(out / f"{c}.npy", mode="w+", dtype="float32",
                                            shape=(times.size,) + grid.shape) for c in CHANNELS}

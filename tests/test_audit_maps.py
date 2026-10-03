@@ -66,11 +66,6 @@ def test_audit_points_idw_exact_at_station_and_bounded():
     assert float(m.min()) >= 0.0 and float(m.isel(time=0).max()) <= 5.0 + 1e-6
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "idw_weights gives a cell that coincides with a source weight on that source only; "
-    "when the source is NaN at a time step the cell is NaN although other sources are in "
-    "range, contrary to nan_policy='exclude' ('a NaN link drops out'). Only cells exactly "
-    "on a source are affected (stations or virtual gauges on cell centres)."))
 def test_audit_idw_nan_source_on_cell_centre_drops_out():
     lat, lon = LAT[[3, 10, 15]], LON[[2, 7, 12]]
     st = _stations(lat, lon, [[1.0], [5.0], [np.nan]])
@@ -78,11 +73,6 @@ def test_audit_idw_nan_source_on_cell_centre_drops_out():
     assert np.isfinite(m.sel(lat=lat[2], lon=lon[2]).values[0])
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "idw_weights applies nnear before NaN exclusion: with nnear=k a cell whose nearest "
-    "source is NaN averages k-1 sources (or none), whereas pycomlink's KDTree IDW, the "
-    "documented reference for implementation_2, picks the k nearest VALID sources. Fixing "
-    "it needs per-time weights and would change nowcasting/pysteps products (IDW_NNEAR)."))
 def test_audit_idw_nnear_counts_valid_sources_only():
     lat = np.array([LAT[10], LAT[10], LAT[10]])
     lon = np.array([LON[5], LON[6], LON[8]])

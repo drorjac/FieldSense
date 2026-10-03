@@ -53,6 +53,73 @@ def idw_weights(src_x, src_y, dst_x, dst_y, power: float = 2.0, radius_m: float 
     return w
 
 
+class IDW:
+    """IDW from fixed sources to fixed destinations, applied to values with gaps.
+
+    ``idw_weights`` builds one matrix for all time steps, which is right only while every
+    source has a value: with ``nnear`` it picks the k nearest sources before the missing
+    ones drop out, so a cell can average fewer than k (or none), and a cell on a missing
+    source gets no value at all. Here each pattern of missing sources gets its own
+    weights: the k nearest *valid* sources (as pycomlink's KDTree IDW does), and an exact
+    hit only when the source on the cell has a value. Without gaps, or without ``nnear``
+    and exact hits, it is ``apply_weights`` with ``idw_weights`` - the same numbers.
+
+    ``src_weights`` multiplies each source's weight (e.g. per-kind or per-link weights).
+    """
+
+    def __init__(self, src_x, src_y, dst_x, dst_y, power: float = 2.0, radius_m: float | None = 10_000.0,
+                 nnear: int | None = None, eps: float = 0.0, src_weights=None, dtype=float):
+        src_x, src_y = np.asarray(src_x, float), np.asarray(src_y, float)
+        dst_x, dst_y = np.asarray(dst_x, float), np.asarray(dst_y, float)
+        self.nnear, self.eps, self.dtype = nnear, eps, dtype
+        self.sw = np.ones(src_x.size) if src_weights is None else np.asarray(src_weights, float)
+        self.W0 = (idw_weights(src_x, src_y, dst_x, dst_y, power, radius_m, nnear, eps)
+                   * self.sw[None, :]).astype(dtype)
+        self.d = np.hypot(dst_x[:, None] - src_x[None, :], dst_y[:, None] - src_y[None, :])
+        with np.errstate(divide="ignore"):
+            self.w = 1.0 / (self.d ** power + eps)
+        if radius_m is not None:
+            self.w[self.d > radius_m] = 0.0
+        self.exact = (self.d == 0) if eps == 0 else np.zeros(self.d.shape, bool)
+        self.w[self.exact] = 0.0
+        self.order = np.argsort(self.d, axis=1, kind="stable") if nnear is not None else None
+        self._needs_masks = nnear is not None or self.exact.any()
+
+    def weights_for(self, valid: np.ndarray) -> np.ndarray:
+        """``(dst, src)`` weights when only the sources where ``valid`` is True have a value."""
+        valid = np.asarray(valid, bool)
+        w = self.w * valid[None, :]
+        if self.nnear is not None and self.nnear < valid.sum():
+            vs = valid[self.order]                                     # valid, nearest first
+            keep_sorted = vs & (np.cumsum(vs, axis=1) <= self.nnear)
+            keep = np.zeros_like(keep_sorted)
+            np.put_along_axis(keep, self.order, keep_sorted, axis=1)
+            w = w * keep
+        hit = self.exact & valid[None, :]
+        rows = hit.any(1)
+        if rows.any():
+            w[rows] = hit[rows].astype(float)
+        return (w * self.sw[None, :]).astype(self.dtype)
+
+    def __call__(self, V: np.ndarray, valid_dtype=float) -> np.ndarray:
+        """``V (src, ...)`` -> ``(dst, ...)``, NaN sources excluded per step."""
+        V = np.asarray(V)
+        valid = np.isfinite(V)
+        if not self._needs_masks or valid.all():
+            return apply_weights(self.W0, V, valid_dtype)
+        flat_v = V.reshape(V.shape[0], -1)
+        flat_ok = valid.reshape(valid.shape[0], -1)
+        out = np.full((self.d.shape[0], flat_v.shape[1]), np.nan)
+        patterns, inverse = np.unique(flat_ok.T, axis=0, return_inverse=True)
+        for p, mask in enumerate(patterns):
+            cols = np.flatnonzero(inverse.ravel() == p)
+            if mask.all():
+                out[:, cols] = apply_weights(self.W0, flat_v[:, cols], valid_dtype)
+            else:
+                out[:, cols] = apply_weights(self.weights_for(mask), flat_v[:, cols], valid_dtype)
+        return out.reshape((self.d.shape[0],) + V.shape[1:])
+
+
 def apply_weights(W: np.ndarray, V: np.ndarray, valid_dtype=float) -> np.ndarray:
     """``W (dst, src) @ V (src, ...)`` normalised per column, NaN sources excluded per step.
 
@@ -79,15 +146,13 @@ def idw_map(link_rain: xr.DataArray, grid: Grid, power: float = 2.0,
     sx, sy = to_local_xy(link_rain.mid_lat.values, link_rain.mid_lon.values, lat0, lon0)
     glat, glon = grid.mesh()
     dx, dy = to_local_xy(glat.ravel(), glon.ravel(), lat0, lon0)
-    W = idw_weights(sx, sy, dx, dy, power, radius_m, nnear, eps)          # (cells, links)
-    if weights is not None:
-        W = W * np.asarray(weights, dtype=float)[None, :]
+    op = IDW(sx, sy, dx, dy, power, radius_m, nnear, eps, src_weights=weights)   # (cells, links)
 
     V = link_rain.transpose("link", ...).values.reshape(link_rain.sizes["link"], -1)
     if nan_policy == "zero":
-        out = apply_weights(W, np.nan_to_num(V, nan=0.0))
+        out = op(np.nan_to_num(V, nan=0.0))
     elif nan_policy == "exclude":
-        out = apply_weights(W, V)
+        out = op(V)
     else:
         raise ValueError("nan_policy must be 'exclude' or 'zero'")
 
