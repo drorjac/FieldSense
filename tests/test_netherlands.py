@@ -74,6 +74,13 @@ def test_period_filter_and_small_blocks():
     assert len(full) == 12
 
 
+@pytest.mark.parametrize("block", [60, 150, 1 << 20])
+def test_rows_per_day(block):
+    n = nl.rows_per_day(io.BytesIO(_text().encode()), block_bytes=block)
+    # by the calendar day of the interval end, header not counted
+    assert n.to_dict() == {pd.Timestamp("2012-06-30"): 6, pd.Timestamp("2012-07-01"): 6}
+
+
 def test_monthly_split_from_zip(tmp_path):
     z = tmp_path / "IDRawCMLdata.zip"
     with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -87,6 +94,22 @@ def test_monthly_split_from_zip(tmp_path):
     assert july.sizes["time"] == 1 and july.time.values[0] == np.datetime64("2012-07-01T00:15")
     ds = nl.open_months("2012-06-30", "2012-07-02", out_dir=out, convert=False)
     assert ds.sizes["time"] == 4 and ds.sizes["cml_id"] == 2
+
+
+def test_months_joined_on_ids(tmp_path):
+    """A path that gains a sub-link in July: slots are re-assigned, IDs stay with their data."""
+    text = _text() + _row(*A, *B, 18.0, "201207010015", -70, -69, 13.1, "NOKIA", 5)
+    out = tmp_path / "monthly"
+    nl.convert_months("2012-06-30", "2012-07-02", source=io.BytesIO(text.encode()), out_dir=out)
+    ds = nl.open_months("2012-06-30", "2012-07-02", out_dir=out, convert=False)
+    ab = "52.00000_5.20000_52.10000_5.10000"
+    ids = ds.rainlink_id.sel(cml_id=ab).values.tolist()
+    assert sorted(ids) == [3, 5, 7]                   # B->A first (3), then 18 GHz (5), 38 GHz (7)
+    assert ids == [3, 5, 7]
+    flat = nl.sublinks(ds)
+    pmin = flat.pmin.assign_coords(cml_id=flat.rainlink_id.values)
+    assert (pmin.sel(cml_id=7) == -50).all() and (pmin.sel(cml_id=3) == -52).all()
+    assert pmin.sel(cml_id=5).notnull().sum() == 1 and float(pmin.sel(cml_id=5).max()) == -70
 
 
 KNMI = """# SOURCE: ROYAL NETHERLANDS METEOROLOGICAL INSTITUTE (KNMI)
@@ -116,6 +139,7 @@ def test_knmi_parse():
     v = rain.sel(station=380).values
     assert np.isnan(v[0]) and v[1] == pytest.approx(0.3) and v[2] == pytest.approx(5.5)
     assert float(rain.lat.sel(station=260)) == pytest.approx(52.1)
+    assert rain.station_name.sel(station=380).item() == "Maastricht Airport"
 
 
 # ------------------------------------------------------------------ retrieval

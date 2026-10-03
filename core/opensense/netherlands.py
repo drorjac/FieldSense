@@ -158,11 +158,11 @@ def read_rainlink(source=None, start=None, end=None) -> pd.DataFrame:
 
 
 def rows_per_day(source=None, block_bytes: int = 8 << 20) -> pd.Series:
-    """Approximate rows per day over the whole file, without parsing it.
+    """Rows per day over the whole file, without parsing it into a table.
 
-    Each block's newline count is credited to the day of its first row; with ~100k
-    rows per 8 MB block (a few hours) that is exact to within a block per day. One pass
-    over the 37 GB of text, limited by decompression (a few minutes).
+    A block whose first and last rows fall on the same day is counted by its newlines;
+    only the few blocks that span midnight are split into lines. One pass over the
+    37 GB of text, limited by decompression (~6 min).
     """
     fh = _open_text(source if source is not None else raw_zip())
     counts: dict[int, int] = {}
@@ -172,11 +172,20 @@ def rows_per_day(source=None, block_bytes: int = 8 << 20) -> pd.Series:
             block = rest + chunk
             cut = block.rfind(b"\n") + 1
             block, rest = block[:cut], block[cut:]
+            if not block:                                  # no complete line yet
+                continue
             lines = block.split(b"\n", 2)
-            stamp = _first_stamp(lines[0]) or _first_stamp(lines[1])
-            if stamp is not None:
-                day = stamp // 10_000
-                counts[day] = counts.get(day, 0) + block.count(b"\n")
+            first = _first_stamp(lines[0]) or _first_stamp(lines[1])
+            last = _first_stamp(block.rstrip(b"\n").rsplit(b"\n", 1)[-1])
+            if first is not None and last is not None and first // 10_000 == last // 10_000:
+                day = first // 10_000
+                header = int(block.startswith(b"YStart"))
+                counts[day] = counts.get(day, 0) + block.count(b"\n") - header
+                continue
+            for ln in block.split(b"\n"):
+                stamp = _first_stamp(ln)
+                if stamp is not None:
+                    counts[stamp // 10_000] = counts.get(stamp // 10_000, 0) + 1
     finally:
         fh.close()
     s = pd.Series(counts, name="rows").sort_index()
@@ -194,7 +203,7 @@ def _times(stamps: np.ndarray) -> np.ndarray:
 
 
 def sublink_table(df: pd.DataFrame) -> pd.DataFrame:
-    """One row per RAINLINK ID: path, direction, ``sublink_id``, frequency, length, vendor.
+    """One row per RAINLINK ID: path, direction, frequency, length, vendor, endpoints.
 
     An ID's metadata is its most frequent value over the rows given. Endpoints are
     rounded to 1e-5 deg (~1 m) before pairing the two directions of a path.
@@ -217,9 +226,11 @@ def sublink_table(df: pd.DataFrame) -> pd.DataFrame:
     meta["direction"] = np.where(start_first, 0, 1)      # 0: transmitted from site 0
     meta["cml_id"] = [f"{a:.5f}_{b:.5f}_{c:.5f}_{d:.5f}"
                       for a, b, c, d in np.hstack([site0, site1])]
-    meta = meta.reset_index().sort_values(["cml_id", "direction", "frequency", "ID"])
-    meta["sublink_id"] = "sublink_" + meta.groupby("cml_id").cumcount().astype(str)
-    return meta.set_index("ID")
+    return meta
+
+
+_META = ["cml_id", "direction", "frequency", "length", "vendor",
+         "site_0_lat", "site_0_lon", "site_1_lat", "site_1_lon"]
 
 
 def to_dataset(df: pd.DataFrame) -> xr.Dataset:
@@ -232,24 +243,44 @@ def to_dataset(df: pd.DataFrame) -> xr.Dataset:
     meta = sublink_table(df)
     t = _times(df.DateTime.to_numpy())
     time = pd.date_range(t.min(), t.max(), freq=STEP).as_unit("ns")
-    paths = np.array(sorted(meta.cml_id.unique()))
-    subs = np.array(sorted(meta.sublink_id.unique(), key=lambda s: int(s.split("_")[1])))
-    ip = pd.Index(paths).get_indexer(meta.cml_id.loc[df.ID])
-    isub = pd.Index(subs).get_indexer(meta.sublink_id.loc[df.ID])
+    iid = meta.index.get_indexer(df.ID)
     it = time.get_indexer(t)
+    flat = {}
+    for col in ("Pmin", "Pmax"):
+        a = np.full((len(meta), time.size), np.nan, dtype="float32")
+        a[iid, it] = df[col].to_numpy()
+        flat[col] = a
+    return _assemble(meta, time, flat["Pmin"], flat["Pmax"])
+
+
+def _assemble(meta: pd.DataFrame, time: pd.DatetimeIndex, pmin: np.ndarray,
+              pmax: np.ndarray) -> xr.Dataset:
+    """Per-ID arrays ``(id, time)`` (rows in ``meta.index`` order) -> the path form.
+
+    ``sublink_0``, ``sublink_1``, ... of a path are its IDs ordered by direction,
+    frequency and ID, so the same set of IDs always gets the same slots.
+    """
+    meta = meta.copy()
+    meta.index.name = "ID"
+    order = meta.reset_index().sort_values(["cml_id", "direction", "frequency", "ID"])
+    slot = order.groupby("cml_id").cumcount()
+    meta["slot"] = pd.Series(slot.to_numpy(), index=order.ID.to_numpy()).loc[meta.index]
+    paths = np.array(sorted(meta.cml_id.unique()))
+    subs = np.array([f"sublink_{k}" for k in range(int(slot.max()) + 1)])
+    ip = pd.Index(paths).get_indexer(meta.cml_id)
+    isub = meta.slot.to_numpy()
     shape = (paths.size, subs.size, time.size)
     out = {}
-    for name, col in (("rsl_min", "Pmin"), ("rsl_max", "Pmax")):
+    for name, col, v in (("rsl_min", "Pmin", pmin), ("rsl_max", "Pmax", pmax)):
         a = np.full(shape, np.nan, dtype="float32")
-        a[ip, isub, it] = df[col].to_numpy()
+        a[ip, isub] = v
         out[name] = (("cml_id", "sublink_id", "time"), a,
                      {"units": "dBm", "long_name": f"{col} over the 15-min interval"})
 
-    per_sub = meta.reset_index().set_index(["cml_id", "sublink_id"])
-    grid = pd.MultiIndex.from_product([paths, subs])
-
-    def sub_coord(col, fill):
-        return per_sub[col].reindex(grid).fillna(fill).to_numpy().reshape(paths.size, subs.size)
+    def sub_coord(values, fill, dtype):
+        a = np.full(shape[:2], fill, dtype=dtype)
+        a[ip, isub] = values
+        return a
 
     per_path = meta.groupby("cml_id").agg(site_0_lat=("site_0_lat", "first"),
                                           site_0_lon=("site_0_lon", "first"),
@@ -262,12 +293,13 @@ def to_dataset(df: pd.DataFrame) -> xr.Dataset:
         ds.coords[c] = ("cml_id", per_path[c].to_numpy(), {"units": "degrees"})
     ds.coords["length"] = ("cml_id", per_path.length.to_numpy(), {"units": "km"})
     ds.coords["vendor"] = ("cml_id", np.array(per_path.vendor.astype(str).tolist(), dtype=str))
-    ds.coords["frequency"] = (("cml_id", "sublink_id"), sub_coord("frequency", np.nan),
-                              {"units": "GHz"})
+    ds.coords["frequency"] = (("cml_id", "sublink_id"),
+                              sub_coord(meta.frequency.to_numpy(), np.nan, float), {"units": "GHz"})
     ds.coords["rainlink_id"] = (("cml_id", "sublink_id"),
-                                sub_coord("ID", -1).astype("int64"),
+                                sub_coord(meta.index.to_numpy(), -1, "int64"),
                                 {"long_name": "RAINLINK sub-link ID", "missing": -1})
-    ds.coords["direction"] = (("cml_id", "sublink_id"), sub_coord("direction", -1).astype("int8"),
+    ds.coords["direction"] = (("cml_id", "sublink_id"),
+                              sub_coord(meta.direction.to_numpy(), -1, "int8"),
                               {"long_name": "0: site 0 to site 1, 1: reverse"})
     ds.time.attrs["long_name"] = "end of the 15-min interval (UTC)"
     ds.attrs.update(title="Netherlands CML (Overeem et al. 2024), RAINLINK min/max format",
@@ -300,9 +332,14 @@ def sublinks(ds: xr.Dataset) -> xr.Dataset:
 
 
 def _months(start, end) -> list[pd.Period]:
-    """Months holding any interval in (start, end]."""
-    first = (pd.Timestamp(start) + STEP).to_period("M")
-    return list(pd.period_range(first, pd.Timestamp(end).to_period("M"), freq="M"))
+    """Months holding any interval end in (start, end].
+
+    An interval ending at 00:00 on the 1st belongs to the month before, so an ``end``
+    of 1 September does not touch September.
+    """
+    first = pd.Timestamp(start).to_period("M")
+    last = (pd.Timestamp(end) - STEP).to_period("M")
+    return list(pd.period_range(first, last, freq="M"))
 
 
 def month_file(month, out_dir: Path | None = None) -> Path:
@@ -366,8 +403,9 @@ def open_months(start, end, out_dir: Path | None = None, convert: bool = True,
                 source=None) -> xr.Dataset:
     """The OpenSense dataset for (start, end], from the monthly files (made if missing).
 
-    Months are joined on the path and sub-link names; a sub-link slot whose RAINLINK
-    ID differs between months is refused rather than silently merged.
+    Months are joined on the RAINLINK IDs and the sub-link slots assigned again over all
+    of them: a path that gains or loses a sub-link between months would otherwise hold
+    different IDs in the same slot.
     """
     months = _months(start, end)
     files = [month_file(m, out_dir) for m in months]
@@ -376,21 +414,25 @@ def open_months(start, end, out_dir: Path | None = None, convert: bool = True,
     dss = [xr.open_dataset(f) for f in files if f.exists()]
     if not dss:
         raise FileNotFoundError(f"no monthly files for {start}..{end} in {out_dir or monthly_dir()}")
-    ds = xr.concat(dss, dim="time", join="outer", coords="minimal", compat="override",
-                   data_vars="minimal") if len(dss) > 1 else dss[0]
-    if len(dss) > 1:
-        ids = [d.rainlink_id.reindex_like(ds.rainlink_id, fill_value=-1) for d in dss]
-        for a in ids[1:]:
-            clash = (ids[0] >= 0) & (a >= 0) & (ids[0] != a)
-            if bool(clash.any()):
-                raise ValueError("a path's sub-link slot holds different RAINLINK IDs in "
-                                 "different months; convert the period in one run")
-        rid = ids[0]
-        for a in ids[1:]:
-            rid = rid.where(rid >= 0, a)
-        ds.coords["rainlink_id"] = rid
-    ds = ds.sel(time=slice(pd.Timestamp(start) + STEP, pd.Timestamp(end)))
-    return ds.load()
+    time = pd.DatetimeIndex(np.unique(np.concatenate([d.time.values for d in dss])))
+    metas, values = [], {}
+    for d in dss:
+        flat = d.stack(link=("cml_id", "sublink_id"))
+        flat = flat.isel(link=np.flatnonzero(flat.rainlink_id.values >= 0))
+        ids = flat.rainlink_id.values
+        m = pd.DataFrame({c: flat[c].values for c in _META}, index=ids)
+        metas.append(m)
+        it = time.get_indexer(d.time.values)
+        for v in ("rsl_min", "rsl_max"):
+            x = flat[v].transpose("link", "time").values
+            for k, i in enumerate(ids):
+                values.setdefault((v, i), np.full(time.size, np.nan, dtype="float32"))[it] = x[k]
+        d.close()
+    meta = pd.concat(metas)
+    meta = meta[~meta.index.duplicated(keep="last")]
+    ds = _assemble(meta, time, np.stack([values[("rsl_min", i)] for i in meta.index]),
+                   np.stack([values[("rsl_max", i)] for i in meta.index]))
+    return ds.sel(time=slice(pd.Timestamp(start) + STEP, pd.Timestamp(end)))
 
 
 # ------------------------------------------------------------------ retrieval
@@ -572,6 +614,7 @@ def path_rain(rain: xr.DataArray) -> xr.DataArray:
     is the mean of its sub-links with data.
     """
     out = rain.groupby("path").mean().rename(path="link")
+    out = out.assign_coords(link=out.link.values.astype(str))
     for c in ("mid_lat", "mid_lon", "length", "site_0_lat", "site_0_lon",
               "site_1_lat", "site_1_lon"):
         if c in rain.coords:
@@ -625,8 +668,9 @@ def parse_knmi_hourly(text: str) -> tuple[pd.DataFrame, xr.DataArray]:
     da.attrs = {"units": "mm", "long_name": "KNMI hourly precipitation (RH)",
                 "time_label": "end of the hour (UTC)", "below_0.05mm": "set to 0"}
     st = st.reindex(da.station.values)
+    names = np.array(st["name"].astype(str).tolist(), dtype=str)
     da = da.assign_coords(lat=("station", st.lat.to_numpy()), lon=("station", st.lon.to_numpy()),
-                          name=("station", st.name.astype(str).to_numpy()))
+                          station_name=("station", names))
     return st, da
 
 
