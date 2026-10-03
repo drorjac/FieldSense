@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from core.maps.geometry import segment_distance_km
+
 from radar_adjustment.settings import CLASSES, DISTANCE_BANDS_KM, FIELDS, THRESHOLD
 
 KEEP = {"pearson_correlation_coefficient": "pcc", "root_mean_square_error": "rmse",
@@ -54,14 +56,9 @@ def load_product(version: str, network: str, checks: str, tag: str) -> xr.DataAr
 
 def distance_to_links_km(gauges: xr.DataArray, cml: xr.DataArray) -> pd.Series:
     """Distance (km) from each gauge to the nearest link path, in the UTM plane."""
-    px, py = gauges.x.values[:, None], gauges.y.values[:, None]
-    ax, ay = cml.site_0_x.values[None, :], cml.site_0_y.values[None, :]
-    bx, by = cml.site_1_x.values[None, :], cml.site_1_y.values[None, :]
-    dx, dy = bx - ax, by - ay
-    L2 = np.where(dx ** 2 + dy ** 2 > 0, dx ** 2 + dy ** 2, 1.0)
-    t = np.clip(((px - ax) * dx + (py - ay) * dy) / L2, 0, 1)
-    d = np.hypot(px - (ax + t * dx), py - (ay + t * dy)).min(axis=1)
-    return pd.Series(d / 1000, index=gauges.id.values, name="dist_km")
+    d = segment_distance_km(cml.site_0_x, cml.site_0_y, cml.site_1_x, cml.site_1_y,
+                            gauges.x.values, gauges.y.values)
+    return pd.Series(d, index=gauges.id.values, name="dist_km")
 
 
 def score_products(products: dict, ref: xr.DataArray, dist_km: pd.Series | None = None) -> dict:

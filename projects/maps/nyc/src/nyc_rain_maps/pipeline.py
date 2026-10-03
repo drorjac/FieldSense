@@ -20,14 +20,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-import numpy as np
 import pandas as pd
 import xarray as xr
 
 from core.cml.estimators import (ConstantBaselineSTD, DynamicBaseline, ManualWindows, NearbyLinks,
                              PycomlinkRSD, PyNNcmlGRU, RainEstimator)
 from core.cml.link_qc import QCConfig, retrieval_qc, run_qc
-from core.geo import NYC, OPENMESH, Domain, Grid, haversine_m
+from core.geo import NYC, OPENMESH, Domain, Grid
+from core.maps.geometry import distance_to_links_km
 from core.maps.scores import compare_links, compare_maps
 from core.opensense import openmesh as om
 from core.maps.idw import accumulate, idw_map
@@ -141,16 +141,8 @@ class EventResult:
 def _distance_to_links(grid: Grid, links: xr.Dataset) -> xr.DataArray:
     """Distance (km) from each grid cell to the nearest link path (sampled every 100 m)."""
     glat, glon = grid.mesh()
-    best = np.full(glat.shape, np.inf)
-    for i in range(links.sizes["link"]):
-        la0, lo0 = float(links.site_0_lat[i]), float(links.site_0_lon[i])
-        la1, lo1 = float(links.site_1_lat[i]), float(links.site_1_lon[i])
-        n = max(2, int(haversine_m(la0, lo0, la1, lo1) / 100) + 1)
-        for s in np.linspace(0, 1, n):
-            d = haversine_m(glat, glon, la0 + s * (la1 - la0), lo0 + s * (lo1 - lo0))
-            best = np.minimum(best, d)
-    return xr.DataArray(best / 1000.0, dims=("lat", "lon"), coords={"lat": grid.lat, "lon": grid.lon},
-                        name="distance_to_link_km")
+    return xr.DataArray(distance_to_links_km(glat, glon, links, step_m=100), dims=("lat", "lon"),
+                        coords={"lat": grid.lat, "lon": grid.lon}, name="distance_to_link_km")
 
 
 def select_links(link_set, start, end, qc: QCConfig | None = None):

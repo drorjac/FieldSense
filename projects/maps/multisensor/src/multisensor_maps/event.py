@@ -21,7 +21,8 @@ import xarray as xr
 
 from core.cml.estimators import study_estimator as make_estimator
 from core.cml.link_qc import QCConfig, metadata_qc, timeseries_qc
-from core.geo import Grid, haversine_m
+from core.geo import Grid
+from core.maps.geometry import distance_to_links_km
 from core.maps.gmz import gmz_map
 from core.maps.idw import accumulate, idw_map
 from core.maps.scores import scores
@@ -61,13 +62,8 @@ def select_links(net, start, end, spinup: str = "24h", qc: QCConfig | None = Non
 def distance_to_links(grid: Grid, links: xr.Dataset | pd.DataFrame, step_m: float = 200.0) -> xr.DataArray:
     """Distance (km) from each grid cell to the nearest link path."""
     glat, glon = grid.mesh()
-    best = np.full(glat.shape, np.inf)
-    get = (lambda c: links[c].values) if isinstance(links, xr.Dataset) else (lambda c: links[c].to_numpy())
-    for la0, lo0, la1, lo1 in zip(get("site_0_lat"), get("site_0_lon"), get("site_1_lat"), get("site_1_lon")):
-        n = max(2, int(haversine_m(la0, lo0, la1, lo1) / step_m) + 1)
-        for s in np.linspace(0, 1, n):
-            best = np.minimum(best, haversine_m(glat, glon, la0 + s * (la1 - la0), lo0 + s * (lo1 - lo0)))
-    return xr.DataArray(best / 1000.0, dims=("lat", "lon"), coords={"lat": grid.lat, "lon": grid.lon})
+    return xr.DataArray(distance_to_links_km(glat, glon, links, step_m=step_m), dims=("lat", "lon"),
+                        coords={"lat": grid.lat, "lon": grid.lon})
 
 
 def points_map(values: xr.DataArray, grid: Grid) -> xr.DataArray:

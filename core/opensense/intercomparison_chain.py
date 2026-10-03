@@ -90,13 +90,8 @@ def add_link_xy(ds: xr.Dataset) -> xr.Dataset:
 
 def radar_along_links(rain: xr.DataArray, ds_cml: xr.Dataset, lon2d, lat2d) -> xr.DataArray:
     """Radar averaged along each path with poligrain's intersect weights on the lon/lat grid."""
-    import poligrain as plg
-    w = plg.spatial.calc_sparse_intersect_weights_for_several_cmls(
-        x1_line=ds_cml.site_0_lon.values, y1_line=ds_cml.site_0_lat.values,
-        x2_line=ds_cml.site_1_lon.values, y2_line=ds_cml.site_1_lat.values,
-        cml_id=ds_cml.cml_id.values, x_grid=np.asarray(lon2d), y_grid=np.asarray(lat2d),
-        grid_point_location="center")
-    return plg.spatial.get_grid_time_series_at_intersections(grid_data=rain, intersect_weights=w)
+    from core.maps.geometry import path_average_intersect
+    return path_average_intersect(rain, ds_cml, plane="lonlat", lon2d=lon2d, lat2d=lat2d)
 
 
 # ---------------------------------------------------------------------------
