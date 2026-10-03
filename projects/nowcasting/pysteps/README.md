@@ -39,7 +39,7 @@ uses [pysteps](https://pysteps.readthedocs.io) 1.21 (Pulkkinen et al., 2019).
 - **Merged into the radar, links keep the radar's motion** (3 km/h from it on OpenRainER),
   and the merged field nowcasts like the radar: at the independent ARPAE gauges its
   extrapolation and STEPS nowcasts are level with the radar's (RMSE 4.36 vs 4.42 mm/h, corr
-  0.22 vs 0.25; STEPS CRPS 0.58 vs 0.69).
+  0.22 vs 0.25; STEPS CRPS 0.60 vs 0.71).
 - **Motion method barely matters, except DARTS.** LK, VET and Proesmans drive extrapolation
   nowcasts within 0.01-0.03 CSI of each other; DARTS is 0.06-0.10 lower; LK without the dB
   transform loses 0.01.
@@ -112,8 +112,8 @@ concentrates rain into too few, too intense objects, which its MAE shows. At the
 ranking holds on OpenRainER (correlation at 60 min: persistence 0.12, extrapolation 0.25,
 LINDA 0.36); on OpenMRG no method correlates with the city gauges at 60 min (0.06-0.14).
 
-Ensembles: STEPS CRPS at 60 min is 0.62 / 0.52 mm/h, ROC area 0.86 / 0.78; LINDA-P on its
-subset 0.59 / 0.65 against STEPS 0.59 / 0.52 on the same forecasts - no better, at roughly
+Ensembles: STEPS CRPS at 60 min is 0.63 / 0.52 mm/h, ROC area 0.86 / 0.78; LINDA-P on its
+subset 0.59 / 0.65 against STEPS 0.60 / 0.52 on the same forecasts - no better, at roughly
 70 times the cost.
 
 ### Every product
@@ -124,8 +124,8 @@ Extrapolation at 60 min (OpenRainER; OpenMRG in the report):
 |---|---|---|---|---|---|---|---|
 | radar | 0.40 | 0.27 | 0.40 | 0.68 | 0.25 | 4.42 | +0.30 |
 | merged | 0.26 | 0.19 | 0.30 | 0.56 | 0.22 | 4.36 | +0.11 |
-| cml_idw40 | 0.16 | 0.17 | 0.12 | 0.26 | 0.16 | 4.21 | -0.14 |
-| cml_idw20 | 0.16 | 0.17 | 0.07 | 0.15 | 0.08 | 4.20 | -0.25 |
+| cml_idw40 | 0.16 | 0.17 | 0.13 | 0.27 | 0.15 | 4.19 | -0.14 |
+| cml_idw20 | 0.16 | 0.17 | 0.07 | 0.15 | 0.08 | 4.19 | -0.25 |
 | cml_idw10 | 0.14 | 0.16 | 0.03 | 0.06 | 0.05 | 4.04 | -0.41 |
 
 - A link map's nowcast is no better than its persistence, because its motion field does not
@@ -133,13 +133,13 @@ Extrapolation at 60 min (OpenRainER; OpenMRG in the report):
   radar equals the radar's own speed on both networks. S-PROG and STEPS inherit the same
   motion; STEPS on link maps has ROC areas of 0.52-0.60 (OpenRainER), barely above chance.
 - The lower RMSE of the link maps at the gauges is their dry bias, not skill: they read low
-  (ME -0.14 to -0.41 mm/h) with correlations of 0.05-0.16; a forecast of less rain loses less
+  (ME -0.14 to -0.41 mm/h) with correlations of 0.05-0.15; a forecast of less rain loses less
   on the few heavy gauge-steps.
 - The merged field keeps the radar's motion (3 km/h apart on OpenRainER, 19 on OpenMRG,
   where the links cover more of the domain) and its nowcast loses to the radar's only
   against the radar itself. At the gauges it is level with the radar and less biased.
 - On OpenMRG the PWS map nowcasts better than the link maps (own-field CSI 0.29, radar CSI
-  0.25 against 0.15-0.19) - 30 Netatmo stations spread over the city - but also without gain
+  0.26 against 0.15-0.19) - 30 Netatmo stations spread over the city - but also without gain
   over its persistence (0.30).
 
 ### Motion, transforms, accumulation
@@ -179,6 +179,13 @@ Extrapolation at 60 min (OpenRainER; OpenMRG in the report):
 - **Radar products differ from the session's.** The session nowcast OpenRainER's
   gauge-adjusted radar (RADadj); FieldSense has the unadjusted 15-min rain depth (RADrain).
   Nine storms, all summer.
+- **Rerun after two fixes in `core/` (October 2026).** The link and PWS maps now use the 12
+  nearest *valid* links or stations at each step (`core.maps.idw.IDW`; before, a missing
+  one among the 12 nearest was simply lost), and CRPS is the exact ensemble CRPS
+  (`core.nowcast.verify.crps_ensemble`; pysteps' version drops ties and read 1-5% low at
+  dry pixels). Radar and merged deterministic scores are unchanged; link and PWS scores
+  move by about 1% (up to 0.05 CSI on OpenMRG's link maps). CRPS rises by 0-8% (median per
+  product; more at the longest leads, where 6-8 forecasts remain). No finding changes.
 
 ## How to run
 
