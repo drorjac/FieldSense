@@ -21,31 +21,34 @@ and tests where machine learning helps and where physics is enough.
 
 ## The chain
 
-```
- open data ──► signal loss to rain rate ──► rainfall map ──► merged with radar and stations ──► forecast
- examples/     cml_retrieval                 multisensor_maps  radar_adjustment                   os_nowcasting
- openmesh_nyc  cml_rnn                       nyc_rain_maps     opensense_pipeline                 multisensor_nowcasting
-                                                                                                  spatial_interpolation
-               physics_ml
+The projects are grouped by stage of the chain. Each stage folder has a README with its
+question, its subprojects and their headline numbers.
 
- and why the results look the way they do: rainfall_field_sim, synthetic_testbed (simulation), physics_ml
+```
+ open data ──► signal loss to rain rate ──► rainfall map, merged with radar and stations ──► forecast
+ data/          retrieval/                   maps/                                             nowcasting/
+
+ known truth for every stage: simulation/        physics found from data: physics_ml/
 ```
 
-| project | question | start here |
-|---|---|---|
-| [`openmesh_nyc`](projects/data/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and data paper | `notebooks/openmesh_data.ipynb` |
-| [`cml_retrieval`](projects/retrieval/openmrg/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
-| [`cml_rnn`](projects/retrieval/rnn_three_networks/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
-| [`physics_ml`](projects/physics_ml/discovery/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
-| [`multisensor_maps`](projects/maps/multisensor/) | links, gauges and radar on one grid on three networks: retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ), and the three merged every way | `notebooks/01_three_networks.ipynb` |
-| [`nyc_rain_maps`](projects/maps/nyc/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
-| [`radar_adjustment`](projects/maps/radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, and extended to weather stations, RADOLAN and New York | `notebooks/01_intercomparison.ipynb` |
-| [`opensense_pipeline`](projects/maps/archive_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
-| [`os_nowcasting`](projects/nowcasting/pysteps/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
-| [`multisensor_nowcasting`](projects/nowcasting/multisensor/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |
-| [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
-| [`rainfall_field_sim`](projects/simulation/regimes/) | on simulated rain: does the error come from the sensors or from where the links are? | `notebooks/01_regimes_and_reconstruction.ipynb` |
-| [`synthetic_testbed`](projects/simulation/testbed/) | a rain simulator (cells, meta-Gaussian, RainFARM, cascades, multifractals, a cloud model; non-uniform flows, evolution) seen by radar, links, gauges and PWS: every map, merging, motion and nowcast method scored against the truth; motion learned from the true flow; accuracy from street level (100 m, 5 min) to city scale | `notebooks/01_generators_and_motion.ipynb` |
+| stage | subproject | question | start here |
+|---|---|---|---|
+| [`data`](projects/data/) | [`openmesh_nyc`](projects/data/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and data paper | `notebooks/openmesh_data.ipynb` |
+| [`retrieval`](projects/retrieval/) | [`openmrg`](projects/retrieval/openmrg/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
+| | [`rnn_three_networks`](projects/retrieval/rnn_three_networks/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
+| [`maps`](projects/maps/) | [`multisensor`](projects/maps/multisensor/) | links, gauges and radar on one grid on three networks: retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ), and the three merged every way | `notebooks/01_three_networks.ipynb` |
+| | [`radar_adjustment`](projects/maps/radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, and extended to weather stations, RADOLAN and New York | `notebooks/01_intercomparison.ipynb` |
+| | [`nyc`](projects/maps/nyc/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
+| | [`archive_pipeline`](projects/maps/archive_pipeline/) | (frozen) the first end-to-end version: raw open data (OpenMRG, OpenRainER) to merged rainfall maps | `notebooks/02_end_to_end.ipynb` |
+| [`nowcasting`](projects/nowcasting/) | [`pysteps`](projects/nowcasting/pysteps/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
+| | [`multisensor`](projects/nowcasting/multisensor/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |
+| | [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence (paper) | `notebooks/nowcasting.ipynb` |
+| [`simulation`](projects/simulation/) | [`regimes`](projects/simulation/regimes/) | on simulated rain: does the error come from the sensors or from where the links are? | `notebooks/01_regimes_and_reconstruction.ipynb` |
+| | [`testbed`](projects/simulation/testbed/) | a rain simulator seen by radar, links, gauges and PWS: every map, merging, motion and nowcast method scored against the truth, from street level to city scale | `notebooks/01_generators_and_motion.ipynb` |
+| [`physics_ml`](projects/physics_ml/) | [`discovery`](projects/physics_ml/discovery/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
+
+Proposed projects that build on FieldSense, and what it gives them, are in
+[docs/pre_projects/](docs/pre_projects/README.md).
 
 ## Findings so far
 
@@ -57,57 +60,57 @@ Each is computed in the project named, where the details and caveats are.
   correlation than every power-law method on held-out weeks in Gothenburg, Emilia-Romagna and
   New York - against the radar alone and each gauge network alone (e.g. New York: correlation
   0.78 against 0.50 for the best power law). On the ten largest storms of each network its maps
-  are the best link maps against the radar and at held-out gauges. *(cml_rnn, multisensor_maps)*
+  are the best link maps against the radar and at held-out gauges. *(retrieval/rnn_three_networks, maps/multisensor)*
 - **Retrieval matters more than interpolation.** Across three networks, line IDW (virtual gauges
   along each path) is the best interpolation for power-law retrievals and GMZ adds nothing to it,
   but the spread between retrievals is several times the spread between interpolations.
-  *(multisensor_maps)*
+  *(maps/multisensor)*
 - **What links add to a merged map depends on the other sensors.** Merging radar, links and
   gauges every way (seven methods from `pcpn_maps` and `mergeplg`) on 29 storms, scored at
   held-out gauges: in Gothenburg, where the radar is weakest, radar + RNN links is best (NRMSE
   1.01 with the gauges, 1.03 without, radar 1.47); in Emilia-Romagna the 319 gauges fix a radar
   that reads 51% high (KED, 2.21 to 1.27) and the links add nothing; in New York the PWS
-  and gauge-corrected radar are best (0.88) and links make merged maps worse. *(multisensor_maps)*
+  and gauge-corrected radar are best (0.88) and links make merged maps worse. *(maps/multisensor)*
 - **Merging helps only where the links are weak.** On the dense Swedish
   network the links alone beat radar and every merge against held-out gauges
   (RMSE 4.45 vs 6.16 mm/h); on the sparse Italian network merging only edges
   radar (7.90 vs 8.00), and all of the gain is within 5 km of a link.
-  *(opensense_pipeline)*
+  *(maps/archive_pipeline)*
 - **The OpenSense radar-adjustment intercomparison reproduces exactly from the raw data,**
   but only with a newer `mergeplg` than the one its repository pins. Every adjustment beats
   the radar at independent gauges (hourly RMSE, Gothenburg 1.44 to 1.27 mm; Emilia-Romagna
   3.58 to 3.08, radar bias +107% to -7%), almost all of the gain is near the links, and
   without range checks multiplicative adjustment breaks down. Weather stations beat links
   as adjusters wherever they exist: in New York, MRMS radar-only adjusted with the PWS by
-  RADOLAN (1.39) beats NOAA's gauge-corrected MRMS (1.59). *(radar_adjustment)*
+  RADOLAN (1.39) beats NOAA's gauge-corrected MRMS (1.59). *(maps/radar_adjustment)*
 - **A link map cannot be nowcast on its own; a radar map merged with links can.** pysteps
   extrapolation of an IDW link map is no better than holding it still (CSI 0.16 vs 0.17 at
   60 min): the blobs are anchored to the links and their apparent motion is unrelated to the
   rain's. Merged into the radar, the links keep the radar's motion and nowcast as well as
   the radar. On the radar, S-PROG adds a little to plain extrapolation (CSI at 1 mm/h,
-  60 min: 0.44 vs 0.40, persistence 0.27). *(os_nowcasting)*
+  60 min: 0.44 vs 0.40, persistence 0.27). *(nowcasting/pysteps)*
 - **Links and weather stations improve the next-hour forecast at the ground; learning does
   not improve on pysteps.** Merged into the radar and moved along the radar's motion, they
   lower the next-hour error at Gothenburg's independent gauges from 1.20 to 1.02 mm
   (difference -0.19, 95% interval -0.36 to -0.03); New York points the same way but its three
   ASOS stations cannot resolve it. None of 15 U-Nets, with any combination of radar, links and
   stations as inputs, beats the radar's pysteps extrapolation on either network.
-  *(multisensor_nowcasting)*
+  *(nowcasting/multisensor)*
 - **The wet-antenna correction sets the magnitude of retrieved rain,** and
   its default does not transfer between networks: the ratio to the OpenSense
   reference moves from 1.93 to 0.74 across plausible settings.
-  *(opensense_pipeline)*
+  *(maps/archive_pipeline)*
 - **Radar is not always the reference.** Over Manhattan the links correlate
   +0.53 with PWS and about 0 with the KOKX radar, whose beam passes far above
   the city; in snow the links carry no precipitation signal.
-  *(opensense_pipeline)*
+  *(maps/archive_pipeline)*
 - **Over New York, link maps sit within twice the gauge-radar gap.** Near the links the PWS map
   differs from MRMS radar by NRMSE 0.33 and the best link map by 0.57; the dynamic-baseline
   methods are the only unbiased ones. Mixed precipitation is over-read by every method, and
-  snow is measured by neither links nor PWS. *(nyc_rain_maps)*
+  snow is measured by neither links nor PWS. *(maps/nyc)*
 - **Geometry, not sensor physics, limits the map.** At 90 links the sensor
   chain changes the reconstruction error by about 1% or less; almost all of
-  it comes from rain that falls between links. *(rainfall_field_sim)*
+  it comes from rain that falls between links. *(simulation/regimes)*
 - **On simulated rain, no map resolves a street over five minutes; near the links, links halve
   the error.** In a simulated city at 100 m and 1 min, the best map of 5-min totals (radar
   adjusted with links and gauges by KED) has an error larger than the rain itself (NRMSE 1.12,
@@ -115,12 +118,12 @@ Each is computed in the project named, where the details and caveats are.
   250 m of a link it is 0.85, half the radar's. On a 64 km domain the gauges carry the radar
   adjustment instead (0.44 vs 0.62 in 24 of 24 scenarios). VET recovers the true motion best,
   DARTS underestimates speed even for pure translation, and a motion network trained only on
-  simulations nowcasts real OpenMRG radar as well as VET. *(synthetic_testbed)*
+  simulations nowcasts real OpenMRG radar as well as VET. *(simulation/testbed)*
 - **Machine learning recovers part of the physics.** PySR finds the ITU-R
   exponent from real data (0.911 vs 0.913) but not the prefactor (83% high,
   the wet-antenna offset again); SINDy finds the advection velocity from
   exact fields but not through a CML network; the hybrid retrieval does not
-  beat its own physics branch. *(physics_ml)*
+  beat its own physics branch. *(physics_ml/discovery)*
 
 ## Data
 
@@ -146,7 +149,7 @@ FieldSense/
 ├── GETTING_STARTED.md    # start here
 ├── tutorials/            # nine executed notebooks: data, retrieval, training, radar, maps, merging, nowcasting
 ├── examples/             # one notebook per OpenSense example dataset
-├── projects/             # the research projects above; each has src/, notebooks/, results/, README
+├── projects/             # the projects above, by stage: projects/<stage>/<subproject>/ with src/, notebooks/, results/, README
 ├── core/                 # code more than one project imports (see core/README.md)
 │   ├── opensense/            # data: fetch, example subsets, three networks on one grid, retrieval, PWS QC
 │   ├── cml/                  # link retrieval: power law (four variants), PyNNcml RNN
