@@ -94,33 +94,20 @@ def fit_variogram_xy(rad: xr.DataArray, min_wet_fraction: float = 0.2, wet_mm: f
     2-D projected coordinates. Sill 1; only the range and the nugget share matter.
     """
     from scipy.optimize import curve_fit
+
+    from core.maps.mergeplg_methods import standardised_semivariogram
     x, y = rad.x_grid.values.ravel(), rad.y_grid.values.ravel()
     R = rad.values.reshape(rad.shape[0], -1)
-    rng = np.random.default_rng(seed)
-    wet = [h for h in R if np.isfinite(h).mean() > 0.5 and (h[np.isfinite(h)] >= wet_mm).mean() >= min_wet_fraction]
-    bins = np.linspace(0, max_lag_m, 31)
-    num, den = np.zeros(len(bins) - 1), np.zeros(len(bins) - 1)
-    per = max(1, n_pairs // max(len(wet), 1))
-    for h in wet:
-        ok = np.flatnonzero(np.isfinite(h))
-        z = (h[ok] - h[ok].mean()) / (h[ok].std() or 1.0)
-        i, j = rng.integers(0, ok.size, per), rng.integers(0, ok.size, per)
-        d = np.hypot(x[ok[i]] - x[ok[j]], y[ok[i]] - y[ok[j]])
-        b = np.digitize(d, bins) - 1
-        m = (b >= 0) & (b < len(num)) & (i != j)
-        np.add.at(num, b[m], 0.5 * (z[i[m]] - z[j[m]]) ** 2)
-        np.add.at(den, b[m], 1)
-    lag = 0.5 * (bins[1:] + bins[:-1])
-    ok = den > 50
-    gamma = num[ok] / den[ok]
+    lag, gamma, n_wet = standardised_semivariogram(R, x, y, min_wet_fraction, wet_mm, max_lag_m,
+                                                   n_pairs, seed)
 
     def sph(h, nug, rng_):
         s = np.where(h < rng_, 1.5 * h / rng_ - 0.5 * (h / rng_) ** 3, 1.0)
         return nug + (1 - nug) * s
 
-    (nug, r), _ = curve_fit(sph, lag[ok], gamma / gamma[-3:].mean(), p0=[0.1, 20000],
+    (nug, r), _ = curve_fit(sph, lag, gamma / gamma[-3:].mean(), p0=[0.1, 20000],
                             bounds=([0, 1000], [0.99, 500_000]))
-    return {"sill": 1.0, "range": float(r), "nugget": float(nug), "n_hours": len(wet)}
+    return {"sill": 1.0, "range": float(r), "nugget": float(nug), "n_hours": n_wet}
 
 
 def variograms(networks) -> dict:

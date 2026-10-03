@@ -33,7 +33,7 @@ from core.geo import Grid
 from core.maps.scores import scores
 from core.opensense import openmesh as om
 from core.asos import NYC_STATIONS, fetch_asos, hourly_precip
-from core.maps.idw import idw_map
+from core.maps.idw import points_idw_map
 
 log = logging.getLogger(__name__)
 
@@ -71,9 +71,7 @@ def pws_hourly(start, end, domain=None, qc: str = "percentile", lo_pct: float = 
 
 def points_to_map(values: xr.DataArray, grid: Grid, **idw) -> xr.DataArray:
     """IDW map from point sensors ``values(station, time)`` (implementation_2: own interpolator)."""
-    da = values.rename(station="link").assign_coords(mid_lat=("link", values.lat.values),
-                                                    mid_lon=("link", values.lon.values))
-    return idw_map(da, grid, **idw)
+    return points_idw_map(values, grid, **idw)
 
 
 def asos_hourly_points(start, end, domain=None, stations=NYC_STATIONS) -> xr.DataArray:

@@ -228,6 +228,36 @@ class Merger:
                                                         "variogram": str(self.variogram)})
 
 
+def standardised_semivariogram(R: np.ndarray, x: np.ndarray, y: np.ndarray, min_wet_fraction: float = 0.2,
+                               wet_mm: float = 0.1, max_lag_m: float = 60_000.0, n_pairs: int = 200_000,
+                               seed: int = 0) -> tuple[np.ndarray, np.ndarray, int]:
+    """Pooled semivariogram of standardised wet fields ``R (time, cell)`` at cells ``x, y`` (m).
+
+    Fields with more than half their cells valid and at least ``min_wet_fraction`` of them
+    at or above ``wet_mm`` are standardised (zero mean, unit variance); semivariances of
+    random cell pairs (``n_pairs`` in all) are pooled in 30 distance bins up to
+    ``max_lag_m``. Returns the bin centres and semivariances of bins with more than 50
+    pairs, and the number of fields used.
+    """
+    rng = np.random.default_rng(seed)
+    wet = [h for h in R if np.isfinite(h).mean() > 0.5 and (h[np.isfinite(h)] >= wet_mm).mean() >= min_wet_fraction]
+    bins = np.linspace(0, max_lag_m, 31)
+    num, den = np.zeros(len(bins) - 1), np.zeros(len(bins) - 1)
+    per = max(1, n_pairs // max(len(wet), 1))
+    for h in wet:
+        ok = np.flatnonzero(np.isfinite(h))
+        z = (h[ok] - h[ok].mean()) / (h[ok].std() or 1.0)
+        i, j = rng.integers(0, ok.size, per), rng.integers(0, ok.size, per)
+        d = np.hypot(x[ok[i]] - x[ok[j]], y[ok[i]] - y[ok[j]])
+        b = np.digitize(d, bins) - 1
+        m = (b >= 0) & (b < len(num)) & (i != j)
+        np.add.at(num, b[m], 0.5 * (z[i[m]] - z[j[m]]) ** 2)
+        np.add.at(den, b[m], 1)
+    lag = 0.5 * (bins[1:] + bins[:-1])
+    ok = den > 50
+    return lag[ok], num[ok] / den[ok], len(wet)
+
+
 def fit_radar_variogram(radar: xr.DataArray, min_wet_fraction: float = 0.2, wet_mm: float = 0.1,
                         max_lag_m: float = 60_000.0, n_pairs: int = 200_000, seed: int = 0) -> dict:
     """A spherical variogram shape from the radar's own hourly fields (no gauge is used).
@@ -243,30 +273,15 @@ def fit_radar_variogram(radar: xr.DataArray, min_wet_fraction: float = 0.2, wet_
     glat, glon = g.mesh()
     x, y = to_local_xy(glat.ravel(), glon.ravel(), float(np.mean(g.lat)), float(np.mean(g.lon)))
     R = radar.transpose("time", "lat", "lon").values.reshape(radar.sizes["time"], -1)
-    rng = np.random.default_rng(seed)
-    wet = [h for h in R if np.isfinite(h).mean() > 0.5 and (h[np.isfinite(h)] >= wet_mm).mean() >= min_wet_fraction]
-    if not wet:
+    lag, gamma, n_wet = standardised_semivariogram(R, x, y, min_wet_fraction, wet_mm, max_lag_m,
+                                                   n_pairs, seed)
+    if not n_wet:
         return dict(DEFAULT_VARIOGRAM, fitted=False)
-    per = max(1, n_pairs // len(wet))
-    bins = np.linspace(0, max_lag_m, 31)
-    num, den = np.zeros(len(bins) - 1), np.zeros(len(bins) - 1)
-    for h in wet:
-        ok = np.flatnonzero(np.isfinite(h))
-        z = (h[ok] - h[ok].mean()) / (h[ok].std() or 1.0)
-        i, j = rng.integers(0, ok.size, per), rng.integers(0, ok.size, per)
-        d = np.hypot(x[ok[i]] - x[ok[j]], y[ok[i]] - y[ok[j]])
-        b = np.digitize(d, bins) - 1
-        m = (b >= 0) & (b < len(num)) & (i != j)
-        np.add.at(num, b[m], 0.5 * (z[i[m]] - z[j[m]]) ** 2)
-        np.add.at(den, b[m], 1)
-    lag = 0.5 * (bins[1:] + bins[:-1])
-    ok = den > 50
-    gamma = num[ok] / den[ok]
 
     def model(h, sill, rng_, nugget):
         return spherical({"sill": sill, "range": rng_, "nugget": nugget}, h)
-    (sill, range_, nugget), _ = curve_fit(model, lag[ok], gamma, p0=[1.0, 20_000.0, 0.1],
+    (sill, range_, nugget), _ = curve_fit(model, lag, gamma, p0=[1.0, 20_000.0, 0.1],
                                           bounds=([0.1, 1_000.0, 0.0], [3.0, 4 * max_lag_m, 1.0]))
     nugget = min(nugget, sill)
     return {"sill": 1.0, "range": float(range_), "nugget": float(nugget / sill), "fitted": True,
-            "hours": len(wet)}
+            "hours": n_wet}

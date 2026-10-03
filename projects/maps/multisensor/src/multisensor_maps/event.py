@@ -24,7 +24,7 @@ from core.cml.link_qc import QCConfig, metadata_qc, timeseries_qc
 from core.geo import Grid
 from core.maps.geometry import distance_to_links_km
 from core.maps.gmz import gmz_map
-from core.maps.idw import accumulate, idw_map
+from core.maps.idw import accumulate, idw_map, points_idw_map
 from core.maps.scores import scores
 from core.opensense.networks import NETWORKS, points_near_links, radar_along_links
 
@@ -68,9 +68,7 @@ def distance_to_links(grid: Grid, links: xr.Dataset | pd.DataFrame, step_m: floa
 
 def points_map(values: xr.DataArray, grid: Grid) -> xr.DataArray:
     """IDW map from point gauges ``(station, time)`` with the links' IDW settings."""
-    da = values.rename(station="link").assign_coords(mid_lat=("link", values.lat.values),
-                                                    mid_lon=("link", values.lon.values))
-    return idw_map(da, grid, **IDW)
+    return points_idw_map(values, grid, **IDW)
 
 
 def loo_at_points(values: xr.DataArray) -> xr.DataArray:

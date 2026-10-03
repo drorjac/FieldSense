@@ -98,3 +98,30 @@ def test_apply_weights_excludes_nan_sources_per_step():
     out = apply_weights(W, V)
     np.testing.assert_allclose(out[0], [2.0, 3.0])
     assert np.isnan(out[1]).all()
+
+
+def test_points_idw_map_reproduces_a_station_and_matches_idw_map():
+    from core.geo import Grid
+    from core.maps.idw import idw_map, points_idw_map
+    st = xr.DataArray([[1.0, 2.0], [5.0, 6.0]], dims=("station", "time"),
+                      coords={"station": ["a", "b"], "lat": ("station", [57.70, 57.75]),
+                              "lon": ("station", [11.95, 12.00]),
+                              "time": pd.date_range("2015-07-01", periods=2, freq="h")})
+    grid = Grid(np.array([57.70, 57.725, 57.75]), np.array([11.95, 11.975, 12.00]))
+    out = points_idw_map(st, grid, power=2.0, radius_m=None)
+    np.testing.assert_allclose(out.sel(lat=57.70, lon=11.95).values, [1.0, 2.0])
+    as_links = st.rename(station="link").assign_coords(mid_lat=("link", st.lat.values),
+                                                       mid_lon=("link", st.lon.values))
+    xr.testing.assert_identical(out, idw_map(as_links, grid, power=2.0, radius_m=None))
+
+
+def test_standardised_semivariogram_rises_with_lag_for_a_smooth_field():
+    from scipy.ndimage import gaussian_filter
+    from core.maps.mergeplg_methods import standardised_semivariogram
+    rng = np.random.default_rng(0)
+    R = np.stack([np.maximum(gaussian_filter(rng.standard_normal((40, 40)), 5) * 10 + 1, 0).ravel()
+                  for _ in range(5)])
+    x, y = (v.ravel() for v in np.meshgrid(np.arange(40) * 1000.0, np.arange(40) * 1000.0))
+    lag, gamma, n = standardised_semivariogram(R, x, y, max_lag_m=30_000.0)
+    assert n == 5
+    assert gamma[0] < gamma[len(gamma) // 2]

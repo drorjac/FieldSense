@@ -103,6 +103,17 @@ def idw_map(link_rain: xr.DataArray, grid: Grid, power: float = 2.0,
     return da
 
 
+def points_idw_map(values: xr.DataArray, grid: Grid, **idw) -> xr.DataArray:
+    """IDW map from point sensors ``values(station, time)`` with ``lat``/``lon`` coords.
+
+    Gauges and weather stations through :func:`idw_map`, each station as its own midpoint;
+    ``idw`` is passed on (power, radius_m, nnear, nan_policy, eps).
+    """
+    da = values.rename(station="link").assign_coords(mid_lat=("link", values.lat.values),
+                                                    mid_lon=("link", values.lon.values))
+    return idw_map(da, grid, **idw)
+
+
 def accumulate(rate: xr.DataArray, freq: str = "1h", min_coverage: float = 0.8) -> xr.DataArray:
     """Rate series (mm/h at a regular step) -> accumulation per ``freq`` (mm), interval-ENDING.
 
