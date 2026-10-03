@@ -33,19 +33,19 @@ and tests where machine learning helps and where physics is enough.
 
 | project | question | start here |
 |---|---|---|
-| [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and data paper | `notebooks/openmesh_data.ipynb` |
-| [`cml_retrieval`](projects/cml_retrieval/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
-| [`cml_rnn`](projects/cml_rnn/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
-| [`physics_ml`](projects/physics_ml/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
-| [`multisensor_maps`](projects/multisensor_maps/) | links, gauges and radar on one grid on three networks: retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ), and the three merged every way | `notebooks/01_three_networks.ipynb` |
-| [`nyc_rain_maps`](projects/nyc_rain_maps/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
-| [`radar_adjustment`](projects/radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, and extended to weather stations, RADOLAN and New York | `notebooks/01_intercomparison.ipynb` |
-| [`opensense_pipeline`](projects/opensense_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
-| [`os_nowcasting`](projects/os_nowcasting/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
-| [`multisensor_nowcasting`](projects/multisensor_nowcasting/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |
+| [`openmesh_nyc`](projects/data/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and data paper | `notebooks/openmesh_data.ipynb` |
+| [`cml_retrieval`](projects/retrieval/openmrg/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
+| [`cml_rnn`](projects/retrieval/rnn_three_networks/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
+| [`physics_ml`](projects/physics_ml/discovery/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
+| [`multisensor_maps`](projects/maps/multisensor/) | links, gauges and radar on one grid on three networks: retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ), and the three merged every way | `notebooks/01_three_networks.ipynb` |
+| [`nyc_rain_maps`](projects/maps/nyc/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
+| [`radar_adjustment`](projects/maps/radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, and extended to weather stations, RADOLAN and New York | `notebooks/01_intercomparison.ipynb` |
+| [`opensense_pipeline`](projects/maps/archive_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
+| [`os_nowcasting`](projects/nowcasting/pysteps/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
+| [`multisensor_nowcasting`](projects/nowcasting/multisensor/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |
 | [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
-| [`rainfall_field_sim`](projects/rainfall_field_sim/) | on simulated rain: does the error come from the sensors or from where the links are? | `notebooks/01_regimes_and_reconstruction.ipynb` |
-| [`synthetic_testbed`](projects/synthetic_testbed/) | a rain simulator (cells, meta-Gaussian, RainFARM, cascades, multifractals, a cloud model; non-uniform flows, evolution) seen by radar, links, gauges and PWS: every map, merging, motion and nowcast method scored against the truth; motion learned from the true flow; accuracy from street level (100 m, 5 min) to city scale | `notebooks/01_generators_and_motion.ipynb` |
+| [`rainfall_field_sim`](projects/simulation/regimes/) | on simulated rain: does the error come from the sensors or from where the links are? | `notebooks/01_regimes_and_reconstruction.ipynb` |
+| [`synthetic_testbed`](projects/simulation/testbed/) | a rain simulator (cells, meta-Gaussian, RainFARM, cascades, multifractals, a cloud model; non-uniform flows, evolution) seen by radar, links, gauges and PWS: every map, merging, motion and nowcast method scored against the truth; motion learned from the true flow; accuracy from street level (100 m, 5 min) to city scale | `notebooks/01_generators_and_motion.ipynb` |
 
 ## Findings so far
 
@@ -177,10 +177,10 @@ pip install -e ".[opensense,notebooks,dev]"
 pip install -r projects/<project>/requirements.txt    # the project you work on
 ```
 
-`projects/radar_adjustment` and parts of `projects/opensense_pipeline` need the development
+`projects/maps/radar_adjustment` and parts of `projects/maps/archive_pipeline` need the development
 version of `mergeplg`, which replaces the released 0.1.0; they run in a second environment,
 `.venv-mergeplg-main`, set up as described in
-[`projects/opensense_pipeline/README.md`](projects/opensense_pipeline/README.md).
+[`projects/maps/archive_pipeline/README.md`](projects/maps/archive_pipeline/README.md).
 
 ## Tests
 

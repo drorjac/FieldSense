@@ -44,7 +44,7 @@ jupyter nbconvert --to notebook --execute --inplace tutorials/05_2d_rain_maps.ip
 
 Tutorial 6 runs RADOLAN only in an environment with the development version of `mergeplg`
 (`.venv-mergeplg-main`); elsewhere it explains the method and points to
-[`projects/radar_adjustment`](../projects/radar_adjustment/README.md). Tutorials 7, 8 and 9 set
+[`projects/maps/radar_adjustment`](../projects/maps/radar_adjustment/README.md). Tutorials 7, 8 and 9 set
 `OMP_NUM_THREADS=1` before importing anything: on macOS, torch and pysteps' multi-threaded
 code crash when they share a process.
 
@@ -55,15 +55,15 @@ report what holds up.
 
 | tutorial | project |
 |---|---|
-| 1 | [`openmesh_nyc`](../projects/openmesh_nyc/), [`examples/`](../examples/) |
-| 2 | [`cml_retrieval`](../projects/cml_retrieval/), [`opensense_pipeline`](../projects/opensense_pipeline/) |
-| 3 | [`cml_rnn`](../projects/cml_rnn/), [`physics_ml`](../projects/physics_ml/) |
-| 4 | [`nyc_rain_maps`](../projects/nyc_rain_maps/), [`multisensor_maps`](../projects/multisensor_maps/) |
-| 5 | [`multisensor_maps`](../projects/multisensor_maps/), [`rainfall_field_sim`](../projects/rainfall_field_sim/) |
-| 6 | [`radar_adjustment`](../projects/radar_adjustment/), [`multisensor_maps`](../projects/multisensor_maps/), [`opensense_pipeline`](../projects/opensense_pipeline/) |
-| 7 | [`os_nowcasting`](../projects/os_nowcasting/) |
-| 8 | [`spatial_interpolation`](../projects/spatial_interpolation/), [`multisensor_nowcasting`](../projects/multisensor_nowcasting/) |
-| 9 | [`multisensor_nowcasting`](../projects/multisensor_nowcasting/) |
+| 1 | [`openmesh_nyc`](../projects/data/openmesh_nyc/), [`examples/`](../examples/) |
+| 2 | [`cml_retrieval`](../projects/retrieval/openmrg/), [`opensense_pipeline`](../projects/maps/archive_pipeline/) |
+| 3 | [`cml_rnn`](../projects/retrieval/rnn_three_networks/), [`physics_ml`](../projects/physics_ml/discovery/) |
+| 4 | [`nyc_rain_maps`](../projects/maps/nyc/), [`multisensor_maps`](../projects/maps/multisensor/) |
+| 5 | [`multisensor_maps`](../projects/maps/multisensor/), [`rainfall_field_sim`](../projects/simulation/regimes/) |
+| 6 | [`radar_adjustment`](../projects/maps/radar_adjustment/), [`multisensor_maps`](../projects/maps/multisensor/), [`opensense_pipeline`](../projects/maps/archive_pipeline/) |
+| 7 | [`os_nowcasting`](../projects/nowcasting/pysteps/) |
+| 8 | [`spatial_interpolation`](../projects/spatial_interpolation/), [`multisensor_nowcasting`](../projects/nowcasting/multisensor/) |
+| 9 | [`multisensor_nowcasting`](../projects/nowcasting/multisensor/) |
 
 Every paper, dataset and package cited in the tutorials, with links:
 [docs/references.md](../docs/references.md).

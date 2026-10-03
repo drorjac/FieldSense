@@ -1,4 +1,4 @@
-"""Nowcasting shared by ``projects/os_nowcasting``, ``projects/multisensor_nowcasting`` and
+"""Nowcasting shared by ``projects/nowcasting/pysteps``, ``projects/nowcasting/multisensor`` and
 the tutorials.
 
 ``grid``       square-pixel grids, xarray fields -> pysteps arrays and metadata, dB transform

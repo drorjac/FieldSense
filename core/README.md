@@ -70,7 +70,7 @@ core/
 | `nowcast.learned_motion` | synthetic_testbed | synthetic_testbed |
 | `opensense.*` | opensense_pipeline | opensense_pipeline, cml_retrieval, physics_ml, openmesh_nyc (notebook) |
 | `radar.nexrad` | openmesh_nyc | openmesh_nyc (notebook), opensense_pipeline |
-| `radar.mrms`, `asos`, `geo`, `opensense.openmesh` | pcpn_maps (see `projects/nyc_rain_maps`) | nyc_rain_maps, multisensor_maps, cml_rnn |
+| `radar.mrms`, `asos`, `geo`, `opensense.openmesh` | pcpn_maps (see `projects/maps/nyc`) | nyc_rain_maps, multisensor_maps, cml_rnn |
 | `cml.*`, `maps.idw`, `maps.scores`, `events` | pcpn_maps / nyc_rain_maps | nyc_rain_maps, multisensor_maps, cml_rnn |
 | `opensense.networks`, `maps.gmz`, `cml.rnn` | - | multisensor_maps, cml_rnn, radar_adjustment, os_nowcasting (networks) |
 | `maps.merge` | pcpn_maps (`mapping/merge.py`) | multisensor_maps |
@@ -124,7 +124,7 @@ reads `length` in coordinate units (metres, not the km the files carry),
 `GridAtLines`/`GridAtPoints` require lon/lat even in projected mode, the
 metadata plots expect metres and MHz and divide by 1000 themselves, and
 flattening two DataArrays with different dimension order before scoring
-pairs the wrong values. See `projects/opensense_pipeline/README.md` for what
+pairs the wrong values. See `projects/maps/archive_pipeline/README.md` for what
 the retrieval variants achieve.
 
 **PWS quality control pays off in station selection.** On the Amsterdam PWS
@@ -162,7 +162,7 @@ field_idw, field_gmz = idw_map(hourly, net.grid), gmz_map(hourly, net.grid)
 ```
 
 `networks` checked each source's time-label convention by lagging it against the links
-(module docstring). `cml.rnn.HourlyRNN` runs a model trained in `projects/cml_rnn` on any
+(module docstring). `cml.rnn.HourlyRNN` runs a model trained in `projects/retrieval/rnn_three_networks` on any
 link set of these networks.
 
 ## `radar/`, `asos.py`, `geo.py`
@@ -218,7 +218,7 @@ band is not periodic and is moved on a padded domain, so nothing wraps.
 ### The general simulator
 
 `generators`, `spacetime`, `sensors` and `scenario` extend this to any field
-model, any flow and every sensor (built for `projects/synthetic_testbed`):
+model, any flow and every sensor (built for `projects/simulation/testbed`):
 
 ```python
 from core.simulation import generators as gen, flows as fl, spacetime as st
@@ -255,8 +255,8 @@ Specific rain attenuation, `gamma = k * R**alpha`, with ITU-R P.838-3 Table 5
 for both polarizations, 1–1000 GHz, interpolated the way the recommendation
 prescribes (log-log in `k`, semi-log in `alpha`).
 
-Imported by `projects/rainfall_field_sim/`, `projects/opensense_pipeline/` and
-`projects/physics_ml/` — which used to carry its own copy of Table 5 with a
+Imported by `projects/simulation/regimes/`, `projects/maps/archive_pipeline/` and
+`projects/physics_ml/discovery/` — which used to carry its own copy of Table 5 with a
 different interpolation, and now re-exports from here.
 
 Anything new should import the table from here rather than paste it.

@@ -1,6 +1,6 @@
 """PyNNcml's two-step RNN as a retrieval method: hourly link rain from 1-minute signals.
 
-Trained in ``projects/cml_rnn`` (Habi & Messer's network from PyNNcml, trained against the
+Trained in ``projects/retrieval/rnn_three_networks`` (Habi & Messer's network from PyNNcml, trained against the
 average of radar along the path and gauges near the link on three networks); this module
 is what turns a saved model back into a method any project can run on a link set.
 
@@ -129,7 +129,7 @@ def neighbour_features(X: np.ndarray, M: np.ndarray, lat, lon, radius_km: float 
 
 
 class HourlyRNN:
-    """A model saved by ``projects/cml_rnn`` (``model.pt``, ``norm.npz``, ``config.json``)."""
+    """A model saved by ``projects/retrieval/rnn_three_networks`` (``model.pt``, ``norm.npz``, ``config.json``)."""
 
     def __init__(self, model_dir: str | Path, network: str | None = None):
         import pynncml as pnc

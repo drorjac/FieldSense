@@ -15,7 +15,7 @@ interpolated on a log-log scale (log frequency, log k) and ``alpha`` on a
 semi-log scale (log frequency, linear alpha).
 
 This is the only copy of Table 5 in the repository's Python code.
-``projects/physics_ml/src/rain_simulator.py`` used to carry a duplicate with a
+``projects/physics_ml/discovery/src/rain_simulator.py`` used to carry a duplicate with a
 different interpolation - linear in frequency rather than in log-frequency -
 which disagreed with this one between tabulated points (0.00222 against
 0.00225 at 7.5 GHz). It now re-exports from here.

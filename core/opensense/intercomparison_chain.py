@@ -5,7 +5,7 @@ OpenSense's ``radar_adjustment_intercomparison`` repository (OpenSenseAction, 20
 compares radar-CML merging methods of ``mergeplg`` on OpenMRG (JJA 2015) and OpenRainER
 (JJA 2022). This module reproduces its data preparation (``1_data_preparation.ipynb``)
 and CML processing (``2_cml_processing.ipynb``) step by step, on the same raw files, so
-the merging study in ``projects/radar_adjustment`` starts from the same inputs.
+the merging study in ``projects/maps/radar_adjustment`` starts from the same inputs.
 
 CML chain, per sublink at 1 min (:func:`preprocess`, :func:`process`):
 

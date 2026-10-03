@@ -6,7 +6,7 @@ the city. ``NYC_WIDE`` is a box of about 240 x 240 km centred on the network (th
 215 rows x 284 columns (latitude x longitude), about 1.1 km x 0.84 km per cell.
 
 This module defines the box, lists the windows to fetch (the rain events of
-``projects/nyc_rain_maps/events/all_detected_events.csv`` inside the OpenMesh period,
+``projects/maps/nyc/events/all_detected_events.csv`` inside the OpenMesh period,
 padded 3 h before and 1 h after), and fills the shared MRMS cache:
 
 * ``PrecipRate`` (instantaneous surface rate, mm/h) at its native 2 minutes;
@@ -46,7 +46,7 @@ _DLON = HALF_SIDE_KM / (111.32 * np.cos(np.radians(_LAT0)))
 NYC_WIDE = Domain(round(float(_LAT0 - _DLAT), 4), round(float(_LAT0 + _DLAT), 4),
                   round(float(_LON0 - _DLON), 4), round(float(_LON0 + _DLON), 4), name="nyc_wide")
 
-EVENTS_CSV = Path(__file__).resolve().parents[2] / "projects/nyc_rain_maps/events/all_detected_events.csv"
+EVENTS_CSV = Path(__file__).resolve().parents[2] / "projects/maps/nyc/events/all_detected_events.csv"
 PAD_BEFORE = pd.Timedelta(hours=3)
 PAD_AFTER = pd.Timedelta(hours=1)
 MAX_SNOW_FRACTION = 0.1          # "mostly rain": mix events with at most 10% snow samples

@@ -18,7 +18,7 @@ folder holds documentation only. Input files live in the shared data store
 
 Start with the example subsets; the notebooks in [`examples/`](../examples/) and
 [`tutorials/01_open_data.ipynb`](../tutorials/) read them. The full records are for work that needs more than a few days:
-`projects/opensense_pipeline/src/ingest_*.py` turns them into OpenSense
+`projects/maps/archive_pipeline/src/ingest_*.py` turns them into OpenSense
 NetCDF files under `open_datasets/<dataset>/processed/`.
 
 ## The datasets
@@ -89,10 +89,10 @@ dataset/open_datasets/
 │   └── pynncml_view/     #   symlinks onto ~/data in the Zenodo layout, for PyNNcml (generated)
 ├── OpenRainER_Italy/     # README; processed/ as above
 ├── OpenMesh_NYC/         # the Zenodo package's README.txt, network maps (HTML); processed/
-├── _cml_rnn/             # datasets and models built by projects/cml_rnn (generated)
-├── _multisensor_maps/    # per-event caches of projects/multisensor_maps (generated)
-├── _radar_adjustment/    # prepared inputs and adjusted fields of projects/radar_adjustment (generated)
-├── _os_nowcasting/       # per-event radar fields and study state of projects/os_nowcasting (generated)
+├── _cml_rnn/             # datasets and models built by projects/retrieval/rnn_three_networks (generated)
+├── _multisensor_maps/    # per-event caches of projects/maps/multisensor (generated)
+├── _radar_adjustment/    # prepared inputs and adjusted fields of projects/maps/radar_adjustment (generated)
+├── _os_nowcasting/       # per-event radar fields and study state of projects/nowcasting/pysteps (generated)
 └── CML_Netherlands/      # README only
 ```
 

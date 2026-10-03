@@ -63,7 +63,7 @@ $\delta$ (wet antenna, with memory), with PySR and weak-form SINDy.
 | Simulator: moving 2-D rain, links of many lengths, noise, quantization | `core/simulation/` (`generators`, `flows`, `cml_network.forward_model`) | ready, but `cml_network` has no tests (plan T13) |
 | Exact path integral vs linear law | `cml_network.sample_along_paths`, `path_averaging_bias` | ready |
 | $\delta$ with memory (wet antenna that builds up and dries) | `cml_network.wet_antenna_db` is static in rain | **gap**: add a dynamic wet-antenna model to the simulator |
-| SINDy and PySR set-up | `projects/physics_ml` (`01_sindy_basics`, `02_pysr_basics`, `discover_itu.py`) | ready |
+| SINDy and PySR set-up | `projects/physics_ml/discovery` (`01_sindy_basics`, `02_pysr_basics`, `discover_itu.py`) | ready |
 
 Starter notebooks (planned, `examples/1d_path_law/`):
 1. `01_simulated_path_law`: simulated links of many lengths; exact integral vs

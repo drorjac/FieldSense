@@ -1,6 +1,6 @@
 """The nowcasting grid and the bridge from xarray fields to pysteps.
 
-Shared by ``projects/os_nowcasting`` and ``projects/multisensor_nowcasting``.
+Shared by ``projects/nowcasting/pysteps`` and ``projects/nowcasting/multisensor``.
 
 pysteps measures motion in pixels and takes ``kmperpixel`` for its spectral cascade, so
 the pixels should be square. The training school read OpenRainER on its native lat/lon

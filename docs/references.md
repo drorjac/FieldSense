@@ -41,8 +41,8 @@ Where each file lives on disk: [`DATA.md`](../DATA.md); sources and licences:
 
 | repository | what FieldSense took from it |
 |---|---|
-| [radar_adjustment_intercomparison](https://github.com/OpenSenseAction/radar_adjustment_intercomparison) | the CML chain and 16 adjustment variants; reproduced in `projects/radar_adjustment` |
-| [TrainingSchoolMergingApplication](https://github.com/OpenSenseAction/TrainingSchoolMergingApplication) | the merging and pysteps nowcasting sessions; `projects/os_nowcasting`, `tutorials/05-07` |
+| [radar_adjustment_intercomparison](https://github.com/OpenSenseAction/radar_adjustment_intercomparison) | the CML chain and 16 adjustment variants; reproduced in `projects/maps/radar_adjustment` |
+| [TrainingSchoolMergingApplication](https://github.com/OpenSenseAction/TrainingSchoolMergingApplication) | the merging and pysteps nowcasting sessions; `projects/nowcasting/pysteps`, `tutorials/05-07` |
 | [PrePEP_short_course_OS](https://github.com/OpenSenseAction/PrePEP_short_course_OS), [OPENSENSE_sandbox](https://github.com/OpenSenseAction/OPENSENSE_sandbox), [training_school_opensene_2023](https://github.com/OpenSenseAction/training_school_opensene_2023) | processing and interpolation examples; `tutorials/02`, `05` |
 
 ## Papers
