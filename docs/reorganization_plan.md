@@ -1,5 +1,7 @@
 # Reorganization and mapping plan
 
+Status (2026-10-03): T0-T12 done on branch `reorg`; see the notes under each task.
+
 One continuous run on one branch (`reorg`), no pauses between parts. Commit
 after each task so any task can be reverted on its own; one PR at the end.
 Stop only if a check fails and the cause is not clear.
@@ -48,47 +50,56 @@ projects/
 Each task ends with the checks in the last section, then a commit.
 
 ### Baseline
-- [ ] T0. Branch `reorg`. Save `pytest` pass/fail list and checksums of every
+- [x] T0. Branch `reorg`. Save `pytest` pass/fail list and checksums of every
       `projects/*/results/` to the scratch folder.
 
 ### Move
-- [ ] T1. Create `data/ retrieval/ maps/ nowcasting/ simulation/`; move the 12
+- [x] T1. Create `data/ retrieval/ maps/ nowcasting/ simulation/`; move the 12
       subprojects per the layout.
-- [ ] T2. Replace depth-based repo roots with `core.data_paths.REPO_ROOT`
+- [x] T2. Replace depth-based repo roots with `core.data_paths.REPO_ROOT`
       (14 scripts: `opensense_pipeline/src/*` x8, `physics_ml/src/discover_*.py`,
       `cml_retrieval/src/rain_maps.py`, `rainfall_field_sim/src/run_demo.py`, ...).
-- [ ] T3. Fix cross-project paths: `multisensor_nowcasting/.../links.py:64`
+- [x] T3. Fix cross-project paths: `multisensor_nowcasting/.../links.py:64`
       (→ `maps/multisensor/results`), 4 `multisensor_nowcasting` notebooks and
       tutorial 09 (`ROOT / "projects" / "multisensor_nowcasting"`), the
       `radar_adjustment` notebook fallback path.
-- [ ] T4. `pyproject.toml` testpaths; `python projects/<old>/src/run.py` usage
+- [x] T4. `pyproject.toml` testpaths; `python projects/<old>/src/run.py` usage
       lines in docstrings.
-- [ ] T5. Links in `README.md`, `GETTING_STARTED.md`, `CONTRIBUTING.md`,
+- [x] T5. Links in `README.md`, `GETTING_STARTED.md`, `CONTRIBUTING.md`,
       `DATA.md`, `core/README.md`, `core/radar/MRMS.md`,
       `core/scientific_packages/UPSTREAM_ISSUES.md`, `dataset/README.md`,
       `dataset/open_datasets/*/README.md`, `tutorials/` (README + 8 notebooks),
       `docs/references.md`, and project READMEs.
-- [ ] T6. Stage READMEs and the top-level README by stage.
+- [x] T6. Stage READMEs and the top-level README by stage.
 
 ### One copy of each 2-D piece in `core/maps`
-- [ ] T7. `core/maps/geometry.py`: one `path_sample` (rain along each link,
+- [x] T7. `core/maps/geometry.py`: one `path_sample` (rain along each link,
       replaces about 7 copies incl. the three `radar_along_links`) and one
       `distance_to_links` (replaces about 7 copies).
-- [ ] T8. One IDW: `core/maps/idw.py`; point `core/maps/merge._interp`,
+- [x] T8. One IDW: `core/maps/idw.py`; point `core/maps/merge._interp`,
       `multisensor_nowcasting/cube.py:91` and `core/simulation/reconstruct._idw`
       at it.
-- [ ] T9. Move into `core/maps`: `interpolate`, `points_map` from
+- [x] T9. Move into `core/maps`: `interpolate`, `points_map` from
       `multisensor_maps/event.py`; `points_to_map` from `nyc_rain_maps/compare.py`;
       `merged_map` from `os_nowcasting/products.py`; the variogram fit from
       `radar_adjustment/extend.py` (merge with `mergeplg_methods.fit_radar_variogram`).
-- [ ] T10. One scoring module: `core/maps/scores.py` takes over
+- [x] T10. One scoring module: `core/maps/scores.py` takes over
       `reconstruct.score`, `radar_adjustment/score.py` and
       `core/opensense/evaluation.rainfall_metrics` (keep names as thin aliases
       where notebooks call them).
-- [ ] T11. `radar_adjustment` calls `core/maps/mergeplg_methods.Merger` instead
+- [x] T11. `radar_adjustment` calls `core/maps/mergeplg_methods.Merger` instead
       of mergeplg directly.
-- [ ] T12. Tests: `merge_idw`, `observations`, `compare_maps`, `compare_links`,
+- [x] T12. Tests: `merge_idw`, `observations`, `compare_maps`, `compare_links`,
       `path_sample`, `distance_to_links`.
+
+**Notes on T7-T12.** Every change keeps results identical (old and new code compared).
+Left apart on purpose, because sharing them would change numbers or meaning:
+`core/simulation/reconstruct._idw` (smoothed, weighted IDW on the simulation grid);
+`core/simulation/benchmark.link_distance_km` (km-unit simulation geometry); the nowcasting
+cube's `path_weights` (a sparse matrix, not a field average); the four scorers (T10: their
+definitions differ on purpose, documented in `core/maps/scores.py`); `radar_adjustment`
+calling mergeplg directly (T11: it reproduces the OpenSense intercomparison, which needs
+mergeplg's own API). `physics_ml` is now a stage folder (`physics_ml/discovery`).
 
 ### 1-D
 - [ ] T13. Tests: `cml_network.forward_model`, `path_averaging_bias`,
