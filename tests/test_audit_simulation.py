@@ -170,13 +170,6 @@ def _moment_scaling(field, q):
     return np.polyfit(x, y, 1)[0]
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "UniversalMultifractal filters the stable noise with k^(-d/alpha) in Fourier space; FIF "
-    "(Schertzer & Lovejoy 1987, Pecknold et al. 1993) and the class docstring need "
-    "k^(-d/alpha'), alpha' = alpha/(alpha-1), i.e. |x|^(-d/alpha) in real space, and the scale "
-    "omits the |cos(pi alpha/2)| of scipy's stable Laplace transform. K(2) comes out ~0.08 "
-    "against 0.17 for alpha=1.6, C1=0.1. Fixing it changes the 'multifractal' rows of "
-    "projects/simulation/testbed, so it is left for the owner."))
 def test_universal_multifractal_moment_scaling_function():
     alpha, c1, q = 1.6, 0.1, 2.0
     ks = []

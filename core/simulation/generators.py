@@ -381,15 +381,22 @@ class UniversalMultifractal:
         noise = np.clip(noise, -1e3, 1e3)           # the extremes of a finite sample
         k = np.hypot(*np.meshgrid(np.fft.fftfreq(n), np.fft.fftfreq(n)))
         k[0, 0] = 1.0
-        kernel = k ** (-d / a)
+        # FIF (Schertzer & Lovejoy 1987; Pecknold et al. 1993): the noise is convolved with
+        # |x|^(-d/alpha) in real space, i.e. multiplied by |k|^(-d/alpha') in Fourier space,
+        # with 1/alpha + 1/alpha' = 1.
+        a_conj = a / (a - 1.0)
+        kernel = k ** (-d / a_conj)
         kernel[0, 0] = 0.0
         gen = np.fft.ifft2(np.fft.fft2(noise - noise.mean()) * kernel).real
         # A weighted sum of stable variables is stable with scale (sum |w|^alpha)^(1/alpha).
         # Scale the generator so that log <exp(q Gamma)> = C1/(alpha-1) (q^alpha - q) ln(lambda)
         # at the grid's scale ratio lambda = n: the moment scaling function of a UM cascade.
+        # For scipy's extremal stable law of scale s, log <exp(q X)> = s^alpha q^alpha /
+        # |cos(pi alpha / 2)|, hence the cosine factor.
         w = np.fft.ifft2(kernel).real
         scale = np.sum(np.abs(w) ** a) ** (1 / a)
-        gen = gen / scale * (self.C1 * np.log(n) / abs(a - 1)) ** (1 / a)
+        cos_term = abs(np.cos(np.pi * a / 2)) if abs(a - 2.0) > 1e-9 else 1.0
+        gen = gen / scale * (self.C1 * np.log(n) * cos_term / abs(a - 1)) ** (1 / a)
         flux = np.exp(gen - gen.max())
         flux /= flux.mean()
         if self.H > 0:
