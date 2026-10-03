@@ -38,7 +38,8 @@ def square_grid(domain: Domain, pixel_km: float = 2.0) -> Grid:
 
 
 def pixel_km(grid: Grid) -> float:
-    return float(np.diff(grid.lat[:2])[0]) * KM_PER_DEG
+    """Pixel size in km; positive whichever way the latitudes run."""
+    return abs(float(np.diff(grid.lat[:2])[0])) * KM_PER_DEG
 
 
 def metadata(grid: Grid, step_min: int, times=None, unit: str = "mm/h",
@@ -53,7 +54,8 @@ def metadata(grid: Grid, step_min: int, times=None, unit: str = "mm/h",
         "cartesian_unit": "m",
         "x1": -nx * px / 2, "x2": nx * px / 2, "y1": -ny * px / 2, "y2": ny * px / 2,
         "xpixelsize": px, "ypixelsize": px,
-        "yorigin": "lower",                          # row 0 is the southernmost latitude
+        # row 0 is the southernmost latitude on an ascending grid, the northernmost otherwise
+        "yorigin": "lower" if grid.lat[-1] >= grid.lat[0] else "upper",
         "accutime": float(step_min),
         "unit": unit, "transform": None, "threshold": 0.1, "zerovalue": 0.0,
         "zr_a": 200.0, "zr_b": 1.6,
