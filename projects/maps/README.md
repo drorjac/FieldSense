@@ -9,6 +9,7 @@ and what does each sensor add when links, gauges, weather stations and radar are
 | [`radar_adjustment`](radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, extended to weather stations, RADOLAN and New York | OpenMRG, OpenRainER, NYC | `notebooks/01_intercomparison.ipynb` |
 | [`nyc`](nyc/) | NYC Mesh link maps against MRMS radar, PWS and ASOS over 52 storms of rain, snow and mix | OpenMesh | `notebooks/01_data.ipynb` |
 | [`archive_pipeline`](archive_pipeline/) | (frozen) the first end-to-end version, raw data to merged maps; kept for its results, superseded by the three above | OpenMRG, OpenRainER | `notebooks/02_end_to_end.ipynb` |
+| [`learned_2d`](learned_2d/) | proposed project: starter. Learned link-to-map models (`docs/pre_projects/2d_project.md`): the dataset (link channels, link table, radar target, gauges, split by storm event), IDW / kriging / GMZ scored with the proposal's metrics, a minimal U-Net, simulated truth | OpenMRG | `notebooks/01_dataset.ipynb` |
 
 **Headlines.**
 - Retrieval matters more than interpolation: the spread between retrievals is several times
@@ -20,4 +21,4 @@ and what does each sensor add when links, gauges, weather stations and radar are
   the links. Weather stations beat links as adjusters wherever they exist.
 - Over New York the best link map differs from MRMS by NRMSE 0.57, against 0.33 for the PWS.
 
-Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores).
+Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores, map skill, learning datasets).
