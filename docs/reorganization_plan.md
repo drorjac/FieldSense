@@ -1,6 +1,6 @@
 # Reorganization and mapping plan
 
-Status (2026-10-03): T0-T12 done on branch `reorg`; see the notes under each task.
+Status (2026-10-03): T0-T19 done, T20-T21 pending; algorithm audit merged (`docs/algorithm_audit.md`) on branch `reorg`; see the notes under each task.
 
 One continuous run on one branch (`reorg`), no pauses between parts. Commit
 after each task so any task can be reverted on its own; one PR at the end.
@@ -121,7 +121,7 @@ T13-T15 were done as the 1-D proposal's base (`physics_ml/path_law_1d`, `core/si
 - [x] T17. Maps that can be dry: wet/dry mask from links and PWS before
       interpolation, and indicator kriging; score on the synthetic truth, then
       on the three networks.
-- [ ] T18. (open: the dataset is not downloaded and has no loader; it also needs a KNMI radar/gauge reference) Add `CML_Netherlands` to the multi-network comparison.
+- [x] T18. (done as `maps/netherlands`: RAINLINK on the whole network, JJA 2012, against KNMI hourly gauges; KNMI adjusted radar needs an API key) Add `CML_Netherlands` to the multi-network comparison.
 - [x] T19. Adjusted ARPAE radar as the Emilia-Romagna baseline in
       `radar_adjustment`.
 
