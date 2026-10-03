@@ -143,7 +143,10 @@ def wet_from_radar(ds: xr.Dataset, radar_along: xr.DataArray, rad_freq: int) -> 
     wet = xr.zeros_like(ds["tl"], dtype=bool)
     mask = (rad > 0.01).astype("int").values
     n = rad_freq + 5
-    expanded = np.array([binary_dilation(row, structure=np.ones(n), origin=int(n / 2 - 6))
+    # The notebook's origin, int(n / 2 - 6), gives t - (rad_freq - 1) ... t + 5 only for
+    # odd rad_freq (5 and 15 min, the two datasets); for even rad_freq >= 8 it shifts
+    # the window one minute late. (rad_freq - 6) // 2 equals it for every odd step.
+    expanded = np.array([binary_dilation(row, structure=np.ones(n), origin=(rad_freq - 6) // 2)
                          for row in mask])
     wet[:] = np.broadcast_to(expanded.astype(bool)[:, None, :], wet.shape)
     return wet
