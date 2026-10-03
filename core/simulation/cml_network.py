@@ -9,7 +9,9 @@ numbers back into a 2-D field is the problem this project demonstrates.
 The forward chain modelled here, in order:
 
 1. Line integral of specific attenuation along the path (ITU-R P.838-3).
-2. Wet-antenna attenuation - water on the radome, not in the air.
+2. Wet-antenna attenuation - water on the radome, not in the air. Static in
+   the path rain by default; with memory (builds up, dries) when a
+   ``wet_antenna.DynamicWetAntenna`` is passed.
 3. Baseline error - uncertainty in the dry-weather reference level.
 4. Receiver noise.
 5. Quantization - the RSL is reported in discrete steps.
@@ -199,8 +201,18 @@ def wet_antenna_db(rain_path_mm_h: np.ndarray, a_max: float,
 
 def forward_model(rain: np.ndarray, grid: Grid, net: CMLNetwork,
                   cfg: Optional[SensorConfig] = None,
-                  n_samples: int = N_PATH_SAMPLES) -> dict:
+                  n_samples: int = N_PATH_SAMPLES,
+                  wet_antenna=None, waa_state: Optional[np.ndarray] = None,
+                  dt_min: float = 1.0) -> dict:
     """Run the full sensor chain for one rain field.
+
+    ``wet_antenna`` (opt-in) is a ``wet_antenna.DynamicWetAntenna``: the wet
+    antenna then has memory. ``waa_state`` is its attenuation per link before
+    this field (zero if not given), and the field is applied for ``dt_min``
+    minutes; the new state is returned as ``A_waa``, to be passed back as
+    ``waa_state`` with the next field (``forward_series`` does this). Left at
+    ``None``, the static ``SensorConfig`` wet antenna is used, as before. The
+    retrieval always corrects with the static, assumed model.
 
     Returns a dict of per-link quantities, all arrays of length ``n_links``:
 
@@ -236,7 +248,11 @@ def forward_model(rain: np.ndarray, grid: Grid, net: CMLNetwork,
     A_rain = k * (samples ** alpha[:, None]).mean(axis=1) * L
     A_uniform = k * R_path_true**alpha * L
 
-    A_waa = wet_antenna_db(R_path_true, cfg.waa_max_db, cfg.waa_rate_per_mm_h)
+    if wet_antenna is None:
+        A_waa = wet_antenna_db(R_path_true, cfg.waa_max_db, cfg.waa_rate_per_mm_h)
+    else:
+        prev = np.zeros(net.n_links) if waa_state is None else waa_state
+        A_waa = wet_antenna.step(prev, R_path_true, dt_min)
     baseline = rng.normal(0.0, cfg.baseline_sigma_db, net.n_links)
     noise = rng.normal(0.0, cfg.noise_sigma_db, net.n_links)
 
@@ -260,6 +276,47 @@ def forward_model(rain: np.ndarray, grid: Grid, net: CMLNetwork,
         "R_retrieved": R_retrieved,
         "R_retrieved_clean": R_retrieved_clean,
     }
+
+
+def forward_series(frames: np.ndarray, grid: Grid, net: CMLNetwork, dt_min: float,
+                   cfg: Optional[SensorConfig] = None, wet_antenna=None,
+                   n_samples: int = N_PATH_SAMPLES) -> dict:
+    """The sensor chain over a sequence of fields ``(time, n, n)``, ``dt_min`` apart.
+
+    As :func:`forward_model` frame by frame, with what a time series adds: the
+    baseline offset is drawn once per link and held, the receiver noise is
+    fresh at every step, and with ``wet_antenna`` (a
+    ``wet_antenna.DynamicWetAntenna``) the wet antenna carries over from one
+    step to the next. Returns ``R_path_true``, ``A_rain``, ``A_uniform``,
+    ``A_waa``, ``baseline`` (per link), ``A_observed`` and ``R_retrieved``,
+    each ``(n_links, time)`` except ``baseline``.
+    """
+    cfg = cfg or SensorConfig()
+    rng = np.random.default_rng(cfg.seed)
+    T, nl = frames.shape[0], net.n_links
+    L, k, alpha = net.length_km, net.k, net.alpha
+    out = {name: np.zeros((nl, T)) for name in ("R_path_true", "A_rain", "A_uniform", "A_waa")}
+    waa = np.zeros(nl)
+    for t in range(T):
+        s = sample_along_paths(frames[t], grid, net, n_samples)
+        r = s.mean(axis=1)
+        out["R_path_true"][:, t] = r
+        out["A_rain"][:, t] = k * (s ** alpha[:, None]).mean(axis=1) * L
+        out["A_uniform"][:, t] = k * r**alpha * L
+        if wet_antenna is None:
+            waa = wet_antenna_db(r, cfg.waa_max_db, cfg.waa_rate_per_mm_h)
+        else:
+            waa = wet_antenna.step(waa, r, dt_min)
+        out["A_waa"][:, t] = waa
+    baseline = rng.normal(0.0, cfg.baseline_sigma_db, nl)
+    noise = rng.normal(0.0, cfg.noise_sigma_db, (nl, T))
+    A_total = out["A_rain"] + out["A_waa"] + baseline[:, None] + noise
+    if cfg.quantization_db > 0:
+        A_total = np.round(A_total / cfg.quantization_db) * cfg.quantization_db
+    out["A_observed"] = np.clip(A_total, 0.0, None)
+    out["baseline"] = baseline
+    out["R_retrieved"] = retrieve_rain(out["A_observed"].T, net, cfg).T
+    return out
 
 
 def _invert_power_law(A_rain_db: np.ndarray, net: CMLNetwork) -> np.ndarray:
