@@ -9,6 +9,7 @@ and what does each sensor add when links, gauges, weather stations and radar are
 | [`radar_adjustment`](radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, extended to weather stations, RADOLAN and New York | OpenMRG, OpenRainER, NYC | `notebooks/01_intercomparison.ipynb` |
 | [`nyc`](nyc/) | NYC Mesh link maps against MRMS radar, PWS and ASOS over 52 storms of rain, snow and mix | OpenMesh | `notebooks/01_data.ipynb` |
 | [`wet_area`](wet_area/) | maps that can be dry: a wet/dry mask from the links before IDW, on simulated truth and 29 storms | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_wet_area.ipynb` |
+| [`netherlands`](netherlands/) | RAINLINK over the whole Dutch network (15-min Pmin/Pmax), summer 2012: paths and IDW maps against KNMI's hourly gauges | Netherlands CML | `notebooks/01_netherlands.ipynb` |
 | [`archive_pipeline`](archive_pipeline/) | (frozen) the first end-to-end version, raw data to merged maps; kept for its results, superseded by the three above | OpenMRG, OpenRainER | `notebooks/02_end_to_end.ipynb` |
 
 **Headlines.**
@@ -24,5 +25,9 @@ and what does each sensor add when links, gauges, weather stations and radar are
 - ARPAE's own gauge-adjusted radar (RMSE 2.26 mm) beats every link adjustment (3.08) at
   every distance from the links; it is not independent of the gauges it is scored at.
 - Over New York the best link map differs from MRMS by NRMSE 0.57, against 0.33 for the PWS.
+- Across the Netherlands (summer 2012, ~2800 paths, RAINLINK), IDW link maps at KNMI's
+  gauges reach hourly correlation 0.77 and daily r² 0.72 with -3% bias; single paths are
+  noisier (median correlation 0.69), and a few paths under 1 km read several times the
+  gauge's rain.
 
 Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores).
