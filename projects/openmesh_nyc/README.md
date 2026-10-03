@@ -14,7 +14,9 @@ opportunistically for high-resolution urban weather monitoring.
 - **Ground truth:** 37 Weather Underground PWS (5/15-min) + 3 NOAA ASOS stations
 - **Study period:** ~900 mm total rainfall, from intense rain to the winter
   2023–24 snowstorms; attenuation up to 30 dB with frequent V-band outages
-- **Data DOI:** https://doi.org/10.5281/zenodo.15268340
+- **Data DOI:** [10.5281/zenodo.15268340](https://doi.org/10.5281/zenodo.15268340) (all versions; FieldSense reads
+  [10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692)); PWS
+  [10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286)
 - **Code:** https://github.com/drorjac/OpenMesh
 
 ## Structure
@@ -36,6 +38,7 @@ openmesh_nyc/
 ├── tests/test_stations.py
 ├── requirements.txt
 └── README.md
+```
 
 `openmesh_data.ipynb` covers what the three archived notebooks did, in ~25 lines
 of calls into `core.opensense` and `src/stations.py`, and runs offline on the
@@ -50,7 +53,6 @@ report one sublink (51 of 75; 20 report two, 4 three), and 8 of the 37 PWS
 record under 1 mm in 20 days against ~70 mm at the rest. Seven of those are
 89-100% missing; one (KNYNEWYO1622) reports throughout but stays at zero,
 and pypwsqc's faulty-zero filter flags 88% of its record.
-```
 
 The published data itself is in the shared store `~/data/cml/openmesh/`,
 alongside the other open datasets — see *Data* below and `DATA.md`.
@@ -114,6 +116,16 @@ each other by a factor of two or more, so `Z = 180 S^2.0` is a defensible
 choice rather than a settled one.
 
 `notebooks/nexrad_rain_vs_snow.ipynb` works through all of it.
+
+## Related
+
+- [`nyc_rain_maps`](../nyc_rain_maps/): rain maps from these links against MRMS, PWS and ASOS
+  over 52 storms.
+- [`multisensor_maps`](../multisensor_maps/), [`radar_adjustment`](../radar_adjustment/): New
+  York alongside Gothenburg and Emilia-Romagna; MRMS adjusted with the PWS and links.
+- [`examples/03_openmesh.ipynb`](../../examples/03_openmesh.ipynb) and
+  [`tutorials/01_open_data.ipynb`](../../tutorials/): the dataset next to the other open
+  networks.
 
 ## The manuscript
 

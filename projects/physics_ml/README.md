@@ -228,7 +228,25 @@ time derivative picks up Gibbs error and reads 12.8 instead.
 
 ![SINDy advection recovery](results/discover_advection.png)
 
+## Related
+
+- [`spatial_interpolation`](../spatial_interpolation/) benchmarks POD-SINDy against learned
+  nowcasters; [`os_nowcasting`](../os_nowcasting/) estimates the same advection with pysteps'
+  optical flow.
+- [`opensense_pipeline`](../opensense_pipeline/) measures the wet-antenna offset that the PySR
+  prefactor reflects.
+- [`tutorials/02_cml_signal_to_rain.ipynb`](../../tutorials/) and
+  [`03_training_a_retrieval_network.ipynb`](../../tutorials/): the power law and a trained
+  retrieval, step by step.
+
 ## References
 
-- ITU-R P.838-3, *Specific attenuation model for rain for use in prediction methods*.
-- Brunton, Proctor & Kutz (2016), SINDy, *PNAS* 113(15); Cranmer (2023), PySR, arXiv:2305.01582.
+1. ITU-R P.838-3 (2005). Specific attenuation model for rain for use in prediction methods.
+   <https://www.itu.int/rec/R-REC-P.838-3-200503-I/en>
+2. Brunton, S. L., Proctor, J. L., and Kutz, J. N. (2016). Discovering governing equations from
+   data by sparse identification of nonlinear dynamical systems. *PNAS*, 113(15), 3932-3937.
+   [doi:10.1073/pnas.1517384113](https://doi.org/10.1073/pnas.1517384113);
+   code: [PySINDy](https://github.com/dynamicslab/pysindy)
+3. Cranmer, M. (2023). Interpretable machine learning for science with PySR and
+   SymbolicRegression.jl. [arXiv:2305.01582](https://arxiv.org/abs/2305.01582);
+   code: [PySR](https://github.com/MilesCranmer/PySR)

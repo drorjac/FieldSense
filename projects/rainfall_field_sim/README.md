@@ -11,13 +11,16 @@ happen to be?**
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"                                       # from the repository root
 pip install -r projects/rainfall_field_sim/requirements.txt
 
 python projects/rainfall_field_sim/src/run_demo.py
 ```
 
 Runs in about 2 min and writes seven figures plus summary tables to `results/`.
+[`notebooks/01_regimes_and_reconstruction.ipynb`](notebooks/01_regimes_and_reconstruction.ipynb)
+walks through the same chain step by step (about a minute; the density sweep is left to the
+script).
 `--no-sweep` skips the network-density sweep. `--links`,
 `--grid` and `--dx` change the network size and domain resolution.
 
@@ -168,6 +171,7 @@ rainfall_field_sim/
 ├── src/
 │   ├── figures.py        # figure builders
 │   └── run_demo.py       # entry point
+├── notebooks/            # the demonstration step by step
 ├── results/              # generated figures
 ├── requirements.txt
 └── README.md
@@ -198,3 +202,21 @@ the error budget and density sweep, `fig7` the fields in motion.
 - Every number in this README is produced by `run_demo.py` with default
   settings. Re-run it rather than trusting the table if you change anything.
 - All randomness is seeded, so the figures are reproducible.
+
+## Related
+
+- [`synthetic_testbed`](../synthetic_testbed/) generalises the simulator (ten rain models,
+  non-uniform flows, evolution, a radar, gauges and PWS) and scores every FieldSense method on it.
+- [`physics_ml`](../physics_ml/) uses these fields to test SINDy's advection recovery, and
+  [`spatial_interpolation`](../spatial_interpolation/) its moving fields for nowcasting.
+- [`multisensor_maps`](../multisensor_maps/) and [`tutorials/05_2d_rain_maps.ipynb`](../../tutorials/):
+  the same reconstruction question on real networks, where the truth is unknown.
+
+## References
+
+1. ITU-R P.838-3 (2005). Specific attenuation model for rain for use in prediction methods.
+   <https://www.itu.int/rec/R-REC-P.838-3-200503-I/en>
+2. Leijnse, H., Uijlenhoet, R., and Stricker, J. N. M. (2008). Microwave link rainfall
+   estimation: effects of link length and frequency, temporal sampling, power resolution, and
+   wet antenna attenuation. *Advances in Water Resources*, 31, 1481-1493.
+   [doi:10.1016/j.advwatres.2008.03.004](https://doi.org/10.1016/j.advwatres.2008.03.004)

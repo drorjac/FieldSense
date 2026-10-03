@@ -18,6 +18,15 @@ three kinds of sensor. Two studies on the same 10 largest storms of each network
 | Emilia-Romagna, OpenRainER (2021-22) | 151 links x 2 channels, 1 min | 319 ARPAE gauges, 15 min | ARPAE composite, 15-min totals |
 | New York City, OpenMesh (2023-24) | 103 sublinks, RSL at 1 min | 37 WU PWS, 4 ASOS | MRMS Pass 2 and radar-only, hourly |
 
+Sources: OpenMRG [doi:10.5281/zenodo.7107689](https://doi.org/10.5281/zenodo.7107689)
+(Andersson et al., 2022) and the OpenMRG2 Netatmo preview; OpenRainER
+[doi:10.5281/zenodo.22829808](https://doi.org/10.5281/zenodo.22829808); OpenMesh
+[doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692) and
+[doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286) (Jacoby et al., 2026);
+MRMS from [NOAA's open-data archive](https://registry.opendata.aws/noaa-mrms-pds/) and ASOS from
+the [Iowa Environmental Mesonet](https://mesonet.agron.iastate.edu/). File locations:
+[`DATA.md`](../../DATA.md).
+
 ## In short
 
 - **Best link map: the RNN**, on every network, against the radar and at held-out gauges, on
@@ -107,7 +116,7 @@ storms per network, every product is built on the network's grid:
   `pcpn_maps`) and the four methods of the OpenSense package `mergeplg` 0.1.0: difference IDW
   (additive, multiplicative), difference block kriging, and block kriging with external drift
   (`core.maps.mergeplg_methods`). The latter reproduce `mergeplg`'s own `adjust()` exactly
-  (`tests/test_merging.py`), vectorised and evaluable at any cells, so a study with held-out
+  ([`tests/test_merging.py`](../../tests/test_merging.py), repository root), vectorised and evaluable at any cells, so a study with held-out
   gauges runs in minutes rather than days. The kriging variogram is fitted to each network's
   radar fields (range 53-56 km); `mergeplg`'s default (5 km) changes the scores by at most 0.07.
 
@@ -147,7 +156,7 @@ working link and is left out):
 
 # Running it
 
-## Run
+## How to run
 
 ```bash
 pip install -e ".[opensense,mrms,notebooks]"                 # from the repository root
@@ -155,6 +164,7 @@ python projects/multisensor_maps/src/run.py events           # the study events 
 python projects/multisensor_maps/src/run.py event --network openrainer --start "2021-09-26 06:00" --end "2021-09-26 19:00"
 python projects/multisensor_maps/src/run.py study            # -> results/report.md
 python projects/multisensor_maps/src/run.py merge            # -> results/merging/report.md
+python projects/multisensor_maps/src/run.py merge --network openmrg --refresh   # one network, rescored
 ```
 
 The full records must be downloaded first (`python -m core.opensense.fetch --dataset openmrg`,
@@ -187,3 +197,33 @@ Intermediate files (not tracked) are under `dataset/open_datasets/_multisensor_m
 merging study caches every storm's inputs and station-hour scores in `merging/`, so after the
 first run (about an hour) `run.py merge` rebuilds the report in a few minutes;
 `--refresh` rescores. What each results file holds: [`results/README.md`](results/README.md).
+
+## Related
+
+- [`radar_adjustment`](../radar_adjustment/): the OpenSense radar-adjustment intercomparison
+  reproduced over whole summers with mergeplg `main` (eight methods, three range-check
+  settings, RADOLAN), with links and weather stations as adjusters. It complements Part 2 here, which
+  scores ten storms per network with held-out gauges.
+- [`opensense_pipeline`](../opensense_pipeline/): the first merging benchmark on OpenMRG and
+  OpenRainER, with the mergeplg 0.1.0 and `main` comparison.
+- [`cml_rnn`](../cml_rnn/): the RNN retrieval used here.
+- [`tutorials/05_2d_rain_maps.ipynb`](../../tutorials/) and
+  [`06_radar_adjustment.ipynb`](../../tutorials/): the interpolation and merging methods,
+  step by step.
+
+## References
+
+1. Goldshtein, O., Messer, H., and Zinevich, A. (2009). Rain rate estimation using
+   measurements from commercial telecommunications links. *IEEE Transactions on Signal
+   Processing*, 57(4), 1616-1625. [doi:10.1109/TSP.2009.2012554](https://doi.org/10.1109/TSP.2009.2012554)
+2. Overeem, A., Leijnse, H., and Uijlenhoet, R. (2016). Retrieval algorithm for rainfall
+   mapping from microwave links in a cellular communication network. *Atmospheric Measurement
+   Techniques*, 9, 2425-2444. [doi:10.5194/amt-9-2425-2016](https://doi.org/10.5194/amt-9-2425-2016)
+3. Andersson, J. C. M., et al. (2022). OpenMRG. *Earth System Science Data*, 14, 5411-5426.
+   [doi:10.5194/essd-14-5411-2022](https://doi.org/10.5194/essd-14-5411-2022)
+4. Jacoby, D., et al. (2026). OpenMesh. *Earth System Science Data*, 18, 5817-5836.
+   [doi:10.5194/essd-18-5817-2026](https://doi.org/10.5194/essd-18-5817-2026)
+5. Software: [mergeplg](https://github.com/OpenSenseAction/mergeplg),
+   [poligrain](https://github.com/OpenSenseAction/poligrain),
+   [pycomlink](https://github.com/pycomlink/pycomlink),
+   [PyKrige](https://github.com/GeoStat-Framework/PyKrige).

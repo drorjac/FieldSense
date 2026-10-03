@@ -52,6 +52,18 @@ Validation RMSE picked each step (test weeks never used); test weeks shown for t
   training windows (0.505), and oversampling wet windows (0.466-0.474 - it taught the network to
   over-read ordinary hours).
 
+## Data
+
+| network | links | references along each link | source |
+|---|---|---|---|
+| Gothenburg (OpenMRG), JJA 2015 | TSL + RSL, 10 s -> 1 min | SMHI radar, Netatmo PWS, municipal gauges | [doi:10.5281/zenodo.7107689](https://doi.org/10.5281/zenodo.7107689); Andersson et al. (2022) |
+| Emilia-Romagna (OpenRainER), 2021-22 | TSL + RSL, 1 min | ARPAE radar (15-min totals), ARPAE gauges | [doi:10.5281/zenodo.22829808](https://doi.org/10.5281/zenodo.22829808) |
+| New York City (OpenMesh), 2023-24 | RSL only, 1 min | MRMS radar, WU PWS | [doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692), [doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286); Jacoby et al. (2026) |
+
+All are read through `core/opensense/networks.py`, hour-ending in UTC; file locations are in
+[`DATA.md`](../../DATA.md). The time-label convention of each source (interval start or end)
+was established by lagging it against the links (see [`multisensor_maps`](../multisensor_maps/)).
+
 ## What is trained on what
 
 **Inputs** (`core/cml/rnn.py`), per link and hour: 60 one-minute values of *excess loss* - total
@@ -84,7 +96,7 @@ it pulled heavy rain down.
 | Emilia-Romagna, May-Nov 2021 and 2022 | 288 | 10,272 | 4,503 / 2,512 / 3,257 | 105,472 |
 | New York City, Nov 2023 - Jun 2024 | 39 | 5,832 | 2,749 / 1,182 / 1,901 | 11,619 |
 
-## Run
+## How to run
 
 ```bash
 pip install -e ".[opensense,mrms,notebooks]" && pip install -r projects/cml_rnn/requirements.txt
@@ -125,3 +137,28 @@ cml_rnn/
   per-network scale is therefore fitted on training and validation weeks together.
 - One model for three networks: the network is known where it is used, and enters only through
   the per-network scale.
+
+## Related
+
+- [`tutorials/03_training_a_retrieval_network.ipynb`](../../tutorials/): training a small
+  retrieval network step by step, with the data preparation and split explained.
+- [`cml_retrieval`](../cml_retrieval/): the same PyNNcml network trained against gauges on
+  OpenMRG alone.
+- [`multisensor_maps`](../multisensor_maps/) and [`radar_adjustment`](../radar_adjustment/):
+  the trained model as a map retrieval and as a radar adjuster in New York.
+
+## References
+
+1. Habi, H. V., and Messer, H. (2021). Recurrent neural network for rain estimation using
+   commercial microwave links. *IEEE TGRS*, 59(5), 3672-3681.
+   [doi:10.1109/TGRS.2020.3010305](https://doi.org/10.1109/TGRS.2020.3010305);
+   code: [PyNNcml](https://github.com/haihabi/PyNNcml)
+2. Overeem, A., Leijnse, H., and Uijlenhoet, R. (2016). Retrieval algorithm for rainfall
+   mapping from microwave links in a cellular communication network. *Atmospheric Measurement
+   Techniques*, 9, 2425-2444. [doi:10.5194/amt-9-2425-2016](https://doi.org/10.5194/amt-9-2425-2016)
+3. Andersson, J. C. M., et al. (2022). OpenMRG. *Earth System Science Data*, 14, 5411-5426.
+   [doi:10.5194/essd-14-5411-2022](https://doi.org/10.5194/essd-14-5411-2022)
+4. Jacoby, D., et al. (2026). OpenMesh: wireless signal dataset for opportunistic urban
+   weather sensing in New York City. *Earth System Science Data*, 18, 5817-5836.
+   [doi:10.5194/essd-18-5817-2026](https://doi.org/10.5194/essd-18-5817-2026)
+5. ITU-R P.838-3 (2005). <https://www.itu.int/rec/R-REC-P.838-3-200503-I/en>

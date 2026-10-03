@@ -14,7 +14,7 @@ Every input file is looked up in two places, in this order
 
 Downloads (Zenodo, MRMS, NEXRAD, IEM) are inputs too, so they are written into
 `~/data/cml`. What FieldSense *produces* — `processed/`, `_cml_rnn/`,
-`_multisensor_maps/`, nowcast caches, the PyNNcml symlink view — stays under
+`_multisensor_maps/`, `_radar_adjustment/`, `_os_nowcasting/`, nowcast caches, the PyNNcml symlink view — stays under
 `dataset/open_datasets/` (git-ignored).
 
 On a new machine: clone, then either copy the files below into `~/data/cml/`

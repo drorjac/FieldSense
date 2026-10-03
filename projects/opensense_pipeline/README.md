@@ -39,6 +39,18 @@ minute and under 50 lines of code: every cell is a call into `core.opensense`.
   poligrain reading link length in coordinate units, low bands whose rain
   signal sits below the RSL quantization.
 
+## Contents
+
+1. [Running it](#running-it) - install, example subsets, full records
+2. [The data](#the-data) - OpenMRG and OpenRainER
+3. [CML retrieval](#cml-retrieval) - the chain, its traps, what sets the magnitude
+4. [Checking the retrieval against OpenSense's own](#checking-the-retrieval-against-opensenses-own)
+5. [Improving the retrieval with the OpenSense ecosystem](#improving-the-retrieval-with-the-opensense-ecosystem)
+6. [Radar against CML maps, through precipitation events](#radar-against-cml-maps-through-precipitation-events)
+7. [Why a synthetic stage](#why-a-synthetic-stage)
+8. [Results](#results) - synthetic and real merging, distance to links, mergeplg `main`
+9. [Figures](#figures), [Layout](#layout), [Notes](#notes), [Related](#related), [References](#references)
+
 ## Running it
 
 ```bash
@@ -150,6 +162,9 @@ from the curated events and would otherwise overwrite them.
 | radar | 48 × 37 at ~2 km, 5 min, pseudo-dBZ | 290 × 373 at ~1 km, 15 min, mm |
 | gauges | 10 municipal | 319 AWS |
 | download | 318 MB zip (4.6 GB unpacked) | 1.44 GB of 4.6 GB |
+
+Time labels: OpenRainER's 15-minute radar and gauge accumulations are stamped at the
+interval end; every convention and file location is in [`DATA.md`](../../DATA.md).
 
 The two have **opposite sensor balances** — OpenMRG is link-rich and
 gauge-poor, OpenRainER the reverse — which is exactly why running both is
@@ -728,7 +743,7 @@ the published files:
 
 ```bash
 python -m venv .venv-mergeplg-main
-.venv/bin/pip freeze | grep -v -e '^mergeplg' -e '^-e' > /tmp/freeze.txt
+.venv/bin/pip freeze | grep -v -e '^mergeplg' -e '^-e' -e '^pysteps' > /tmp/freeze.txt   # pysteps is not needed here and may not build
 .venv-mergeplg-main/bin/pip install -r /tmp/freeze.txt && .venv-mergeplg-main/bin/pip install --no-deps -e .
 .venv-mergeplg-main/bin/pip install --no-deps "mergeplg @ git+https://github.com/OpenSenseAction/mergeplg.git@dd380b1ed9b5b6bd38fdb3dfdfcca1659ceb8128"
 .venv-mergeplg-main/bin/python projects/opensense_pipeline/src/run_pipeline.py --val-select gauge --skip-benchmark
@@ -816,11 +831,9 @@ core/viz_style.py       # palette and matplotlib defaults
 
 - Raw archives and derived netCDFs are gitignored; `core/opensense/fetch.py` and the ingest
   modules reproduce them.
-- This project uses an isolated `.venv` at the repo root. The pre-existing
-  venv at `~/enviorments/FieldSense` sets
-  `include-system-site-packages = true`, and system `cftime`/`netCDF4` built
-  against NumPy 1.x collide with its NumPy 2.4.6 — `import netCDF4` fails
-  there.
+- Use an isolated `.venv` at the repository root. An environment created with
+  `include-system-site-packages = true` can pick up system `cftime`/`netCDF4` built against
+  NumPy 1.x, which collide with NumPy 2 - `import netCDF4` then fails.
 - `poligrain`'s `GridAtPoints.__call__` reads `da_point_data.lon`
   unconditionally, even when constructed for projected coordinates, so gauge
   arrays must carry lon/lat even though nothing reads them numerically.
@@ -831,8 +844,9 @@ core/viz_style.py       # palette and matplotlib defaults
   and links under 0.5 km. Against the old output: r = 0.99, event total +3%.
   The OpenMRG and OpenMesh ingests are unchanged: the OpenMRG one differs only
   in float32 vs float64 arithmetic (event total 5e-9).
-- Delete `processed/<event>_*.nc` to rebuild an event. `--no-cache` recomputes
-  without reading the cache, and also without writing it.
+- Delete `processed/<event>_*.nc` to rebuild an event. The ingest scripts
+  (`ingest_openmrg.py`, `ingest_openrainer.py`, `ingest_openmesh.py`) take `--no-cache`,
+  which recomputes without reading the cache, and also without writing it.
 - Timestamp conventions were checked by lagging the 1-minute CML against each
   reference. OpenRainER accumulations are stamped at interval end (a whole
   15-minute step; corrected). OpenMRG's radar correlates best with the CML
@@ -845,3 +859,46 @@ core/viz_style.py       # palette and matplotlib defaults
   validation, so `--val-max-cells` (default 6000) coarsens the grid for the
   pooled validation only; the published maps stay at full resolution and the
   coarsening applies identically to every method.
+
+## Related
+
+- [`radar_adjustment`](../radar_adjustment/): OpenSense's radar-adjustment intercomparison
+  reproduced over whole summers on the same two networks, with RADOLAN, range checks and
+  weather stations.
+- [`multisensor_maps`](../multisensor_maps/): links, gauges and radar merged every way on
+  three networks, with the RNN retrieval.
+- [`cml_rnn`](../cml_rnn/): a trained retrieval that removes the magnitude problem described
+  above.
+- [`tutorials/`](../../tutorials/): the data, the retrieval chain, radar, 2D maps and radar
+  adjustment, step by step.
+
+## References
+
+1. Andersson, J. C. M., Olsson, J., van de Beek, R. (C. Z.), and Hansryd, J. (2022). OpenMRG.
+   *Earth System Science Data*, 14, 5411-5426.
+   [doi:10.5194/essd-14-5411-2022](https://doi.org/10.5194/essd-14-5411-2022)
+2. Fencl, M., et al. (2023). Data formats and standards for opportunistic rainfall sensors.
+   *Open Research Europe*, 3, 169.
+   [doi:10.12688/openreseurope.16068.1](https://doi.org/10.12688/openreseurope.16068.1)
+3. Schleiss, M., and Berne, A. (2010). Identification of dry and rainy periods using
+   telecommunication microwave links. *IEEE Geoscience and Remote Sensing Letters*, 7(3),
+   611-615. [doi:10.1109/LGRS.2010.2043052](https://doi.org/10.1109/LGRS.2010.2043052)
+4. Overeem, A., Leijnse, H., and Uijlenhoet, R. (2016). Retrieval algorithm for rainfall
+   mapping from microwave links in a cellular communication network. *Atmospheric Measurement
+   Techniques*, 9, 2425-2444. [doi:10.5194/amt-9-2425-2016](https://doi.org/10.5194/amt-9-2425-2016)
+5. Leijnse, H., Uijlenhoet, R., and Stricker, J. N. M. (2008). Microwave link rainfall
+   estimation: effects of link length and frequency, temporal sampling, power resolution, and
+   wet antenna attenuation. *Advances in Water Resources*, 31, 1481-1493.
+   [doi:10.1016/j.advwatres.2008.03.004](https://doi.org/10.1016/j.advwatres.2008.03.004)
+6. Pastorek, J., Fencl, M., Rieckermann, J., and Bares, V. (2022). Precipitation estimates from
+   commercial microwave links: practical approaches to wet-antenna correction. *IEEE TGRS*, 60,
+   1-9. [doi:10.1109/TGRS.2021.3110004](https://doi.org/10.1109/TGRS.2021.3110004)
+7. Polz, J., Chwala, C., Graf, M., and Kunstmann, H. (2020). Rain event detection in commercial
+   microwave link attenuation data using convolutional neural networks. *Atmospheric
+   Measurement Techniques*, 13, 3835-3853.
+   [doi:10.5194/amt-13-3835-2020](https://doi.org/10.5194/amt-13-3835-2020)
+8. ITU-R P.838-3 (2005). <https://www.itu.int/rec/R-REC-P.838-3-200503-I/en>
+9. Software: [poligrain](https://github.com/OpenSenseAction/poligrain),
+   [mergeplg](https://github.com/OpenSenseAction/mergeplg),
+   [pycomlink](https://github.com/pycomlink/pycomlink),
+   [pypwsqc](https://github.com/OpenSenseAction/pypwsqc).

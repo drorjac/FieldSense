@@ -15,7 +15,7 @@ rebuilt for every fold. This module runs the same methods:
   target cells, vectorised over targets, with the block-to-block variogram of all
   observations computed once;
 
-and ``tests/test_mergeplg_methods.py`` checks the result against ``mergeplg``'s own
+and ``tests/test_merging.py`` checks the result against ``mergeplg``'s own
 ``adjust()`` on the full grid.
 
 ====================  =============================================  ==========================

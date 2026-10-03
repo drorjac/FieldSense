@@ -1,0 +1,4 @@
+# On top of: pip install -e ".[opensense,notebooks]"
+pysteps>=1.21          # motion, nowcasts, verification
+opencv-python-headless # Lucas-Kanade and LINDA's Shi-Tomasi features
+dask                   # optional: parallel LINDA / LINDA-P

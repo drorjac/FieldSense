@@ -1,0 +1,17 @@
+{
+  "events": [
+    "openmesh_20231121T18",
+    "openmesh_20231210T16",
+    "openmesh_20231217T18",
+    "openmesh_20231227T15",
+    "openmesh_20240109T16",
+    "openmesh_20240302T12",
+    "openmesh_20240309T19",
+    "openmesh_20240323T06",
+    "openmesh_20240403T07"
+  ],
+  "excluded_incomplete": [
+    "openmesh_20240306T17"
+  ],
+  "station_hours": 663
+}

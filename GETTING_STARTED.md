@@ -15,9 +15,9 @@ combines it with other sensors that already exist - personal weather stations
 The work follows one chain, and each project in `projects/` takes one step:
 
 ```
-open data  ->  signal loss to rain rate  ->  rainfall map  ->  merged with radar  ->  forecast
-examples/      cml_retrieval                 opensense_pipeline                       spatial_interpolation
-openmesh_nyc   physics_ml
+open data  ->  signal loss to rain rate  ->  rainfall map  ->  merged with radar and stations  ->  forecast
+examples/      cml_retrieval                 multisensor_maps  radar_adjustment                    os_nowcasting, multisensor_nowcasting
+openmesh_nyc   cml_rnn, physics_ml           nyc_rain_maps     opensense_pipeline                  spatial_interpolation
 ```
 
 Two further projects ask *why* results look the way they do:
@@ -25,6 +25,11 @@ Two further projects ask *why* results look the way they do:
 from where the links are?) and `physics_ml` (can machine learning recover, or
 beat, the physics?). The root [README](README.md) lists every project with
 its starting notebook.
+
+To learn the methods themselves, work through [`tutorials/`](tutorials/) in
+order: the open datasets, link signal to rain, training a retrieval network,
+weather radar, 2D rain maps, radar adjustment, nowcasting with pysteps, a
+learned nowcaster, and nowcasting with links, radar and weather stations together. Each runs in a few minutes on the example data.
 
 ## 1. Fork and clone
 
@@ -167,6 +172,8 @@ when a few days is not enough.
 
 **Cite the original dataset** in any report or paper that uses it.
 
+Every paper, dataset and package, with links: [docs/references.md](docs/references.md).
+
 The OpenSense software these notebooks use:
 [`poligrain`](https://github.com/OpenSenseAction/poligrain) (plotting and
 matching sensors), [`pypwsqc`](https://github.com/OpenSenseAction/pypwsqc)
@@ -182,8 +189,8 @@ matching sensors), [`pypwsqc`](https://github.com/OpenSenseAction/pypwsqc)
    twice: raw and gauge-adjusted. Why is the adjusted one so much closer?
 3. In `examples/03_openmesh.ipynb`, find the snow days in January 2024. Which
    sensors see them, and which do not?
-4. Then choose a project from the [README](README.md) and run its starting
-   notebook.
+4. Work through [`tutorials/`](tutorials/), then choose a project from the
+   [README](README.md) and run its starting notebook.
 
 ## Working rules
 

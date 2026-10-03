@@ -50,8 +50,21 @@ dev = ["pytest"]
 include = ["core*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "projects/cml_retrieval/tests", "projects/physics_ml/tests", "projects/nyc_rain_maps/tests", "projects/openmesh_nyc/tests", "projects/opensense_pipeline/tests", "projects/spatial_interpolation/tests"]
-addopts = "-q"
+testpaths = [
+    "tests",
+    "projects/cml_retrieval/tests",
+    "projects/multisensor_nowcasting/tests",
+    "projects/nyc_rain_maps/tests",
+    "projects/openmesh_nyc/tests",
+    "projects/opensense_pipeline/tests",
+    "projects/os_nowcasting/tests",
+    "projects/physics_ml/tests",
+    "projects/radar_adjustment/tests",
+    "projects/spatial_interpolation/tests",
+]
+# importlib: several projects have a test module of the same name (test_merging.py)
+addopts = "-q --import-mode=importlib"
+pythonpath = ["tests"]
 filterwarnings = [
     # poligrain's wet/dry metrics take the mean of an empty slice when a
     # category is empty; the result is NaN and handled

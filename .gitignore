@@ -96,3 +96,17 @@ dataset/open_datasets/_multisensor_maps/
 !projects/multisensor_maps/results/*.csv
 !projects/cml_rnn/results/*.csv
 !projects/cml_rnn/results/**/*.csv
+
+# radar_adjustment: adjusted fields, prepared inputs and the pinned mergeplg; its result
+# tables are tracked
+dataset/open_datasets/_radar_adjustment/
+!projects/radar_adjustment/results/*.csv
+!projects/radar_adjustment/results/**/*.csv
+
+# multisensor_nowcasting: cubes, forecasts, models and logs (~9 GB); its result tables are tracked
+dataset/open_datasets/_multisensor_nowcasting/
+!projects/multisensor_nowcasting/results/*.csv
+
+# os_nowcasting: caches under dataset/open_datasets/_os_nowcasting/ (ignored above); its result tables are tracked
+dataset/open_datasets/_os_nowcasting/
+!projects/os_nowcasting/results/*.csv

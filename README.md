@@ -2,40 +2,50 @@
 
 Rainfall sensing with the networks that already exist.
 
-Rain gauges are sparse and weather radar measures rain indirectly, high above
-the ground. Networks that are already everywhere can fill the gap: the
-microwave links between mobile-phone towers (commercial microwave links, CMLs)
-lose signal in rain, and personal weather stations (PWS) are dense and free.
-FieldSense turns the signal loss into rain rates and rainfall maps, merges
-them with gauges and radar, forecasts the field a short time ahead, and asks
-where physics-informed machine learning helps.
+Rain gauges are sparse, and weather radar measures rain indirectly, high above the ground.
+Networks that are already everywhere can fill the gap: the microwave links between
+mobile-phone towers (commercial microwave links, CMLs) lose signal in rain, and personal
+weather stations (PWS) are dense and free. FieldSense turns the signal loss into rain rates
+and rainfall maps, merges them with gauges and radar, forecasts the field a short time ahead,
+and tests where machine learning helps and where physics is enough.
 
-**New here?** Start with [GETTING_STARTED.md](GETTING_STARTED.md): forking,
-installing, and opening your first dataset.
+## Where to start
+
+| if you want to | read |
+|---|---|
+| set up your copy and open a first dataset | [GETTING_STARTED.md](GETTING_STARTED.md) |
+| learn the methods, step by step, on real data | [`tutorials/`](tutorials/): nine executed notebooks, from the open datasets to multi-sensor nowcasting |
+| see what is in each open dataset | [`examples/`](examples/) |
+| know which files are read, and where they live | [DATA.md](DATA.md), [`dataset/README.md`](dataset/README.md) |
+| find a paper, dataset or package | [docs/references.md](docs/references.md) |
 
 ## The chain
 
 ```
- open data  ──►  signal loss to rain rate  ──►  rainfall map, merged with radar  ──►  forecast
- examples/       cml_retrieval                  opensense_pipeline                    spatial_interpolation
- openmesh_nyc    physics_ml                     nyc_rain_maps
-                 cml_rnn                        multisensor_maps
+ open data ──► signal loss to rain rate ──► rainfall map ──► merged with radar and stations ──► forecast
+ examples/     cml_retrieval                 multisensor_maps  radar_adjustment                   os_nowcasting
+ openmesh_nyc  cml_rnn                       nyc_rain_maps     opensense_pipeline                 multisensor_nowcasting
+                                                                                                  spatial_interpolation
+               physics_ml
 
- and why the results look the way they do:  rainfall_field_sim (simulation), physics_ml
+ and why the results look the way they do: rainfall_field_sim, synthetic_testbed (simulation), physics_ml
 ```
 
 | project | question | start here |
 |---|---|---|
-| [`examples/`](examples/) | what is in each open dataset, and how to read it | `examples/00_overview.ipynb` |
-| [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and paper | `notebooks/openmesh_data.ipynb` |
+| [`openmesh_nyc`](projects/openmesh_nyc/) | the OpenMesh NYC dataset: links, PWS, ASOS, radar; collection pipelines and data paper | `notebooks/openmesh_data.ipynb` |
 | [`cml_retrieval`](projects/cml_retrieval/) | signal loss to rain rate with PyNNcml on OpenMRG: model-driven chain vs a two-step RNN; five map methods | `notebooks/model_driven_retrieval.ipynb` |
-| [`opensense_pipeline`](projects/opensense_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
 | [`cml_rnn`](projects/cml_rnn/) | PyNNcml's two-step RNN trained on three networks against radar and gauges, head to head with the power law | `notebooks/02_rnn_vs_power_law.ipynb` |
-| [`multisensor_maps`](projects/multisensor_maps/) | links, gauges and radar mapped on one grid on three networks; retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ); the three merged every way (`pcpn_maps` and `mergeplg` methods) | `notebooks/01_three_networks.ipynb` |
-| [`nyc_rain_maps`](projects/nyc_rain_maps/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges, over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
-| [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
-| [`rainfall_field_sim`](projects/rainfall_field_sim/) | on simulated rain: does the error come from the sensors or from where the links are? | `python src/run_demo.py` |
 | [`physics_ml`](projects/physics_ml/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
+| [`multisensor_maps`](projects/multisensor_maps/) | links, gauges and radar on one grid on three networks: retrieval (power law, RNN) x interpolation (IDW, line IDW, GMZ), and the three merged every way | `notebooks/01_three_networks.ipynb` |
+| [`nyc_rain_maps`](projects/nyc_rain_maps/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
+| [`radar_adjustment`](projects/radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, and extended to weather stations, RADOLAN and New York | `notebooks/01_intercomparison.ipynb` |
+| [`opensense_pipeline`](projects/opensense_pipeline/) | raw open data (OpenMRG, OpenRainER) to merged rainfall maps, scored against radar and gauges | `notebooks/02_end_to_end.ipynb` |
+| [`os_nowcasting`](projects/os_nowcasting/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
+| [`multisensor_nowcasting`](projects/multisensor_nowcasting/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |
+| [`spatial_interpolation`](projects/spatial_interpolation/) | nowcasting 15-60 min ahead from CML maps: Transformer, GRU, POD-SINDy vs persistence | `notebooks/nowcasting.ipynb` |
+| [`rainfall_field_sim`](projects/rainfall_field_sim/) | on simulated rain: does the error come from the sensors or from where the links are? | `notebooks/01_regimes_and_reconstruction.ipynb` |
+| [`synthetic_testbed`](projects/synthetic_testbed/) | a rain simulator (cells, meta-Gaussian, RainFARM, cascades, multifractals, a cloud model; non-uniform flows, evolution) seen by radar, links, gauges and PWS: every map, merging, motion and nowcast method scored against the truth; motion learned from the true flow; accuracy from street level (100 m, 5 min) to city scale | `notebooks/01_generators_and_motion.ipynb` |
 
 ## Findings so far
 
@@ -63,6 +73,26 @@ Each is computed in the project named, where the details and caveats are.
   (RMSE 4.45 vs 6.16 mm/h); on the sparse Italian network merging only edges
   radar (7.90 vs 8.00), and all of the gain is within 5 km of a link.
   *(opensense_pipeline)*
+- **The OpenSense radar-adjustment intercomparison reproduces exactly from the raw data,**
+  but only with a newer `mergeplg` than the one its repository pins. Every adjustment beats
+  the radar at independent gauges (hourly RMSE, Gothenburg 1.44 to 1.27 mm; Emilia-Romagna
+  3.58 to 3.08, radar bias +107% to -7%), almost all of the gain is near the links, and
+  without range checks multiplicative adjustment breaks down. Weather stations beat links
+  as adjusters wherever they exist: in New York, MRMS radar-only adjusted with the PWS by
+  RADOLAN (1.39) beats NOAA's gauge-corrected MRMS (1.59). *(radar_adjustment)*
+- **A link map cannot be nowcast on its own; a radar map merged with links can.** pysteps
+  extrapolation of an IDW link map is no better than holding it still (CSI 0.16 vs 0.17 at
+  60 min): the blobs are anchored to the links and their apparent motion is unrelated to the
+  rain's. Merged into the radar, the links keep the radar's motion and nowcast as well as
+  the radar. On the radar, S-PROG adds a little to plain extrapolation (CSI at 1 mm/h,
+  60 min: 0.44 vs 0.40, persistence 0.27). *(os_nowcasting)*
+- **Links and weather stations improve the next-hour forecast at the ground; learning does
+  not improve on pysteps.** Merged into the radar and moved along the radar's motion, they
+  lower the next-hour error at Gothenburg's independent gauges from 1.20 to 1.02 mm
+  (difference -0.19, 95% interval -0.36 to -0.03); New York points the same way but its three
+  ASOS stations cannot resolve it. None of 15 U-Nets, with any combination of radar, links and
+  stations as inputs, beats the radar's pysteps extrapolation on either network.
+  *(multisensor_nowcasting)*
 - **The wet-antenna correction sets the magnitude of retrieved rain,** and
   its default does not transfer between networks: the ratio to the OpenSense
   reference moves from 1.93 to 0.74 across plausible settings.
@@ -78,54 +108,65 @@ Each is computed in the project named, where the details and caveats are.
 - **Geometry, not sensor physics, limits the map.** At 90 links the sensor
   chain changes the reconstruction error by about 1% or less; almost all of
   it comes from rain that falls between links. *(rainfall_field_sim)*
+- **On simulated rain, no map resolves a street over five minutes; near the links, links halve
+  the error.** In a simulated city at 100 m and 1 min, the best map of 5-min totals (radar
+  adjusted with links and gauges by KED) has an error larger than the rain itself (NRMSE 1.12,
+  radar alone 1.60), barely better at 800 m, 0.51 at 6.4 km and 0.38-0.46 over an hour. Within
+  250 m of a link it is 0.85, half the radar's. On a 64 km domain the gauges carry the radar
+  adjustment instead (0.44 vs 0.62 in 24 of 24 scenarios). VET recovers the true motion best,
+  DARTS underestimates speed even for pure translation, and a motion network trained only on
+  simulations nowcasts real OpenMRG radar as well as VET. *(synthetic_testbed)*
 - **Machine learning recovers part of the physics.** PySR finds the ITU-R
   exponent from real data (0.911 vs 0.913) but not the prefactor (83% high,
   the wet-antenna offset again); SINDy finds the advection velocity from
   exact fields but not through a CML network; the hybrid retrieval does not
   beat its own physics branch. *(physics_ml)*
 
-## Example datasets
+## Data
 
-[`examples/`](examples/) has one notebook per dataset of
-[OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data):
-OpenMRG (Gothenburg), OpenRainER (Emilia-Romagna), OpenMesh (New York City)
-and the Amsterdam PWS. Files download on first use, about 60 MB in all.
+Nothing is stored in the repository. [`examples/`](examples/) and the tutorials read the small
+OpenSense example subsets
+([OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data)),
+which download on first use, about 60 MB in all:
 
 ```python
 from core.opensense import example_data
 data = example_data.load("openmrg", "8d")    # {"cml": ..., "radar": ..., "gauge_municipal": ..., ...}
 ```
 
-[`dataset/README.md`](dataset/README.md) lists every dataset with its
-official source, license and citation, and how to fetch the full records.
+The projects read the full published records, downloaded once into `~/data/cml/`
+(`python -m core.opensense.fetch --dataset <name>`). [DATA.md](DATA.md) lists every file
+and what reads it; [`dataset/README.md`](dataset/README.md) gives each dataset's source,
+licence and citation.
 
 ## Layout
 
 ```
 FieldSense/
 ├── GETTING_STARTED.md    # start here
+├── tutorials/            # nine executed notebooks: data, retrieval, training, radar, maps, merging, nowcasting
 ├── examples/             # one notebook per OpenSense example dataset
-├── projects/             # the research projects above; each has src/, notebooks/, README
+├── projects/             # the research projects above; each has src/, notebooks/, results/, README
 ├── core/                 # code more than one project imports (see core/README.md)
 │   ├── opensense/            # data: fetch, example subsets, three networks on one grid, retrieval, PWS QC
-│   ├── simulation/           # synthetic rain fields, moving fields, CML network, reconstruction
-│   ├── scientific_packages/  # PyNNcml compatibility and RNN training; PySINDy/PySR notes
-│   ├── cml/                  # link retrieval methods: power law (four), PyNNcml RNN
-│   ├── maps/                 # IDW, line IDW, GMZ; scores
+│   ├── cml/                  # link retrieval: power law (four variants), PyNNcml RNN
+│   ├── maps/                 # IDW, line IDW, GMZ, merging (pcpn_maps and mergeplg methods), scores
 │   ├── radar/                # KOKX NEXRAD and MRMS for New York
+│   ├── simulation/           # rain generators, flows and evolution, radar/CML/gauge simulators, benchmark
+│   ├── scientific_packages/  # PyNNcml compatibility and RNN training; PySINDy/PySR notes
 │   ├── asos.py, geo.py       # NWS airport gauges; lat/lon domains and grids
 │   ├── itu_p838.py           # ITU-R P.838-3 rain attenuation
 │   └── viz_style.py          # shared palette and matplotlib defaults
+├── docs/references.md    # every dataset, package and paper, with links
 ├── dataset/              # dataset documentation; data is downloaded, never committed
-├── DATA.md               # every input file FieldSense reads (in ~/data/cml or data/interim/), and what it is
+├── DATA.md               # every input file FieldSense reads, and where it lives
 ├── tests/                # pytest for core/ (synthetic data, no downloads)
 └── pyproject.toml        # installs core/ as a package
 ```
 
-Projects import shared code as `from core... import` and never from each
-other; code moves into `core/` when a second project needs it. Notebooks are
-short: each cell calls into the project's `src/` or `core/`, and every number
-shown is computed.
+Projects import shared code as `from core... import` and never from each other; code moves
+into `core/` when a second project needs it. Notebooks stay short: each cell calls into the
+project's `src/` or `core/`, and every number shown is computed.
 
 ## Installation
 
@@ -136,11 +177,19 @@ pip install -e ".[opensense,notebooks,dev]"
 pip install -r projects/<project>/requirements.txt    # the project you work on
 ```
 
+`projects/radar_adjustment` and parts of `projects/opensense_pipeline` need the development
+version of `mergeplg`, which replaces the released 0.1.0; they run in a second environment,
+`.venv-mergeplg-main`, set up as described in
+[`projects/opensense_pipeline/README.md`](projects/opensense_pipeline/README.md).
+
 ## Tests
 
 ```bash
-python -m pytest        # core and every project's tests, offline, about 30 s
+python -m pytest        # core and every project's tests, offline, about 1.5 min
 ```
+
+Tests that need the development `mergeplg` are skipped in `.venv` and run in
+`.venv-mergeplg-main`.
 
 ## Contributing and license
 
