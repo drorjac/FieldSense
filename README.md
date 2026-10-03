@@ -47,6 +47,7 @@ question, its subprojects and their headline numbers.
 | [`simulation`](projects/simulation/) | [`regimes`](projects/simulation/regimes/) | on simulated rain: does the error come from the sensors or from where the links are? | `notebooks/01_regimes_and_reconstruction.ipynb` |
 | | [`testbed`](projects/simulation/testbed/) | a rain simulator seen by radar, links, gauges and PWS: every map, merging, motion and nowcast method scored against the truth, from street level to city scale | `notebooks/01_generators_and_motion.ipynb` |
 | [`physics_ml`](projects/physics_ml/) | [`discovery`](projects/physics_ml/discovery/) | hybrid physics + neural retrieval; rediscovering the ITU-R rain law (PySR) and advection (SINDy) | `notebooks/hybrid_retrieval.ipynb` |
+| | [`path_law_1d`](projects/physics_ml/path_law_1d/) | (proposed project, starter) the path law f(R, L) and a wet antenna with memory: simulated and OpenMRG data, scored baselines, where PySR and SINDy plug in | `notebooks/01_simulated_path_law.ipynb` |
 
 Proposed projects that build on FieldSense, and what it gives them, are in
 [docs/pre_projects/](docs/pre_projects/README.md).
