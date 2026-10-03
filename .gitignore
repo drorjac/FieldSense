@@ -94,6 +94,11 @@ projects/maps/nyc/results/study/events/
 dataset/open_datasets/_cml_rnn/
 dataset/open_datasets/_multisensor_maps/
 !projects/maps/multisensor/results/*.csv
+!projects/maps/multisensor/results/**/*.csv
+!projects/maps/wet_area/results/*.csv
+!projects/maps/link_weights/results/*.csv
+!projects/maps/learned_2d/results/*.csv
+!projects/physics_ml/path_law_1d/results/*.csv
 !projects/retrieval/rnn_three_networks/results/*.csv
 !projects/retrieval/rnn_three_networks/results/**/*.csv
 
