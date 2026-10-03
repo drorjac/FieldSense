@@ -125,3 +125,17 @@ def test_standardised_semivariogram_rises_with_lag_for_a_smooth_field():
     lag, gamma, n = standardised_semivariogram(R, x, y, max_lag_m=30_000.0)
     assert n == 5
     assert gamma[0] < gamma[len(gamma) // 2]
+
+
+def test_idw_map_link_weights_pull_towards_the_heavier_link():
+    from core.geo import Grid
+    from core.maps.idw import idw_map
+    links = xr.DataArray([[1.0], [5.0]], dims=("link", "time"),
+                         coords={"link": ["a", "b"], "time": pd.date_range("2015-07-01", periods=1, freq="h"),
+                                 "mid_lat": ("link", [57.70, 57.70]), "mid_lon": ("link", [11.90, 12.10])})
+    grid = Grid(np.array([57.70]), np.array([12.0]))
+    mid = float(idw_map(links, grid, radius_m=None).squeeze())
+    assert mid == pytest.approx(3.0)
+    assert float(idw_map(links, grid, radius_m=None, weights=[1.0, 3.0]).squeeze()) == pytest.approx(4.0)
+    xr.testing.assert_identical(idw_map(links, grid, radius_m=None),
+                                idw_map(links, grid, radius_m=None, weights=None))

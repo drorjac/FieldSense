@@ -9,6 +9,7 @@ and what does each sensor add when links, gauges, weather stations and radar are
 | [`radar_adjustment`](radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, extended to weather stations, RADOLAN and New York | OpenMRG, OpenRainER, NYC | `notebooks/01_intercomparison.ipynb` |
 | [`nyc`](nyc/) | NYC Mesh link maps against MRMS radar, PWS and ASOS over 52 storms of rain, snow and mix | OpenMesh | `notebooks/01_data.ipynb` |
 | [`wet_area`](wet_area/) | maps that can be dry: a wet/dry mask from the links before IDW, on simulated truth and 29 storms | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_wet_area.ipynb` |
+| [`link_weights`](link_weights/) | each link weighted by its expected error (learned by length on half the storms) when links are mapped | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_link_weights.ipynb` |
 | [`archive_pipeline`](archive_pipeline/) | (frozen) the first end-to-end version, raw data to merged maps; kept for its results, superseded by the three above | OpenMRG, OpenRainER | `notebooks/02_end_to_end.ipynb` |
 
 **Headlines.**
@@ -23,6 +24,9 @@ and what does each sensor add when links, gauges, weather stations and radar are
   then within a few percent) but not their amounts or peaks.
 - ARPAE's own gauge-adjusted radar (RMSE 2.26 mm) beats every link adjustment (3.08) at
   every distance from the links; it is not independent of the gauges it is scored at.
+- Power-law links under 1 km read 2-5 times too high; weighting links by their learned error
+  by length cuts power-law map error at held-out gauges (Gothenburg NRMSE 3.62 to 2.33, New
+  York 1.56 to 0.95). The RNN's error is flat with length.
 - Over New York the best link map differs from MRMS by NRMSE 0.57, against 0.33 for the PWS.
 
 Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores).

@@ -67,18 +67,21 @@ def apply_weights(W: np.ndarray, V: np.ndarray, valid_dtype=float) -> np.ndarray
 
 def idw_map(link_rain: xr.DataArray, grid: Grid, power: float = 2.0,
             radius_m: float | None = 10_000.0, nnear: int | None = None,
-            nan_policy: str = "exclude", eps: float = 0.0) -> xr.DataArray:
+            nan_policy: str = "exclude", eps: float = 0.0, weights=None) -> xr.DataArray:
     """Interpolate ``link_rain(link, time)`` (needs ``mid_lat``/``mid_lon`` coords) to ``grid``.
 
     ``nan_policy``: ``"exclude"`` (a NaN link drops out of that time step's average) or
     ``"zero"`` (NaN treated as 0 mm/h, implementation_1). Cells with no link in range
-    are NaN. Returns ``(time, lat, lon)`` in the input units.
+    are NaN. ``weights`` (one per link) multiplies each link's IDW weight, e.g. the
+    inverse of its expected error variance. Returns ``(time, lat, lon)`` in the input units.
     """
     lat0, lon0 = float(np.mean(grid.lat)), float(np.mean(grid.lon))
     sx, sy = to_local_xy(link_rain.mid_lat.values, link_rain.mid_lon.values, lat0, lon0)
     glat, glon = grid.mesh()
     dx, dy = to_local_xy(glat.ravel(), glon.ravel(), lat0, lon0)
     W = idw_weights(sx, sy, dx, dy, power, radius_m, nnear, eps)          # (cells, links)
+    if weights is not None:
+        W = W * np.asarray(weights, dtype=float)[None, :]
 
     V = link_rain.transpose("link", ...).values.reshape(link_rain.sizes["link"], -1)
     if nan_policy == "zero":

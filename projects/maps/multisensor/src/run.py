@@ -4,6 +4,7 @@ Command line for multisensor_maps.
     python projects/maps/multisensor/src/run.py events                  # the study events per network
     python projects/maps/multisensor/src/run.py event --network openrainer --start "2021-09-26 06:00" --end "2021-09-26 19:00"
     python projects/maps/multisensor/src/run.py study                   # -> results/report.md
+    python projects/maps/multisensor/src/run.py study --n-events 25 --out projects/maps/multisensor/results/events_25
     python projects/maps/multisensor/src/run.py merge                   # -> results/merging/report.md
 """
 
@@ -28,7 +29,7 @@ def rnn_factory():
     return lambda network: {"rnn": HourlyRNN(RNN_MODEL, network).estimate}
 
 
-def study(extra_factory=None) -> Path:
+def study(extra_factory=None, n_events: int | None = None, out: Path | None = None) -> Path:
     from core.opensense.networks import NETWORKS
     from multisensor_maps import plots
     from multisensor_maps.report import write_report
@@ -36,8 +37,9 @@ def study(extra_factory=None) -> Path:
 
     extra_factory = extra_factory or rnn_factory()
 
-    s = run_study(extra_factory=extra_factory)
-    out = s.save()
+    from multisensor_maps.settings import N_EVENTS, RESULTS_DIR
+    s = run_study(extra_factory=extra_factory, n_events=n_events or N_EVENTS)
+    out = s.save(out or RESULTS_DIR)
     figs = {"pooled": "figures/pooled_scores.png", "events": {}}
     plots.pooled_figure(s.pooled_maps, s.pooled_points, out / figs["pooled"])
     for n, res in s.examples.items():
@@ -72,7 +74,9 @@ def main(argv=None) -> None:
     p.add_argument("--network", required=True, choices=["openmrg", "openrainer", "openmesh"])
     p.add_argument("--start", required=True)
     p.add_argument("--end", required=True)
-    sub.add_parser("study")
+    p = sub.add_parser("study")
+    p.add_argument("--n-events", type=int, default=None, help="events per network (default: settings)")
+    p.add_argument("--out", type=Path, default=None, help="results folder (default: results/)")
     p = sub.add_parser("merge")
     p.add_argument("--network", action="append", choices=["openmrg", "openrainer", "openmesh"])
     p.add_argument("--refresh", action="store_true", help="rescore every event (inputs stay cached)")
@@ -90,7 +94,7 @@ def main(argv=None) -> None:
         print(res.pairwise()[["estimate", "reference", "rel_bias", "nrmse", "corr"]].round(2).to_string())
         print(res.point_check()[["estimate", "stations", "rel_bias", "nrmse", "corr"]].round(2).to_string())
     elif args.cmd == "study":
-        print(study())
+        print(study(n_events=args.n_events, out=args.out))
     elif args.cmd == "merge":
         for name in ("pycomlink", "core.cml", "multisensor_maps.event"):
             logging.getLogger(name).setLevel(logging.WARNING)

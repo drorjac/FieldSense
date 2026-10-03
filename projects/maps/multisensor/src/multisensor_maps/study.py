@@ -103,12 +103,12 @@ class Study:
 
 
 def run_study(networks=("openmrg", "openrainer", "openmesh"), methods=METHODS, extra_factory=None,
-              near_km: float = 2.0) -> Study:
+              near_km: float = 2.0, n_events: int = N_EVENTS) -> Study:
     """``extra_factory(network) -> {name: f(links)}`` adds methods from elsewhere (the RNN)."""
     ev_rows, ev_scores, link_rows, errors, examples = [], [], [], {}, {}
     map_pairs, point_pairs = {}, {}
     for network in networks:
-        events = network_events(network)
+        events = network_events(network, n_events)
         ev_rows.append(events)
         extra = extra_factory(network) if extra_factory else None
         for ev in events.itertuples():

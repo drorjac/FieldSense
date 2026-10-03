@@ -102,18 +102,20 @@ calling mergeplg directly (T11: it reproduces the OpenSense intercomparison, whi
 mergeplg's own API). `physics_ml` is now a stage folder (`physics_ml/discovery`).
 
 ### 1-D
-- [ ] T13. Tests: `cml_network.forward_model`, `path_averaging_bias`,
+- [x] T13. Tests: `cml_network.forward_model`, `path_averaging_bias`,
       `retrieve_rain`, `reconstruct.idw_path`, `fields_1d.metagaussian_1d`,
       `cascade_1d`, `series_stats`.
-- [ ] T14. Study in `simulation/regimes`: path-averaging bias against
+- [x] T14. Study in `simulation/regimes`: path-averaging bias against
       along-path variability (correlation length, wet fraction, intermittency)
       for each network's link lengths and frequencies. Output: an error model,
       bias and spread per link given length, frequency and regime.
-- [ ] T15. Real-data check on OpenMRG and NYC: radar along each link
+- [x] T15. Real-data check on OpenMRG and NYC: radar along each link
       (`path_sample`) against link rain; does the error model predict the
       scatter?
-- [ ] T16. Feed the per-link spread into merging as observation error
+- [x] T16. Feed the per-link spread into merging as observation error
       (KED/kriging noise term); compare with the current merged maps.
+
+T13-T15 were done as the 1-D proposal's base (`physics_ml/path_law_1d`, `core/simulation/wet_antenna.py`, `tests/test_simulation_1d.py`). T16 became `maps/link_weights`: the error by length learned on real storms (path averaging alone is a small part of it), used as IDW weights.
 
 ### 2-D studies (in `maps/`)
 - [x] T17. Maps that can be dry: wet/dry mask from links and PWS before
