@@ -1,0 +1,5 @@
+source,what,scale,rel_bias,cv,r2
+"Overeem et al. 2016, AMT",path-averaged links,15 min,0.105,3.84,0.54
+"Overeem et al. 2016, AMT","map, IDW",15 min,0.083,3.3,0.41
+"Overeem et al. 2016, AMT","map, IDW",daily,0.082,0.51,0.7
+"Overeem et al. 2016, AMT","map, kriging",daily,0.014,0.54,0.73

@@ -63,6 +63,11 @@ IEM_CACHE = "openmesh/weather/raw_fetch/iem_cache"        # ASOS 1-min + METAR p
 MRMS_CACHE = "openmesh/weather/radar/mrms_cache"          # MRMS QPE crops
 NEXRAD_CACHE = "openmesh/weather/radar/nexrad_okx"        # NEXRAD OKX level-3 event files
 
+# --- Netherlands CML (Overeem et al. 2024; 4TU doi:10.4121/be252844...) ------
+NETHERLANDS_DOWNLOAD = "netherlands/_download"            # IDRawCMLdata.zip (RAINLINK text)
+NETHERLANDS_MONTHLY = "netherlands/monthly"               # cml_YYYY-MM.nc, made by the loader
+NETHERLANDS_KNMI = "netherlands/knmi_hourly"              # KNMI hourly RH per month (csv)
+
 # --- OpenSense example subsets (small demo extracts, never a result basis) ---
 SAMPLES = {
     "OpenMRG": "openmrg/_sample_8d",

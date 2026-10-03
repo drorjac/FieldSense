@@ -42,6 +42,7 @@ question, its subprojects and their headline numbers.
 | | [`wet_area`](projects/maps/wet_area/) | maps that can be dry: a wet/dry mask from the links before interpolation, on simulated truth and 29 storms | `notebooks/01_wet_area.ipynb` |
 | | [`link_weights`](projects/maps/link_weights/) | links weighted by their expected error, learned by length on half the storms, when mapped | `notebooks/01_link_weights.ipynb` |
 | | [`learned_2d`](projects/maps/learned_2d/) | (proposed project, starter) learned link-to-map models: an OpenMRG dataset split by storm, IDW/OK/GMZ baselines with the proposal's metrics, a minimal U-Net, simulated truth | `notebooks/01_dataset.ipynb` |
+| | [`netherlands`](projects/maps/netherlands/) | the whole Dutch network (Overeem et al. 2024) through RAINLINK, summer 2012: paths and IDW maps against KNMI's hourly gauges | `notebooks/01_netherlands.ipynb` |
 | | [`archive_pipeline`](projects/maps/archive_pipeline/) | (frozen) the first end-to-end version: raw open data (OpenMRG, OpenRainER) to merged rainfall maps | `notebooks/02_end_to_end.ipynb` |
 | [`nowcasting`](projects/nowcasting/) | [`pysteps`](projects/nowcasting/pysteps/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
 | | [`multisensor`](projects/nowcasting/multisensor/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |
@@ -112,6 +113,10 @@ Each is computed in the project named, where the details and caveats are.
   differs from MRMS radar by NRMSE 0.33 and the best link map by 0.57; the dynamic-baseline
   methods are the only unbiased ones. Mixed precipitation is over-read by every method, and
   snow is measured by neither links nor PWS. *(maps/nyc)*
+- **A country-wide network maps hourly rain well at the gauges.** The whole Dutch network
+  (~2800 paths, summer 2012) through RAINLINK, mapped by IDW and scored at KNMI's 31 covered
+  gauges: hourly correlation 0.77, daily r² 0.72, bias -3%. Single paths are noisier, and a
+  few shorter than 1 km read several times the gauge's rain. *(maps/netherlands)*
 - **Geometry, not sensor physics, limits the map.** At 90 links the sensor
   chain changes the reconstruction error by about 1% or less; almost all of
   it comes from rain that falls between links. *(simulation/regimes)*
@@ -155,7 +160,7 @@ FieldSense/
 ├── examples/             # one notebook per OpenSense example dataset
 ├── projects/             # the projects above, by stage: projects/<stage>/<subproject>/ with src/, notebooks/, results/, README
 ├── core/                 # code more than one project imports (see core/README.md)
-│   ├── opensense/            # data: fetch, example subsets, three networks on one grid, retrieval, PWS QC
+│   ├── opensense/            # data: fetch, example subsets, three networks on one grid, retrieval, PWS QC, the Dutch network
 │   ├── cml/                  # link retrieval: power law (four variants), PyNNcml RNN
 │   ├── maps/                 # IDW, line IDW, GMZ, merging (pcpn_maps and mergeplg methods), scores
 │   ├── radar/                # KOKX NEXRAD and MRMS for New York
