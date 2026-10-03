@@ -13,6 +13,7 @@ notebook per folder of that repository.
 | [`02_openrainer`](02_openrainer.ipynb) | OpenRainER, Emilia-Romagna, August 2022 | CML, radar, gauges | radar `R` is a 15-min accumulation stamped at the interval end; raw and gauge-adjusted radar against gauges |
 | [`03_openmesh`](03_openmesh.ipynb) | OpenMesh, New York City, January 2024 | CML, PWS, ASOS | received power only; up to three sublinks on 5-69 GHz; snow seen by links and ASOS but not by PWS; PWS quality control |
 | [`04_ams_pws`](04_ams_pws.ipynb) | Amsterdam PWS, 2016-2018 | PWS, radar-derived reference | monthly totals against the reference; what each PWS QC filter catches on one faulty station |
+| [`05_netherlands`](05_netherlands.ipynb) | Netherlands CML, one week of July 2012 (full dataset, not an example subset) | CML (15-min Pmin/Pmax), KNMI hourly gauges | the RAINLINK text format in the OpenSense layout; ~2700 paths over the country; one link's Pmin/Pmax beside a gauge in a storm |
 
 ## Running
 
@@ -30,6 +31,10 @@ read them from there. To fetch everything up front:
 ```bash
 python -m core.opensense.example_data --all
 ```
+
+`05_netherlands` is the exception: it reads the full Dutch archive, a 9.5 GB zip
+(`python -m core.opensense.fetch --dataset netherlands`), and converts the month it
+needs on first use (a few minutes).
 
 ## Reading the data yourself
 
@@ -58,3 +63,4 @@ Cite the original dataset when you use one.
 | OpenMesh CML | Jacoby et al. (2026), [ESSD 18, 5817-5836](https://doi.org/10.5194/essd-18-5817-2026); data [doi:10.5281/zenodo.15287692](https://doi.org/10.5281/zenodo.15287692) | CC BY 4.0 |
 | OpenMesh PWS | [doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286) | CC BY-NC 4.0 |
 | Amsterdam PWS | de Vos et al. (2019), [doi:10.1029/2019GL083731](https://doi.org/10.1029/2019GL083731) | CC BY 4.0 |
+| Netherlands CML | Overeem, Walraven, Leijnse and Uijlenhoet (2024), [doi:10.4121/be252844-b672-471e-8d69-27269a862ec1.v1](https://doi.org/10.4121/be252844-b672-471e-8d69-27269a862ec1.v1) | CC BY 4.0 |
