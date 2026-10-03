@@ -92,7 +92,7 @@ class Ensemble:
     def __init__(self, n_members: int, prob_threshold: float = PROB_THRESHOLD):
         from pysteps import verification as v
         self.thr = prob_threshold
-        self.crps = v.probscores.CRPS_init()
+        self.crps_sum, self.crps_n = 0.0, 0
         self.roc = v.probscores.ROC_curve_init(prob_threshold, n_prob_thrs=10)
         self.rel = v.probscores.reldiag_init(prob_threshold, n_bins=10)
         self.rank = v.ensscores.rankhist_init(n_members, 0.1)
@@ -105,7 +105,9 @@ class Ensemble:
         if not ok.any():
             return
         m, o = members[:, ok], obs[ok]
-        v.probscores.CRPS_accum(self.crps, m, o)
+        c = crps_ensemble(m, o)
+        self.crps_sum += float(c.sum())
+        self.crps_n += c.size
         p = (m >= self.thr).mean(axis=0)          # exceedance probability
         v.probscores.ROC_curve_accum(self.roc, p, o)
         v.probscores.reldiag_accum(self.rel, p, o)
@@ -122,10 +124,24 @@ class Ensemble:
         rank = v.ensscores.rankhist_compute(self.rank)
         mean = {f"ensmean_{k}": val for k, val in self.mean.compute().items()
                 if k in ("MAE", "RMSE", "corr", "CSI_1")}
-        return {"n_forecasts": self.n, "CRPS": float(v.probscores.CRPS_compute(self.crps)),
+        return {"n_forecasts": self.n, "CRPS": self.crps_sum / self.crps_n,
                 "ROC_area": float(area), "rel_prob": [float(x) for x in rel[0]],
                 "rel_freq": [float(x) for x in rel[1]], "rank_hist": [float(x) for x in rank],
                 **mean}
+
+
+def crps_ensemble(members: np.ndarray, obs: np.ndarray) -> np.ndarray:
+    """CRPS of the members' empirical CDF at each sample: ``E|X - y| - E|X - X'| / 2``.
+
+    ``members`` is ``(n_members, ...)``, ``obs`` the trailing shape. Exact with ties
+    (Gneiting and Raftery 2007, eq. 21); pysteps' ``CRPS_accum`` (Hersbach 2000) drops
+    the bin of a member equal to the observation, which biases it low at every dry
+    pixel with dry members.
+    """
+    m = np.sort(np.asarray(members, dtype=float), axis=0)
+    n = m.shape[0]
+    spread = np.tensordot(2.0 * np.arange(1, n + 1) - n - 1, m, axes=(0, 0)) * 2.0 / n ** 2
+    return np.mean(np.abs(m - np.asarray(obs, dtype=float)), axis=0) - 0.5 * spread
 
 
 def at_points(fields: np.ndarray, cells: np.ndarray) -> np.ndarray:

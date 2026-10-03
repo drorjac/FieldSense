@@ -179,12 +179,6 @@ def test_crps_matches_closed_form(y):
         assert e.compute()["CRPS"] == pytest.approx(0.375)
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "pysteps 1.21 CRPS_accum (Hersbach 2000) uses strict inequalities only, so an "
-    "observation equal to a member drops that bin's contribution: CRPS is biased low "
-    "whenever obs and members tie, i.e. at every dry pixel with some dry members "
-    "(1-5 % low on synthetic rain with 30-90 % dry cells). Fixing it in "
-    "core.nowcast.verify would change the published CRPS of the nowcasting projects."))
 @pytest.mark.parametrize("members, y", [([0.0, 1.0, 2.0, 3.0], 2.0), ([0.0, 0.0, 1.0, 2.0], 0.0)])
 def test_crps_with_ties_matches_closed_form(members, y):
     members = np.asarray(members)
