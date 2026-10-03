@@ -91,7 +91,7 @@ def metadata_qc(table: pd.DataFrame, cfg: QCConfig = QCConfig()) -> tuple[list[s
             if (same or flip) and abs(r.frequency - o.frequency) < 10:
                 dup_of = other
                 break
-        if dup_of:
+        if dup_of is not None:
             _record(rows, lk, "metadata", "duplicate path (other direction/sublink kept)", value=dup_of)
         else:
             chosen.append(lk)
