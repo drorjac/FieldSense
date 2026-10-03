@@ -99,6 +99,29 @@ NRMSE is hourly, against the radar on cells within 2 km of a link, or at held-ou
   there; only in New York is it the best point reference (0.91 vs 0.98 for the other PWS). Hence
   every comparison is made against the radar *and* against the gauges.
 
+## Do the findings hold on 25 storms per network?
+
+The study above uses the 10 largest storms of each network. Rerun on the 25 largest
+(`run.py study --n-events 25 --out .../results/events_25`; full report in
+[`results/events_25/report.md`](results/events_25/report.md)), every finding holds; only
+the levels move, because the added storms are smaller and NRMSE is relative to the mean:
+
+| NRMSE at held-out gauges, 10 storms / 25 storms | Gothenburg | Emilia-Romagna | New York |
+|---|---|---|---|
+| RNN links, line IDW | 1.04 / 1.18 | 2.19 / 2.32 | 1.10 / 1.33 |
+| power-law links (dynamic), line IDW | 3.13 / 3.40 | 3.43 / 3.65 | 1.75 / 2.26 |
+| power-law links (dynamic), IDW | 3.58 / 3.90 | 4.45 / 4.61 | 1.86 / 2.42 |
+| radar | 1.47 / 1.63 | 2.38 / 2.44 | 0.91 / 1.03 |
+
+- The RNN gives the best link maps on every network, against the radar and the gauges.
+- Line IDW stays the best interpolation for power-law links, and the spread between
+  retrievals stays several times the spread between interpolations.
+- The power-law links over New York read higher on the smaller storms (relative bias at the
+  gauges +82% to +121% for IDW), as expected from a wet-antenna offset that does not scale
+  with the rain.
+
+The 10-storm set stays the reference: `nowcasting/` and `maps/wet_area` use its events.
+
 # Part 2 - Merging: the best map from links, gauges and radar together
 
 ## Design
