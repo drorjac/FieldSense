@@ -23,7 +23,7 @@
  notebook 
  notebook - **The mask fixes the wet area.** Plain IDW of power-law links is 12-29% too wet against
  notebook   the radar and the gauges; with `p = 0.5` the wet fraction is within a few percent of the
- notebook   reference (simulated: 1.14 to 1.02) and false alarms fall (Gothenburg, at the gauges: FAR
+ notebook   reference (simulated: 1.09 to 1.02) and false alarms fall (Gothenburg, at the gauges: FAR
  notebook   0.24 to 0.06; Emilia-Romagna 0.31 to 0.23). The RNN links are already close to right, so
  notebook   the mask changes little there.
  notebook - **It does not fix the amounts.** NRMSE and correlation move by about 1% or less on every
