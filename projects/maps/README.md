@@ -8,6 +8,7 @@ and what does each sensor add when links, gauges, weather stations and radar are
 | [`multisensor`](multisensor/) | retrieval x interpolation (IDW, line IDW, GMZ) on the 10 largest storms of each network, then radar, links and gauges merged every way | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_three_networks.ipynb` |
 | [`radar_adjustment`](radar_adjustment/) | the OpenSense radar-adjustment intercomparison reproduced from the raw archives, extended to weather stations, RADOLAN and New York | OpenMRG, OpenRainER, NYC | `notebooks/01_intercomparison.ipynb` |
 | [`nyc`](nyc/) | NYC Mesh link maps against MRMS radar, PWS and ASOS over 52 storms of rain, snow and mix | OpenMesh | `notebooks/01_data.ipynb` |
+| [`wet_area`](wet_area/) | maps that can be dry: a wet/dry mask from the links before IDW, on simulated truth and 29 storms | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_wet_area.ipynb` |
 | [`archive_pipeline`](archive_pipeline/) | (frozen) the first end-to-end version, raw data to merged maps; kept for its results, superseded by the three above | OpenMRG, OpenRainER | `notebooks/02_end_to_end.ipynb` |
 
 **Headlines.**
@@ -18,6 +19,10 @@ and what does each sensor add when links, gauges, weather stations and radar are
 - Radar adjustment reproduces the intercomparison within 0.0006 RMSE; every adjustment beats
   the radar (Gothenburg 1.44 to 1.27 mm, Emilia-Romagna 3.58 to 3.08), almost all of it near
   the links. Weather stations beat links as adjusters wherever they exist.
+- A wet/dry mask before IDW fixes the wet area of link maps (power-law links 12-29% too wet,
+  then within a few percent) but not their amounts or peaks.
+- ARPAE's own gauge-adjusted radar (RMSE 2.26 mm) beats every link adjustment (3.08) at
+  every distance from the links; it is not independent of the gauges it is scored at.
 - Over New York the best link map differs from MRMS by NRMSE 0.57, against 0.33 for the PWS.
 
 Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores).

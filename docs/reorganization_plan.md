@@ -116,11 +116,11 @@ mergeplg's own API). `physics_ml` is now a stage folder (`physics_ml/discovery`)
       (KED/kriging noise term); compare with the current merged maps.
 
 ### 2-D studies (in `maps/`)
-- [ ] T17. Maps that can be dry: wet/dry mask from links and PWS before
+- [x] T17. Maps that can be dry: wet/dry mask from links and PWS before
       interpolation, and indicator kriging; score on the synthetic truth, then
       on the three networks.
-- [ ] T18. Add `CML_Netherlands` to the multi-network comparison.
-- [ ] T19. Adjusted ARPAE radar as the Emilia-Romagna baseline in
+- [ ] T18. (open: the dataset is not downloaded and has no loader; it also needs a KNMI radar/gauge reference) Add `CML_Netherlands` to the multi-network comparison.
+- [x] T19. Adjusted ARPAE radar as the Emilia-Romagna baseline in
       `radar_adjustment`.
 
 ### Finish
