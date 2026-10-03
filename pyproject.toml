@@ -62,6 +62,7 @@ testpaths = [
     "projects/physics_ml/path_law_1d/tests",
     "projects/maps/radar_adjustment/tests",
     "projects/spatial_interpolation/tests",
+    "projects/maps/learned_2d/tests",
 ]
 # importlib: several projects have a test module of the same name (test_merging.py)
 addopts = "-q --import-mode=importlib"

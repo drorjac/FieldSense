@@ -41,6 +41,7 @@ question, its subprojects and their headline numbers.
 | | [`nyc`](projects/maps/nyc/) | New York City: NYC Mesh link maps against MRMS radar, PWS and ASOS gauges over 52 storms of rain, snow and mix | `notebooks/01_data.ipynb` |
 | | [`wet_area`](projects/maps/wet_area/) | maps that can be dry: a wet/dry mask from the links before interpolation, on simulated truth and 29 storms | `notebooks/01_wet_area.ipynb` |
 | | [`link_weights`](projects/maps/link_weights/) | links weighted by their expected error, learned by length on half the storms, when mapped | `notebooks/01_link_weights.ipynb` |
+| | [`learned_2d`](projects/maps/learned_2d/) | (proposed project, starter) learned link-to-map models: an OpenMRG dataset split by storm, IDW/OK/GMZ baselines with the proposal's metrics, a minimal U-Net, simulated truth | `notebooks/01_dataset.ipynb` |
 | | [`archive_pipeline`](projects/maps/archive_pipeline/) | (frozen) the first end-to-end version: raw open data (OpenMRG, OpenRainER) to merged rainfall maps | `notebooks/02_end_to_end.ipynb` |
 | [`nowcasting`](projects/nowcasting/) | [`pysteps`](projects/nowcasting/pysteps/) | the OpenSense pysteps nowcasting session as a study: radar, link and merged maps nowcast with every pysteps method | `notebooks/05_results.ipynb` |
 | | [`multisensor`](projects/nowcasting/multisensor/) | links, radar and weather stations nowcast together, by pysteps and by neural networks, in Gothenburg and New York: what each sensor adds, and whether learning adds anything | `notebooks/04_results.ipynb` |

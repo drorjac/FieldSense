@@ -79,14 +79,35 @@ Starter notebooks, in [`projects/physics_ml/path_law_1d/`](../../projects/physic
 
 ## 2-D: learned rain maps (`2d_project.md`)
 
-Proposal not written yet. Likely base, to be checked against the proposal:
+Learn a mapping $g_\theta$ from link attenuations and network metadata to a gridded rain field,
+supervised by radar; compare with IDW, ordinary kriging and GMZ on held-out storm events, with
+RMSE, MAE, PCC (per step and pooled), cumulative event error, POD/FAR/CSI and gauge-point error.
+The proposal's data (an Israeli network) is private; the starters use OpenMRG, the open
+benchmark of the diffusion-prior paper it cites.
 
-| Likely need | FieldSense piece | Status |
+| Proposal needs | FieldSense piece | Status |
 |---|---|---|
-| Classical maps as baselines: IDW, GMZ, kriging, KED, merging | `core/maps/`, tutorials 05 and 06 | ready |
-| Every sensor on one grid as a training set | `multisensor_nowcasting` `cube.py`, tutorial 09 | partial: project code, not in `core/` |
-| A training loop without leakage, a U-Net | tutorial 08 | partial: tutorial code, not in `core/` |
-| Maps with known truth | `core/simulation/` (`scenario`, `sensors`, `benchmark`), tutorial 10 | ready |
-| Scoring against gauges and radar | `core/maps/scores.py` | ready (five scoring copies to merge, plan T10) |
+| CML, radar and gauges, aligned in time (WP2) | `core/opensense/networks.py` (OpenMRG, OpenRainER, OpenMesh on one interface) | ready |
+| Attenuation from RSL/TSL, dry baseline, wet antenna (WP2) | `core/cml/` (`link_qc`, `baseline`, `estimators`, `power_law`), tutorial 02 | ready |
+| Grid, projection, aggregation window (WP3) | `core/geo.py` (`Grid`), each network's radar grid, hourly | ready |
+| Split by storm event, not by sample (WP3) | `core/events.py` (`detect_events`), `core/maps/learning.py` (`split_events`) | ready |
+| Links rasterized as input channels; link table with metadata for a GNN; radar target; held-out gauges | `core/maps/learning.py` (`build_network_dataset`, `assemble`, `arrays`), tested | ready |
+| Exact path-integral forward operator (for a physics loss or posterior sampling) | `core/maps/learning.py` (`path_weights`, `sample_paths`), `core/cml/power_law.py` (`itu_ab`) | ready |
+| Baselines: IDW, GMZ | `core/maps/idw.py`, `core/maps/gmz.py`, tutorial 05 | ready |
+| Baseline: ordinary kriging of the links | `projects/maps/learned_2d/src/learned_2d/baselines.py` (pykrige); block kriging only inside radar merging (`core/maps/mergeplg_methods.py`) | partial: project code, not in `core/` |
+| KED (candidate family) | `core/maps/mergeplg_methods.py` (`Merger`, `ked`) with radar as drift | partial: drift is the radar only |
+| GNN, CNN/U-Net, diffusion prior (candidate families) | a minimal U-Net as interface example: `projects/maps/learned_2d/src/learned_2d/unet.py`, tutorial 08 | the project's work; PyTorch Geometric not installed |
+| Metrics of the proposal's Table 1 | `core/maps/scores.py` (RMSE, MAE, bias, POD/FAR/CSI) and `core/maps/map_skill.py` (PCC per step and pooled, event totals, detection at any threshold, gauge-point error, one common-sample table), tested | ready |
+| Breakdown by intensity, link density, storm type (WP5) | `map_skill` functions take a mask; `distance_km` and `coverage` are in the dataset | partial: the breakdown itself is the project's |
+| Maps with known truth | `core/simulation/` (`scenario`, `sensors`) and `core/maps/learning.py` (`from_synthetic`) | ready |
+| Animation over a storm (WP6) | `core/opensense/plots.py`, matplotlib | partial: no animation helper |
 
-Starter notebooks: to be listed once the proposal is written.
+Starter notebooks (`projects/maps/learned_2d/notebooks/`, committed with outputs; see
+[`projects/maps/learned_2d/README.md`](../../projects/maps/learned_2d/README.md)):
+1. `01_dataset`: the OpenMRG dataset, 27 storm events, the input channels, link table, radar
+   target, gauges and the split by event.
+2. `02_baselines`: IDW, ordinary kriging and GMZ on the test events; the full metric table
+   against the radar and at independent gauges; maps of one event.
+3. `03_minimal_unet`: a tiny U-Net on the channels, scored with the same table, as an interface
+   example; then "your method goes here" with pointers for a GNN and a diffusion prior.
+4. `04_simulated_truth`: the same pipeline on simulated storms where the truth is known.

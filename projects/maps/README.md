@@ -11,6 +11,7 @@ and what does each sensor add when links, gauges, weather stations and radar are
 | [`wet_area`](wet_area/) | maps that can be dry: a wet/dry mask from the links before IDW, on simulated truth and 29 storms | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_wet_area.ipynb` |
 | [`link_weights`](link_weights/) | each link weighted by its expected error (learned by length on half the storms) when links are mapped | OpenMRG, OpenRainER, OpenMesh | `notebooks/01_link_weights.ipynb` |
 | [`archive_pipeline`](archive_pipeline/) | (frozen) the first end-to-end version, raw data to merged maps; kept for its results, superseded by the three above | OpenMRG, OpenRainER | `notebooks/02_end_to_end.ipynb` |
+| [`learned_2d`](learned_2d/) | proposed project: starter. Learned link-to-map models (`docs/pre_projects/2d_project.md`): the dataset (link channels, link table, radar target, gauges, split by storm event), IDW / kriging / GMZ scored with the proposal's metrics, a minimal U-Net, simulated truth | OpenMRG | `notebooks/01_dataset.ipynb` |
 
 **Headlines.**
 - Retrieval matters more than interpolation: the spread between retrievals is several times
@@ -29,4 +30,4 @@ and what does each sensor add when links, gauges, weather stations and radar are
   York 1.56 to 0.95). The RNN's error is flat with length.
 - Over New York the best link map differs from MRMS by NRMSE 0.57, against 0.33 for the PWS.
 
-Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores).
+Shared code: `core/maps/` (IDW, GMZ, merging, mergeplg methods, scores, map skill, learning datasets).
