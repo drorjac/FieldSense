@@ -262,11 +262,6 @@ def test_waa_inversion_is_consistent(model):
     assert np.allclose(R, R_true, rtol=0.02)
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "BUG: the saturating wet-antenna model is inverted by 8 fixed-point steps that do not "
-    "converge when W'(R) * dR/dA > 1, i.e. for links with k*L below ~0.15 (<= 15 GHz, or "
-    "short 20-30 GHz links); light rain then oscillates and comes back as 0. Not fixed: "
-    "it is the default retrieval and its waa parameters were calibrated with this solver"))
 def test_saturating_waa_recovers_light_rain_on_low_k_links():
     cfg = rt.RetrievalConfig()
     R_true = np.array([0.5, 1.0, 2.0])
