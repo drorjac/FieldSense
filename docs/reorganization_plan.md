@@ -1,6 +1,6 @@
 # Reorganization and mapping plan
 
-Status (2026-10-03): T0-T19 done, T20-T21 pending; algorithm audit merged (`docs/algorithm_audit.md`) on branch `reorg`; see the notes under each task.
+Status (2026-10-03): T0-T20 done, T21 (the PR) pending; algorithm audit merged (`docs/algorithm_audit.md`) on branch `reorg`; see the notes under each task.
 
 One continuous run on one branch (`reorg`), no pauses between parts. Commit
 after each task so any task can be reverted on its own; one PR at the end.
@@ -126,7 +126,10 @@ T13-T15 were done as the 1-D proposal's base (`physics_ml/path_law_1d`, `core/si
       `radar_adjustment`.
 
 ### Finish
-- [ ] T20. Re-run every notebook (except `spatial_interpolation`); numbers
+
+**T20 result (2026-10-03).** All 63 notebooks outside `spatial_interpolation` executed without error from their new folders (re-run into a scratch copy; the committed outputs were kept). The numbers they print match the committed ones to 0.1% in 56; the other 7 differ only in run-time lines, third-decimal jitter in two `path_law_1d` tables, PySR's stochastic search (`02_pysr_basics`), and live external data (`wu_pipeline`, one day fewer in `nexrad_rain_vs_snow`'s IEM listing).
+
+- [x] T20. Re-run every notebook (except `spatial_interpolation`); numbers
       match the baseline or the difference is explained in the PR.
 - [ ] T21. Final check below, then the PR.
 
