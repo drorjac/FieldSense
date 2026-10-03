@@ -158,7 +158,7 @@ def prepare_openmrg(force: bool = False):
 # ---------------------------------------------------------------------------
 def _openrainer_file(prefix, month):
     from core.opensense.networks import NETWORKS
-    archive = {"CML": "CML.tar", "AWS": "AWS.tar", "RADrain": "RADrain.tar"}[prefix]
+    archive = {"CML": "CML.tar", "AWS": "AWS.tar", "RADrain": "RADrain.tar", "RADadj": "RADadj.tar"}[prefix]
     return NETWORKS["openrainer"]._file(prefix, pd.Timestamp(month), archive)
 
 

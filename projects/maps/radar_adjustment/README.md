@@ -246,6 +246,26 @@ storms; 9 have every product, giving 663 station-hours at the 4 ASOS gauges.
   the radar worse; they read low, as in `multisensor_maps`.
 - Adding either kind of link to the PWS makes every product worse.
 
+## ARPAE's gauge-adjusted radar as the baseline
+
+ARPAE publishes its composite corrected by kriging the gauge/radar ratio of its own gauges
+(OpenRainER `RADadj`). Prepared exactly as the unadjusted radar and scored at the same 319
+gauges with the same metric (`run.py arpae`, `arpae.py`; tables
+`results/arpae_adjusted_scores.csv` and `results/arpae_adjusted_by_distance.csv`):
+
+| Emilia-Romagna, JJA 2022 | PCC | RMSE (mm) | PBIAS (%) |
+|---|---|---|---|
+| radar, unadjusted (as in the intercomparison) | 0.749 | 3.58 | +107 |
+| best link adjustment (block KED, mergeplg main) | 0.735 | 3.08 | -7 |
+| ARPAE's gauge-adjusted radar | 0.869 | 2.26 | +6 |
+
+ARPAE's product is better at every distance from the links, including the cells within 2 km
+of one (RMSE 2.13 against 2.70 for block KED). It is not an independent baseline - its
+correction uses the gauges it is scored at - so it is an upper reference for what dense gauge
+adjustment reaches, not a fair competitor. What it shows is that the intercomparison's gains
+are measured against a radar that a national service would not use unadjusted: links improve
+the raw composite, and a dense gauge network improves it much more.
+
 # Caveats
 
 - **The gauges are the reference, and they are points.** A gauge is compared with the 1-2 km
@@ -257,7 +277,7 @@ storms; 9 have every product, giving 663 station-hours at the 4 ASOS gauges.
   products, although every product is scored on the same gauge-hours (`n_all`, `n_nan` equal;
   the Emilia-Romagna maps without radar have 459 more missing hours, of 704,033).
 - **OpenRainER's radar here is the unadjusted product** (RADrain), which reads double the
-  gauges in summer 2022. The adjusted ARPAE product would be a much harder baseline.
+  gauges in summer 2022. ARPAE's adjusted product is scored above as a (non-independent) baseline.
 - **OpenMRG's radar uses Z = 200 R^1.6**, as the notebook computes it, where the file says
   R^1.5. Kept, so the inputs match the published ones; `core.opensense.networks` uses 1.5.
 - **mergeplg versions.** The `main` run reuses the `pinned` OpenRainER point-variant files.
