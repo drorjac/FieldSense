@@ -125,7 +125,7 @@ Each is computed in the project named, where the details and caveats are.
   adjusted with links and gauges by KED) has an error larger than the rain itself (NRMSE 1.12,
   radar alone 1.60), barely better at 800 m, 0.51 at 6.4 km and 0.38-0.46 over an hour. Within
   250 m of a link it is 0.85, half the radar's. On a 64 km domain the gauges carry the radar
-  adjustment instead (0.44 vs 0.62 in 24 of 24 scenarios). VET recovers the true motion best,
+  adjustment instead (0.44 vs 0.62 in 23 of 24 scenarios). VET recovers the true motion best,
   DARTS underestimates speed even for pure translation, and a motion network trained only on
   simulations nowcasts real OpenMRG radar as well as VET. *(simulation/testbed)*
 - **Machine learning recovers part of the physics.** PySR finds the ITU-R

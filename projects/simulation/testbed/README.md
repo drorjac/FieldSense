@@ -24,7 +24,7 @@ the truth; lower is better).
 
 | change | from | to | study, scale |
 |---|---|---|---|
-| radar -> radar adjusted with gauges (additive) | 0.62 | **0.44** (better in 24/24) | regional, 1 km, 1 h |
+| radar -> radar adjusted with gauges (additive) | 0.62 | **0.44** (better in 23/24) | regional, 1 km, 1 h |
 | radar -> radar adjusted with links + gauges (KED) | 1.60 | **1.12** (-30%) | city, 100 m, 5 min |
 | ... within 250 m of a link | 1.67 | **0.85** (-49%) | city, 200 m, 5 min |
 | radar -> radar x links + gauges (multiplicative) | 0.58 | **0.39** (-33%) | city, 100 m, 1 h |
@@ -34,8 +34,8 @@ the truth; lower is better).
 | 100 m pixels -> 6.4 km (KED, links + gauges) | 1.12 | **0.51** | city, 5 min |
 | CML retrieval without -> with wet/dry classification | bias +31% | **-8%** | regional |
 | ... and the KED map made with those links | 0.80 | **0.72** | regional, 1 km, 1 h |
-| motion: Lucas-Kanade -> learned correction of it, rotating flow | 12.8 km/h | **9.2 km/h** | regional |
-| nowcast: extrapolation along LK -> along the *true* motion | CSI 0.42 | **0.48** | regional, 60 min |
+| motion: Lucas-Kanade -> learned correction of it, rotating flow | 12.7 km/h | **6.8 km/h** | regional |
+| nowcast: extrapolation along LK -> along the *true* motion | CSI 0.42 | **0.49** | regional, 60 min |
 
 ## In short
 
@@ -51,7 +51,7 @@ the truth; lower is better).
 - **Dense city links help; a city network on a regional domain does not.** In the city (one
   tower per ~9 km^2 over all of it) adjustment with links cuts the radar's 5-min error by a
   quarter to a third. On the 64 km domain the same density covers only part of it: there the
-  gauges, spread everywhere, make the best adjustment (0.44 vs 0.62, better in all 24
+  gauges, spread everywhere, make the best adjustment (0.44 vs 0.62, better in 23 of 24
   scenarios) and links add nothing domain-wide.
 - **Which product is best depends on the scale.** For 5-min totals, additive and KED adjustment
   with links lead; for hourly totals, multiplicative adjustment with links and gauges and the
@@ -61,16 +61,16 @@ the truth; lower is better).
   baseline offsets and noise into rain (+31%, up to +152% in a scenario); with the standard
   chain the bias is -8%, and error-free links would improve the maps by little more.
 - **Motion: VET on simulations, LK on real radar; DARTS is broken; learning helps as a
-  correction.** Against the true flow, VET is best (3.3 km/h from the radar), DARTS
+  correction.** Against the true flow, VET is best (3.1 km/h from the radar), DARTS
   underestimates the speed by 15-70% even for pure translation. A network trained on the
-  simulator's true flow alone is worse than both; trained as a correction to LK it improves
-  rotating and sheared flow and ties LK overall. On real OpenMRG radar the network trained only
-  on simulations nowcasts as well as VET (CSI 0.302 vs 0.299 at 60 min) and better than DARTS
-  (0.245); LK is best there (0.322). On OpenRainER, whose 15-min steps lie outside its 5-min
-  training, it falls behind (0.350 vs 0.38-0.39); the hybrid ties the classical methods on both.
+  simulator's true flow alone is worse than both; trained as a correction to LK it beats
+  LK overall (3.5 vs 4.3 km/h), most in rotating and sheared flow, and comes close to VET. On real OpenMRG radar the network trained only
+  on simulations nowcasts as well as VET (CSI 0.303 vs 0.301 at 60 min) and better than DARTS
+  (0.247); LK is best there (0.326). On OpenRainER, whose 15-min steps lie outside its 5-min
+  training, it falls behind (0.353 vs 0.38-0.39); the hybrid ties the classical methods on both.
 - **Better motion barely moves the nowcast; perfect motion would.** CSI at 1 mm/h, 60 min,
-  from the radar: persistence 0.26, extrapolation 0.42, S-PROG 0.43, STEPS mean 0.40,
-  extrapolation along the true motion 0.48. The rest is evolution, which no advection method
+  from the radar: persistence 0.27, extrapolation 0.42, S-PROG 0.43, STEPS mean 0.40,
+  extrapolation along the true motion 0.49. The rest is evolution, which no advection method
   forecasts. For convective cells that are born and die
   (12 more scenarios) the gap to perfect motion doubles (0.26 vs 0.38), and LK beats VET.
 
@@ -133,7 +133,7 @@ alone predicts (correlation at 30 / 60 min, `tau` or lifetime 60 min, 4 seeds):
 | clustered_storms | 0.41 / 0.28 | 0.59 / 0.52 | 0.53 / 0.52 |
 | squall_line | 0.30 / 0.12 | 0.45 / 0.23 | 0.70 / 0.71 |
 | stratiform_matern | 0.61 / 0.46 | 0.81 / 0.66 | |
-| multifractal | 0.46 / 0.40 | 0.68 / 0.60 | |
+| multifractal | 0.49 / 0.34 | 0.49 / 0.36 | |
 | frontal | 0.93 / 0.92 | 0.93 / 0.91 | |
 
 ![evolution](results/figures/fig02_evolution.png)
@@ -166,21 +166,21 @@ difference and KED (`core.maps.mergeplg_methods`). Hourly totals, median of 24 s
 
 | method | NRMSE | beats the radar in | correlation | bias | CSI (1 mm) |
 |---|---|---|---|---|---|
-| mfb [gauges] | 0.43 | 67% | 0.90 | -7% | 0.87 |
-| add [gauges] | 0.44 | **100%** | 0.94 | 0% | 0.87 |
-| add [links+gauges] | 0.50 | 75% | 0.92 | -1% | 0.83 |
-| mul [links+gauges] | 0.51 | 96% | 0.93 | -5% | 0.86 |
-| mul [gauges] | 0.52 | **100%** | 0.93 | -5% | 0.87 |
-| ked [gauges] / [links+gauges] | 0.56 / 0.56 | 38% | 0.90 / 0.86 | +20% / +16% | 0.74 / 0.78 |
-| **radar** | **0.62** | - | 0.93 | -6% | 0.85 |
-| add [links] | 0.64 | 38% | 0.87 | +3% | 0.77 |
-| idw gauges (no radar) | 0.91 | 17% | 0.67 | -10% | 0.63 |
-| gmz links / idw links (no radar) | 1.25 / 1.25 | 0% | 0.19 | +5% | 0.36 |
-| idw_mul [links] (mergeplg) | 2.52 | 0% | 0.57 | +47% | 0.68 |
+| mfb [gauges] | 0.41 | 62% | 0.89 | -7% | 0.87 |
+| add [gauges] | 0.44 | 96% | 0.93 | 0% | 0.87 |
+| add [links+gauges] | 0.50 | 75% | 0.92 | -2% | 0.83 |
+| mul [links+gauges] | 0.51 | 96% | 0.93 | -4% | 0.86 |
+| mul [gauges] | 0.52 | **100%** | 0.92 | -2% | 0.87 |
+| ked [gauges] / [links+gauges] | 0.59 / 0.56 | 38% | 0.89 / 0.85 | +26% / +18% | 0.73 / 0.77 |
+| **radar** | **0.62** | - | 0.92 | -3% | 0.85 |
+| add [links] | 0.60 | 42% | 0.87 | +2% | 0.77 |
+| idw gauges (no radar) | 0.86 | 17% | 0.66 | -10% | 0.65 |
+| gmz links / idw links (no radar) | 1.16 / 1.16 | 0% | 0.18 | 0% | 0.36 |
+| idw_mul [links] (mergeplg) | 2.52 | 0% | 0.55 | +36% | 0.67 |
 
 Convective and organised rain is two to three times harder than widespread rain for every
-method (radar 1.31 vs 0.40); an uncorrected X-band radar reads 42% low (NRMSE 0.79 vs 0.49-0.50
-for C and S). mergeplg's multiplicative IDW with links breaks down without range checks, as
+method (radar 1.31 vs 0.46); an uncorrected X-band radar reads 42% low (NRMSE 0.79 vs 0.53
+for C-band). mergeplg's multiplicative IDW with links breaks down without range checks, as
 `radar_adjustment` found on real data.
 
 ![maps](results/figures/fig05_maps.png)
@@ -238,33 +238,33 @@ Median endpoint error where it rains (km/h), from the last four 5-min fields, re
 
 | product | LK | VET | DARTS | Proesmans | learned | learned+LK |
 |---|---|---|---|---|---|---|
-| truth | 4.3 | **2.5** | 14.7 | 9.7 | 7.2 | 3.9 |
-| radar | 4.3 | **3.3** | 14.9 | 11.8 | 6.9 | 4.0 |
-| KED, links + gauges | 5.2 | 5.3 | 20.8 | 18.9 | 8.9 | 5.1 |
-| IDW of links | 24.0 | 67.2 | 28.3 | 47.5 | 34.7 | 24.0 |
+| truth | 4.2 | **2.4** | 14.7 | 9.3 | 6.5 | 3.2 |
+| radar | 4.3 | **3.1** | 14.9 | 10.9 | 7.1 | 3.5 |
+| KED, links + gauges | 5.2 | 5.1 | 20.8 | 17.6 | 8.0 | 4.7 |
+| IDW of links | 23.3 | 67.2 | 28.6 | 44.3 | 31.9 | 23.5 |
 
-From the radar, by flow (LK / VET / learned+LK): uniform 1.5 / 2.6 / 1.9; rotation 12.8 / 5.1 /
-9.2; shear 9.9 / 6.5 / 8.9; random 6.3 / 4.9 / 5.8. A link-only map has no motion of its own
+From the radar, by flow (LK / VET / learned+LK): uniform 1.4 / 2.3 / 1.3; rotation 12.7 / 4.7 /
+6.8; shear 9.9 / 6.6 / 7.1; random 6.3 / 4.6 / 5.4. A link-only map has no motion of its own
 (20-70 km/h off), as `os_nowcasting` concluded on real data.
 
 **The learned estimators** (`core/nowcast/learned_motion.py`): a U-Net trained on 700 simulated
 sequences (2,796 samples; random generator, flow, evolution and pixel size, degraded like a
-sensor would) with their true flow. Validation error 1.30 px/step from the fields alone, 0.84
-as a correction to LK (LK alone: 1.91). Case by case from the radar, `learned+LK` ties LK
-(better in 54%) and trails VET (better in 41%).
+sensor would) with their true flow. Validation error 1.32 px/step from the fields alone, 0.70
+as a correction to LK (LK alone: 1.91). Case by case from the radar, `learned+LK` beats LK
+(better in 62%) and ties VET (better in 49%).
 
 **On real radar** each motion field is judged by the extrapolation it makes, scored against the
 radar that followed (CSI at 1 mm/h):
 
 | CSI at 1 mm/h, 15 / 30 / 60 min | OpenMRG, 5 min, 262 issue times | OpenRainER, 15 min, 147 issue times |
 |---|---|---|
-| persistence | 0.39 / 0.29 / 0.20 | 0.58 / 0.41 / 0.26 |
-| LK | **0.59 / 0.48 / 0.32** | 0.70 / 0.56 / 0.38 |
+| persistence | 0.39 / 0.30 / 0.20 | 0.58 / 0.41 / 0.26 |
+| LK | **0.59 / 0.48 / 0.33** | 0.70 / 0.56 / 0.38 |
 | VET | 0.55 / 0.44 / 0.30 | **0.70 / 0.57 / 0.39** |
 | Proesmans | 0.57 / 0.46 / 0.31 | 0.70 / 0.56 / **0.39** |
 | DARTS | 0.45 / 0.35 / 0.25 | (not run: slow on this grid, broken above) |
 | learned (simulations only) | 0.56 / 0.45 / 0.30 | 0.68 / 0.54 / 0.35 |
-| learned+LK | **0.59 / 0.48 / 0.32** | 0.70 / 0.56 / 0.38 |
+| learned+LK | 0.59 / 0.47 / 0.32 | 0.70 / 0.56 / 0.38 |
 
 A motion network that has never seen real radar nowcasts the 5-min SMHI radar as well as VET
 and Proesmans; at 15-min steps - displacements larger than in its training - it does not. The
@@ -277,12 +277,12 @@ radar the flows are smooth enough for LK.
 
 | method | truth | radar | KED, links + gauges |
 |---|---|---|---|
-| persistence | 0.36 / 0.27 | 0.35 / 0.26 | 0.40 / 0.30 |
+| persistence | 0.36 / 0.28 | 0.36 / 0.27 | 0.40 / 0.32 |
 | extrapolation (LK) | 0.56 / 0.44 | 0.53 / 0.42 | 0.54 / 0.44 |
-| extrapolation (learned+LK) | 0.56 / 0.45 | 0.53 / 0.42 | 0.54 / 0.44 |
-| S-PROG | 0.56 / 0.44 | 0.53 / 0.43 | 0.55 / 0.44 |
-| STEPS, mean of 8 | 0.54 / 0.42 | 0.51 / 0.40 | 0.50 / 0.41 |
-| extrapolation along the true motion | 0.61 / 0.50 | 0.58 / 0.48 | 0.58 / 0.50 |
+| extrapolation (learned+LK) | 0.57 / 0.46 | 0.54 / 0.43 | 0.54 / 0.45 |
+| S-PROG | 0.56 / 0.44 | 0.53 / 0.43 | 0.54 / 0.44 |
+| STEPS, mean of 8 | 0.54 / 0.43 | 0.51 / 0.40 | 0.50 / 0.41 |
+| extrapolation along the true motion | 0.61 / 0.50 | 0.58 / 0.49 | 0.58 / 0.50 |
 
 ![nowcasts](results/figures/fig07_nowcast.png)
 
@@ -305,6 +305,12 @@ smooth-field assumption VET relies on; and the nowcast loses more to imperfect m
 ## Caveats
 
 - 24 + 12 regional and 9 city scenarios: the medians are stable, splits by regime are not.
+- The multifractal generator was fixed in October 2026 (it filtered the stable noise with the
+  wrong exponent, so its fields were too smooth: K(2) 0.08 instead of 0.17). Its fields are now
+  rougher and less predictable (correlation at 60 min 0.34-0.36, was 0.40-0.60). Every study was
+  rerun; 4 of the 24 regional scenarios are multifractal. The learned motion networks, retrained
+  on the corrected simulations, improved: the LK correction now beats LK (3.5 vs 4.3 km/h from
+  the radar). Map rankings and the other findings are unchanged.
 - Sensor parameters are plausible, not fitted to a network; the radar's calibration error is
   random per scenario. PWS are used without quality control.
 - Maps are made on 1 km (regional) and 200 m (city) grids; at 100 m each pixel is read as its
