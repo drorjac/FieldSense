@@ -15,7 +15,10 @@ Verdicts:
   describes the correct behaviour.
 - **FIXED**: the code gave a wrong result and was fixed in its own commit.
 
-Totals: 84 OK, 13 RISK, 4 BUG, 6 FIXED. One of the six fixes is documentation only.
+Totals: 84 OK, 12 RISK, 0 BUG, 11 FIXED. One of the fixes is documentation only. The four
+bugs and one risk were fixed after the audit (October 2026), and the affected studies rerun:
+`nowcasting/pysteps`, `simulation/testbed`, the synthetic cases of `maps/wet_area`;
+`maps/archive_pipeline` is frozen and says which of its numbers predate the fix.
 
 A bug was left unfixed when fixing it would change published numbers, or when the right
 behaviour is open to debate. The strict xfail then turns into a failure on the day someone
@@ -42,11 +45,11 @@ fixes the code, which is the signal to update the test.
 | cml | `link_qc.retrieval_qc` | mm = mm/h x h | OK | `test_retrieval_qc_totals_use_the_sampling_interval` | |
 | cml | `rnn.features`, `rnn.metadata` | hour-ending (T-1h, T]; causal baseline | OK | `test_rnn_features_are_hour_ending_and_causal`, `test_rnn_metadata_uses_itu_2005` | a later change in signal leaves the hour unchanged |
 | cml | `opensense.retrieval.wet_antenna_attenuation` (pastorek2021, leijnse2008) | Pastorek et al. 2021, Leijnse et al. 2008 via pycomlink `*_from_A_obs` | OK | `test_lookup_waa_matches_pycomlink_from_A_obs`, `test_waa_inversion_is_consistent` | agree within 0.5 % |
-| cml | `opensense.retrieval.wet_antenna_attenuation` (saturating) | A_obs = A_rain + W(R(A_rain)) | BUG | `test_saturating_waa_recovers_light_rain_on_low_k_links` (xfail) | see below |
+| cml | `opensense.retrieval.wet_antenna_attenuation` (saturating) | A_obs = A_rain + W(R(A_rain)) | FIXED | `test_saturating_waa_recovers_light_rain_on_low_k_links` | see below |
 | cml | `opensense.retrieval.retrieve`, `wet_dry_rolling_std` | hand case; pandas centred std | OK | `test_retrieve_known_step_without_wet_antenna`, `test_rolling_std_wet_dry_is_centred_sample_std` | |
 | maps | `idw.idw_weights`, `apply_weights`, `points_idw_map` | IDW definition, hand weights | OK | `test_audit_idw_weights_exact_at_source_and_radius`, `test_audit_apply_weights_nan_excluded_and_hand_value`, `test_audit_points_idw_exact_at_station_and_bounded` | exact at sources, bounded, radius respected, NaN excluded per step |
-| maps | `idw_weights` with `nnear` and NaN sources | pycomlink KDTree IDW (k nearest valid) | BUG | `test_audit_idw_nnear_counts_valid_sources_only` (xfail) | see below |
-| maps | `idw_weights`, NaN source on a cell centre | idw.py docstring | RISK | `test_audit_idw_nan_source_on_cell_centre_drops_out` (xfail) | see below |
+| maps | `idw_weights` with `nnear` and NaN sources | pycomlink KDTree IDW (k nearest valid) | FIXED | `test_audit_idw_nnear_counts_valid_sources_only` | see below |
+| maps | `idw_weights`, NaN source on a cell centre | idw.py docstring | FIXED | `test_audit_idw_nan_source_on_cell_centre_drops_out` | see below |
 | maps | `idw.accumulate` | hour-ending label, mean rate x hours | OK | `test_audit_accumulate_interval_ending_and_coverage` | 1 h and 15 min factors |
 | maps | `gmz.gmz_map` | Goldshtein et al. 2009; PyNNcml `GMZInterpolation` | OK | `test_audit_gmz_virtual_gauges_keep_path_average`, `test_audit_gmz_zero_iterations_is_line_idw` | virtual gauges keep mean R^b equal to the link's to 1e-5 |
 | maps | `gmz.gmz_map`, the returned map | path average along the link | RISK | `test_audit_gmz_virtual_gauges_keep_path_average` | see below |
@@ -63,7 +66,7 @@ fixes the code, which is the signal to update the test.
 | nowcast | `verify.Deterministic` categorical and continuous | contingency table by hand | OK | `test_categorical_scores_hand_case_and_nan_cells_excluded`, `test_categorical_scores_are_pooled_not_averaged` | |
 | nowcast | FSS | Roberts & Lean 2008, by hand | OK | `test_fss_matches_hand_case`, `test_fss_window_from_scale_and_pixel_size` | |
 | nowcast | `verify.Ensemble` CRPS without ties | E\|X-y\| - E\|X-X'\|/2 | OK | `test_crps_matches_closed_form`, `test_crps_of_a_degenerate_ensemble_is_the_absolute_error`, `test_ensemble_perfect_forecast_roc_and_mean` | |
-| nowcast | `verify.Ensemble` CRPS with ties | same closed form | BUG | `test_crps_with_ties_matches_closed_form` (xfail) | see below |
+| nowcast | `verify.Ensemble` CRPS with ties | same closed form | FIXED | `test_crps_with_ties_matches_closed_form` | see below |
 | nowcast | `scores.sal_score` | Wernli et al. 2008 | OK | `test_sal_identical_scaled_and_shifted`, `test_sal_structure_sign_and_dry_fields`, `test_sal_two_objects_location_second_term` | |
 | nowcast | `grid.square_grid`, `to_pysteps`, `to_dbr` | haversine; mm per step to mm/h | OK | `test_square_grid_pixels_are_square_and_pixel_km_correct`, `test_to_pysteps_converts_depth_per_step_to_rate`, `test_dbr_round_trip` | |
 | nowcast | `grid.pixel_km`, `metadata` yorigin | sign and orientation | FIXED | `test_pixel_km_of_a_descending_lat_grid_is_positive` | a north-to-south grid gave a negative pixel size |
@@ -73,7 +76,7 @@ fixes the code, which is the signal to update the test.
 | simulation | `wet_distribution`, `to_rain`, `MetaGaussian` | requested war and wet marginal | OK | `test_wet_distribution_has_the_requested_mean_and_cv`, `test_to_rain_wet_fraction_and_marginal`, `test_metagaussian_generator_hits_war_and_mean` | |
 | simulation | `to_rain` 0.1 mm/h floor | "exact" war | RISK | `test_to_rain_threshold_eats_into_war_for_a_very_skewed_marginal` | see below |
 | simulation | `BetaLognormalCascade`, `cascade_1d`, `RainFARM`, `downscale_to` | Over & Gupta 1996; mean preservation | OK | `test_beta_lognormal_cascade_wet_fraction_and_mean`, `test_cascade_1d_is_mean_preserving`, `test_rainfarm_wet_fraction_and_mean`, `test_downscale_to_reproduces_the_coarse_field` | |
-| simulation | `UniversalMultifractal` | Schertzer & Lovejoy, K(q) = C1/(alpha-1)(q^alpha - q) | BUG | `test_universal_multifractal_moment_scaling_function` (xfail) | see below |
+| simulation | `UniversalMultifractal` | Schertzer & Lovejoy, K(q) = C1/(alpha-1)(q^alpha - q) | FIXED | `test_universal_multifractal_moment_scaling_function` | see below |
 | simulation | `fields_1d`, `moving_fields.shift`, `flows` | depth conserved; known vector; divergence-free | OK | `test_pulses_to_series_conserves_depth`, `test_spectral_shift_moves_a_blob_by_the_known_vector`, `test_uniform_advect_matches_shift_and_departure_points`, `test_rotation_flow_turns_a_blob_counter_clockwise_and_keeps_its_mass`, `test_flows_are_divergence_free`, `test_velocity_px_units` | |
 | simulation | `spacetime` | exact shift; rho = exp(-dt/tau); bands sum to one | OK | `test_frozen_uniform_sequence_is_an_exact_shift_and_fully_predictable`, `test_frozen_rotation_sequence_follows_the_flow`, `test_ar1_keeps_the_marginal_and_decorrelates_at_rho`, `test_octave_bands_partition_unity` | |
 | simulation | `sensors.Radar`, `Gauges` | Z = aR^b; two-way PIA = 2 k R^alpha r; interval-ending labels | OK | `test_radar_zr_round_trip_without_impairments`, `test_radar_wrong_assumed_zr_gives_the_closed_form_bias`, `test_radar_two_way_pia_is_itu_times_twice_the_range`, `test_radar_azimuth_is_clockwise_from_north`, `test_radar_observe_scans_at_interval_end`, `test_gauges_accumulate_interval_ending_depths` | |
@@ -93,7 +96,13 @@ fixes the code, which is the signal to update the test.
 | geo | `to_local_xy` | great circle, geodesic | FIXED (doc) | `test_to_local_xy_distance_accuracy_over_nyc`, `test_to_local_xy_axes_and_origin` | the docstring claimed under 0.1 %; the measured error is 0.3 % (0.6 % against WGS84) |
 | events | `detect_events` | its documented rules | OK | `test_events_gap_rule_labels_and_totals`, `test_events_gap_of_exactly_min_gap_splits`, `test_events_min_total_and_wet_threshold`, `test_events_low_coverage_and_archive_gaps_are_dry` | hour-ending labels |
 
-## Bugs left unfixed
+## Bugs found by the audit (all fixed since)
+
+Each was fixed in its own commit, with the test below no longer marked `xfail`: the
+saturating wet antenna is inverted with the lookup table; `core.maps.idw.IDW` picks the
+nearest valid sources per step; `core.nowcast.verify.crps_ensemble` is the exact ensemble
+CRPS; `UniversalMultifractal` filters with the conjugate exponent and the cosine factor. The
+descriptions are kept as found.
 
 **Saturating wet-antenna inversion does not converge on low-k links**
 (`core/opensense/retrieval.py:216-224`).
