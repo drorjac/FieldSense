@@ -4,6 +4,18 @@ Follows the scoring rules in the project README: resample estimate and reference
 accumulation interval first; score only where both are valid and report how many
 samples that was; report per event as well as pooled. The headline metric is **NRMSE**
 (RMSE normalised by the reference mean) so storms of different magnitude compare.
+
+Other scorers in FieldSense use different definitions on purpose, and are kept apart so
+published numbers stay reproducible:
+
+- ``core.opensense.evaluation.rainfall_metrics``: poligrain's continuous metrics over the
+  whole record (no threshold), with MCC/TPR/FPR for detection.
+- ``maps/radar_adjustment``'s ``score.metrics``: poligrain with the threshold applied to
+  both series, exactly as the OpenSense radar-adjustment intercomparison scores.
+- ``core.simulation.reconstruct.score``: against a known truth, with wet-area ratio and
+  peak recovery.
+
+Use :func:`scores` for new work unless a comparison has to match one of those.
 """
 
 from __future__ import annotations

@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from core.geo import Domain, Grid, haversine_m
+from core.geo import Domain, Grid
 
 from .client import MRMSClient
 
@@ -137,24 +137,11 @@ def path_average(field: xr.DataArray, links: pd.DataFrame, n_samples: int | None
                  ) -> xr.DataArray:
     """Radar averaged along each CML path (what a link actually "sees").
 
-    ``links`` needs ``site_0_lat, site_0_lon, site_1_lat, site_1_lon`` and is indexed by
-    the link identifier. Points are spaced ~250 m apart (at least 3 per link); the mean
-    is over the radar cells those points fall in, NaN-aware.
+    See ``core.maps.geometry.path_average_points``: points ~250 m apart (at least 3 per
+    link), NaN-aware mean of the cells they fall in.
     """
-    res = []
-    for _, r in links.iterrows():
-        length = haversine_m(r.site_0_lat, r.site_0_lon, r.site_1_lat, r.site_1_lon)
-        n = n_samples or max(3, int(np.ceil(length / 250.0)) + 1)
-        s = np.linspace(0, 1, n)
-        lat = r.site_0_lat + s * (r.site_1_lat - r.site_0_lat)
-        lon = r.site_0_lon + s * (r.site_1_lon - r.site_0_lon)
-        pts = field.sel(lat=xr.DataArray(lat, dims="s"), lon=xr.DataArray(lon, dims="s"),
-                        method="nearest")
-        res.append(pts.mean("s", skipna=True))
-    # object labels: xarray < 2024.9 cannot index by pandas 3's string dtype
-    out = xr.concat(res, dim=pd.Index(list(links.index), dtype=object, name="link"))
-    out.attrs = dict(field.attrs, note="mean along link path")
-    return out
+    from core.maps.geometry import path_average_points
+    return path_average_points(field, links, n_samples=n_samples)
 
 
 def domain_mean_series(field: xr.DataArray, min_valid_fraction: float = 0.5) -> pd.Series:

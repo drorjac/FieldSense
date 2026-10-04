@@ -106,7 +106,9 @@ def haversine_m(lat1, lon1, lat2, lon2) -> np.ndarray:
 def to_local_xy(lat, lon, lat0: float, lon0: float) -> tuple[np.ndarray, np.ndarray]:
     """Equirectangular projection to metres around (lat0, lon0).
 
-    Error is well under 0.1% across a city-sized domain, which is far below any
+    Distances agree with the great circle to about 0.3% across a city-sized domain
+    (NYC, 0.45 x 0.6 deg, worst at opposite corners; well under 0.1% within ~5 km of
+    the origin) and with the WGS84 geodesic to about 0.6%, which is far below any
     other error source here and keeps interpolation distances in plain metres.
     """
     x = np.radians(np.asarray(lon) - lon0) * EARTH_RADIUS_M * np.cos(np.radians(lat0))

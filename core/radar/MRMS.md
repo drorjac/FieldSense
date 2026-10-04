@@ -88,7 +88,7 @@ from the radar (NYC is ~50 km from KOKX, Upton NY), tall buildings block and clu
 reflectivity–rain conversion is empirical, and snow QPE is much less reliable than rain QPE.
 Pass 2 gauge correction reduces but does not remove these.
 
-## Validation (`python projects/nyc_rain_maps/src/run.py validate` → [`projects/nyc_rain_maps/results/validation/`](../../projects/nyc_rain_maps/results/validation/README.md))
+## Validation (`python projects/maps/nyc/src/run.py validate` → [`projects/maps/nyc/results/validation/`](../../projects/maps/nyc/results/validation/README.md))
 
 The fetching chain is audited against independent paths, and the product against the official NWS
 ASOS gauges (Central Park, LaGuardia, JFK, Newark):

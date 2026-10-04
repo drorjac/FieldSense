@@ -32,7 +32,7 @@ import numpy as np
 import xarray as xr
 
 from core.geo import Grid, to_local_xy
-from core.maps.idw import idw_weights
+from core.maps.idw import IDW as IDWOperator
 
 IDW = {"power": 2.0, "radius_m": 10_000.0, "nnear": None}
 ADJUSTMENTS = ("mfb", "add", "mul")
@@ -104,21 +104,18 @@ def _point_weights(obs: xr.DataArray, kind_weights: dict | None) -> np.ndarray:
     return np.array([(kind_weights or {}).get(str(k), 1.0) for k in obs.kind.values], dtype=float)
 
 
-def _weights(obs: xr.DataArray, grid: Grid, idw: dict, kind_weights: dict | None = None) -> np.ndarray:
+def _weights(obs: xr.DataArray, grid: Grid, idw: dict, kind_weights: dict | None = None) -> IDWOperator:
     lat0, lon0 = float(np.mean(grid.lat)), float(np.mean(grid.lon))
     sx, sy = to_local_xy(obs.lat.values, obs.lon.values, lat0, lon0)
     glat, glon = grid.mesh()
     dx, dy = to_local_xy(glat.ravel(), glon.ravel(), lat0, lon0)
-    W = idw_weights(sx, sy, dx, dy, idw.get("power", 2.0), idw.get("radius_m"), idw.get("nnear"))
-    return W * _point_weights(obs, kind_weights)[None, :]
+    return IDWOperator(sx, sy, dx, dy, idw.get("power", 2.0), idw.get("radius_m"), idw.get("nnear"),
+               src_weights=_point_weights(obs, kind_weights))
 
 
-def _interp(W: np.ndarray, V: np.ndarray) -> np.ndarray:
+def _interp(W: IDWOperator, V: np.ndarray) -> np.ndarray:
     """IDW of ``V(point, time)`` with NaN excluded per time step -> ``(cells, time)``."""
-    valid = np.isfinite(V).astype(float)
-    num, den = W @ np.where(valid > 0, V, 0.0), W @ valid
-    with np.errstate(invalid="ignore", divide="ignore"):
-        return np.where(den > 0, num / den, np.nan)
+    return W(V)
 
 
 def _field(values: np.ndarray, grid: Grid, times, name: str) -> xr.DataArray:
@@ -167,7 +164,7 @@ def adjust(radar: xr.DataArray, obs: xr.DataArray, rad_obs: xr.DataArray, method
         out = Rv * f_hour[None, :]
     else:
         W = _weights(obs, grid, {**IDW, **(idw or {})}, kind_weights)
-        covered = (W.sum(1) > 0)[:, None]
+        covered = (W.W0.sum(1) > 0)[:, None]
         if method == "add":
             res = _interp(W, np.where(both, O - P, np.nan))
             out = np.where(covered & np.isfinite(res), np.clip(Rv + res, 0, None), Rv * f_hour[None, :])

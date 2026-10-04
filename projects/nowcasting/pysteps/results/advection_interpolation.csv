@@ -1,0 +1,5 @@
+network,method,subset,n,rmse_mm,mae_mm,corr,bias_pct
+openmrg,advection,all hours,1489,1.1532,0.4329,0.7306,-3.9761
+openmrg,advection,gauge >= 1 mm,320,2.1796,1.4105,0.5755,-19.1388
+openmrg,plain,all hours,1489,1.1873,0.4436,0.7160,-5.2220
+openmrg,plain,gauge >= 1 mm,320,2.2451,1.4556,0.5578,-20.1114

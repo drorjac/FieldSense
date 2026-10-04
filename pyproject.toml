@@ -39,7 +39,7 @@ opensense = [
 ]
 # mergeplg main (new API, RADOLAN, c0_within) - installed *instead of* 0.1.0 it
 # changes merging results, which are then written with a "_mergeplg-main" suffix.
-# Not in the default environment; see projects/opensense_pipeline/README.md.
+# Not in the default environment; see projects/maps/archive_pipeline/README.md.
 mergeplg-main = ["mergeplg @ git+https://github.com/OpenSenseAction/mergeplg.git@dd380b1ed9b5b6bd38fdb3dfdfcca1659ceb8128"]
 # MRMS radar (core.radar.mrms) decodes GRIB2 with ecCodes; the wheel bundles the library
 mrms = ["eccodes>=2.37"]
@@ -50,8 +50,23 @@ dev = ["pytest"]
 include = ["core*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "projects/cml_retrieval/tests", "projects/physics_ml/tests", "projects/nyc_rain_maps/tests", "projects/openmesh_nyc/tests", "projects/opensense_pipeline/tests", "projects/spatial_interpolation/tests"]
-addopts = "-q"
+testpaths = [
+    "tests",
+    "projects/retrieval/openmrg/tests",
+    "projects/nowcasting/multisensor/tests",
+    "projects/maps/nyc/tests",
+    "projects/data/openmesh_nyc/tests",
+    "projects/maps/archive_pipeline/tests",
+    "projects/nowcasting/pysteps/tests",
+    "projects/physics_ml/discovery/tests",
+    "projects/physics_ml/path_law_1d/tests",
+    "projects/maps/radar_adjustment/tests",
+    "projects/spatial_interpolation/tests",
+    "projects/maps/learned_2d/tests",
+]
+# importlib: several projects have a test module of the same name (test_merging.py)
+addopts = "-q --import-mode=importlib"
+pythonpath = ["tests"]
 filterwarnings = [
     # poligrain's wet/dry metrics take the mean of an empty slice when a
     # category is empty; the result is NaN and handled

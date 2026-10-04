@@ -1,0 +1,14 @@
+forecast,fallback_to,issues,of,network
+R|sprog,R|extrapolation,3,645,openmrg
+C|sprog,C|extrapolation,42,645,openmrg
+C|sprog_Rmotion,C|extrapolation_Rmotion,35,645,openmrg
+P|sprog,P|extrapolation,177,645,openmrg
+P|sprog_Rmotion,P|extrapolation_Rmotion,168,645,openmrg
+CP|sprog,CP|extrapolation,50,645,openmrg
+CP|sprog_Rmotion,CP|extrapolation_Rmotion,42,645,openmrg
+RC|sprog,RC|extrapolation,5,645,openmrg
+RC|sprog_Rmotion,RC|extrapolation_Rmotion,3,645,openmrg
+RP|sprog,RP|extrapolation,4,645,openmrg
+RP|sprog_Rmotion,RP|extrapolation_Rmotion,3,645,openmrg
+RCP|sprog,RCP|extrapolation,3,645,openmrg
+RCP|sprog_Rmotion,RCP|extrapolation_Rmotion,3,645,openmrg

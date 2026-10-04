@@ -169,9 +169,9 @@ checks leave the input unchanged. So this is fixed by the unreleased
 rewrite, which is one more reason for the release below; a 0.1.1 with the
 one-line copy would help anyone pinned to the PyPI version meanwhile.
 
-**Workaround in FieldSense:** `projects/opensense_pipeline/src/merging.py`
+**Workaround in FieldSense:** `projects/maps/archive_pipeline/src/merging.py`
 passes every method a deep copy of the radar;
-`projects/opensense_pipeline/tests/test_merging.py` checks each method
+`projects/maps/archive_pipeline/tests/test_merging.py` checks each method
 leaves its input untouched.
 
 ---
@@ -209,7 +209,7 @@ print(float(out.max()))                                   # hundreds of mm, from
 difference IDW scores an hourly NRMSE of 37 at held-out gauges when merging
 the gauges (radar alone: 2.2; the additive variant: 1.3), and 428 with links,
 whose path-averaged radar is more often near zero
-(`projects/multisensor_maps/results/merging/report.md`).
+(`projects/maps/multisensor/results/merging/report.md`).
 
 **Suggested fix:** clip the interpolated factor (e.g. to `[1/5, 5]`, as
 wradlib's `AdjustMultiply` and FieldSense's `core.maps.merge.adjust("mul")`

@@ -1,0 +1,265 @@
+network,forecast,what,n,RMSE,corr,bias
+openmrg,R|persistence,rate at 15 min,6397,2.3589,0.3950,0.0011
+openmrg,R|persistence,rate at 30 min,6397,2.3432,0.2498,0.0372
+openmrg,R|persistence,rate at 60 min,6397,2.3747,0.2184,0.0755
+openmrg,R|persistence,next-hour total,6397,1.7050,0.4636,0.0109
+openmrg,R|extrapolation,rate at 15 min,6397,2.4784,0.3278,-0.0590
+openmrg,R|extrapolation,rate at 30 min,6397,2.0416,0.4118,-0.0092
+openmrg,R|extrapolation,rate at 60 min,6397,2.1682,0.0848,-0.5533
+openmrg,R|extrapolation,next-hour total,6397,1.2044,0.5577,-0.1999
+openmrg,R|sprog,rate at 15 min,6397,2.2824,0.3922,-0.1054
+openmrg,R|sprog,rate at 30 min,6397,2.3383,0.4061,0.1617
+openmrg,R|sprog,rate at 60 min,6397,2.3896,0.0756,-0.4000
+openmrg,R|sprog,next-hour total,6397,1.3129,0.5460,-0.0899
+openmrg,C|persistence,rate at 15 min,6397,2.3239,0.3660,0.1218
+openmrg,C|persistence,rate at 30 min,6397,2.2015,0.2571,0.1622
+openmrg,C|persistence,rate at 60 min,6397,2.2888,0.1819,0.2052
+openmrg,C|persistence,next-hour total,6397,1.5259,0.4729,0.1328
+openmrg,C|extrapolation,rate at 15 min,6397,2.2182,0.4188,0.0845
+openmrg,C|extrapolation,rate at 30 min,6397,2.0614,0.3266,0.1360
+openmrg,C|extrapolation,rate at 60 min,6397,2.0819,0.2709,0.1076
+openmrg,C|extrapolation,next-hour total,6397,1.2670,0.5820,0.0915
+openmrg,C|sprog,rate at 15 min,6397,2.2127,0.4284,0.1421
+openmrg,C|sprog,rate at 30 min,6397,2.0545,0.3452,0.2023
+openmrg,C|sprog,rate at 60 min,6397,2.1111,0.2972,0.2088
+openmrg,C|sprog,next-hour total,6397,1.2796,0.5966,0.1577
+openmrg,C|extrapolation_Rmotion,rate at 15 min,6397,2.0191,0.5281,0.0756
+openmrg,C|extrapolation_Rmotion,rate at 30 min,6397,1.8087,0.4851,-0.0031
+openmrg,C|extrapolation_Rmotion,rate at 60 min,6397,2.0502,0.1346,-0.5986
+openmrg,C|extrapolation_Rmotion,next-hour total,6397,1.0281,0.6547,-0.1684
+openmrg,C|sprog_Rmotion,rate at 15 min,6397,2.0506,0.5180,0.1669
+openmrg,C|sprog_Rmotion,rate at 30 min,6397,1.9002,0.4486,0.0409
+openmrg,C|sprog_Rmotion,rate at 60 min,6397,2.1098,0.1292,-0.5470
+openmrg,C|sprog_Rmotion,next-hour total,6397,1.0590,0.6470,-0.1034
+openmrg,P|persistence,rate at 15 min,6397,2.2438,0.3846,-0.1374
+openmrg,P|persistence,rate at 30 min,6397,2.0744,0.2858,-0.1063
+openmrg,P|persistence,rate at 60 min,6397,2.1983,0.1745,-0.0732
+openmrg,P|persistence,next-hour total,6397,1.4406,0.4516,-0.1289
+openmrg,P|extrapolation,rate at 15 min,6397,2.1753,0.4184,-0.2478
+openmrg,P|extrapolation,rate at 30 min,6397,1.9763,0.3141,-0.2866
+openmrg,P|extrapolation,rate at 60 min,6397,2.0253,0.2420,-0.3135
+openmrg,P|extrapolation,next-hour total,6397,1.2622,0.5125,-0.2941
+openmrg,P|sprog,rate at 15 min,6397,2.2248,0.4217,-0.0462
+openmrg,P|sprog,rate at 30 min,6397,2.0714,0.3273,-0.0798
+openmrg,P|sprog,rate at 60 min,6397,2.1659,0.2684,-0.0922
+openmrg,P|sprog,next-hour total,6397,1.4064,0.5190,-0.0984
+openmrg,P|extrapolation_Rmotion,rate at 15 min,6397,2.0604,0.4974,-0.2943
+openmrg,P|extrapolation_Rmotion,rate at 30 min,6397,1.8483,0.4016,-0.4670
+openmrg,P|extrapolation_Rmotion,rate at 60 min,6397,2.0540,0.0932,-0.7569
+openmrg,P|extrapolation_Rmotion,next-hour total,6397,1.1283,0.5693,-0.4902
+openmrg,P|sprog_Rmotion,rate at 15 min,6397,2.2063,0.4310,-0.0937
+openmrg,P|sprog_Rmotion,rate at 30 min,6397,1.9321,0.3972,-0.3382
+openmrg,P|sprog_Rmotion,rate at 60 min,6397,2.1055,0.0580,-0.7424
+openmrg,P|sprog_Rmotion,next-hour total,6397,1.1460,0.5641,-0.3903
+openmrg,CP|persistence,rate at 15 min,6397,2.3165,0.3697,0.1243
+openmrg,CP|persistence,rate at 30 min,6397,2.1982,0.2579,0.1649
+openmrg,CP|persistence,rate at 60 min,6397,2.2876,0.1810,0.2080
+openmrg,CP|persistence,next-hour total,6397,1.5203,0.4749,0.1354
+openmrg,CP|extrapolation,rate at 15 min,6397,2.2222,0.4202,0.0872
+openmrg,CP|extrapolation,rate at 30 min,6397,2.0117,0.3509,0.1373
+openmrg,CP|extrapolation,rate at 60 min,6397,2.0312,0.2895,0.0777
+openmrg,CP|extrapolation,next-hour total,6397,1.2228,0.5949,0.0781
+openmrg,CP|sprog,rate at 15 min,6397,2.1983,0.4344,0.1356
+openmrg,CP|sprog,rate at 30 min,6397,2.0077,0.3693,0.2016
+openmrg,CP|sprog,rate at 60 min,6397,2.0892,0.3044,0.2019
+openmrg,CP|sprog,next-hour total,6397,1.2472,0.6087,0.1525
+openmrg,CP|extrapolation_Rmotion,rate at 15 min,6397,2.0117,0.5321,0.0760
+openmrg,CP|extrapolation_Rmotion,rate at 30 min,6397,1.8064,0.4852,-0.0033
+openmrg,CP|extrapolation_Rmotion,rate at 60 min,6397,2.0425,0.1363,-0.5995
+openmrg,CP|extrapolation_Rmotion,next-hour total,6397,1.0229,0.6576,-0.1695
+openmrg,CP|sprog_Rmotion,rate at 15 min,6397,2.0334,0.5250,0.1464
+openmrg,CP|sprog_Rmotion,rate at 30 min,6397,1.8723,0.4538,0.0196
+openmrg,CP|sprog_Rmotion,rate at 60 min,6397,2.1014,0.1275,-0.5462
+openmrg,CP|sprog_Rmotion,next-hour total,6397,1.0471,0.6526,-0.1125
+openmrg,RC|persistence,rate at 15 min,6397,2.4523,0.3342,0.1368
+openmrg,RC|persistence,rate at 30 min,6397,2.3423,0.2356,0.1778
+openmrg,RC|persistence,rate at 60 min,6397,2.4410,0.1576,0.2214
+openmrg,RC|persistence,next-hour total,6397,1.7078,0.4414,0.1480
+openmrg,RC|extrapolation,rate at 15 min,6397,2.2415,0.4239,0.0640
+openmrg,RC|extrapolation,rate at 30 min,6397,2.0224,0.4491,0.1729
+openmrg,RC|extrapolation,rate at 60 min,6397,2.0377,0.2507,-0.3138
+openmrg,RC|extrapolation,next-hour total,6397,1.0579,0.6504,-0.0459
+openmrg,RC|sprog,rate at 15 min,6397,2.4025,0.3850,0.2019
+openmrg,RC|sprog,rate at 30 min,6397,2.1894,0.4514,0.3951
+openmrg,RC|sprog,rate at 60 min,6397,2.0887,0.2710,-0.2467
+openmrg,RC|sprog,next-hour total,6397,1.2813,0.6050,0.1230
+openmrg,RC|extrapolation_Rmotion,rate at 15 min,6397,2.2633,0.4204,0.0777
+openmrg,RC|extrapolation_Rmotion,rate at 30 min,6397,1.9532,0.4377,0.0951
+openmrg,RC|extrapolation_Rmotion,rate at 60 min,6397,2.1298,0.1341,-0.5096
+openmrg,RC|extrapolation_Rmotion,next-hour total,6397,1.0260,0.6597,-0.1152
+openmrg,RC|sprog_Rmotion,rate at 15 min,6397,2.3457,0.4045,0.1872
+openmrg,RC|sprog_Rmotion,rate at 30 min,6397,2.4647,0.4112,0.4120
+openmrg,RC|sprog_Rmotion,rate at 60 min,6397,2.2782,0.1237,-0.3955
+openmrg,RC|sprog_Rmotion,next-hour total,6397,1.1900,0.6165,0.0360
+openmrg,RP|persistence,rate at 15 min,6397,2.4076,0.3817,-0.0262
+openmrg,RP|persistence,rate at 30 min,6397,2.4173,0.2247,0.0089
+openmrg,RP|persistence,rate at 60 min,6397,2.5016,0.1581,0.0462
+openmrg,RP|persistence,next-hour total,6397,1.8116,0.4192,-0.0166
+openmrg,RP|extrapolation,rate at 15 min,6397,2.2364,0.4025,-0.2218
+openmrg,RP|extrapolation,rate at 30 min,6397,2.0728,0.3747,-0.1057
+openmrg,RP|extrapolation,rate at 60 min,6397,2.1089,0.2383,-0.3625
+openmrg,RP|extrapolation,next-hour total,6397,1.2104,0.5511,-0.2307
+openmrg,RP|sprog,rate at 15 min,6397,2.3635,0.3845,-0.0113
+openmrg,RP|sprog,rate at 30 min,6397,2.1092,0.3862,0.0441
+openmrg,RP|sprog,rate at 60 min,6397,2.4482,0.2381,-0.1616
+openmrg,RP|sprog,next-hour total,6397,1.4000,0.5267,-0.0542
+openmrg,RP|extrapolation_Rmotion,rate at 15 min,6397,2.3279,0.3870,-0.1351
+openmrg,RP|extrapolation_Rmotion,rate at 30 min,6397,1.9994,0.3727,-0.1374
+openmrg,RP|extrapolation_Rmotion,rate at 60 min,6397,2.1427,0.0990,-0.5415
+openmrg,RP|extrapolation_Rmotion,next-hour total,6397,1.0989,0.5952,-0.2811
+openmrg,RP|sprog_Rmotion,rate at 15 min,6397,2.3889,0.3866,0.0326
+openmrg,RP|sprog_Rmotion,rate at 30 min,6397,2.3050,0.3884,0.1459
+openmrg,RP|sprog_Rmotion,rate at 60 min,6397,2.2962,0.0927,-0.4271
+openmrg,RP|sprog_Rmotion,next-hour total,6397,1.2657,0.5473,-0.1039
+openmrg,RCP|persistence,rate at 15 min,6397,2.4285,0.3398,0.1156
+openmrg,RCP|persistence,rate at 30 min,6397,2.3195,0.2376,0.1558
+openmrg,RCP|persistence,rate at 60 min,6397,2.4158,0.1603,0.1986
+openmrg,RCP|persistence,next-hour total,6397,1.6756,0.4468,0.1266
+openmrg,RCP|extrapolation,rate at 15 min,6397,2.1937,0.4457,0.0318
+openmrg,RCP|extrapolation,rate at 30 min,6397,1.9625,0.4197,0.0881
+openmrg,RCP|extrapolation,rate at 60 min,6397,2.0209,0.2278,-0.3474
+openmrg,RCP|extrapolation,next-hour total,6397,1.0730,0.6337,-0.0803
+openmrg,RCP|sprog,rate at 15 min,6397,2.3031,0.4317,0.1815
+openmrg,RCP|sprog,rate at 30 min,6397,2.1244,0.4395,0.2984
+openmrg,RCP|sprog,rate at 60 min,6397,2.1432,0.2137,-0.2416
+openmrg,RCP|sprog,next-hour total,6397,1.2230,0.6172,0.0719
+openmrg,RCP|extrapolation_Rmotion,rate at 15 min,6397,2.2512,0.4233,0.0514
+openmrg,RCP|extrapolation_Rmotion,rate at 30 min,6397,1.9460,0.4348,0.0677
+openmrg,RCP|extrapolation_Rmotion,rate at 60 min,6397,2.1122,0.1343,-0.5338
+openmrg,RCP|extrapolation_Rmotion,next-hour total,6397,1.0198,0.6607,-0.1416
+openmrg,RCP|sprog_Rmotion,rate at 15 min,6397,2.2966,0.4270,0.1723
+openmrg,RCP|sprog_Rmotion,rate at 30 min,6397,2.4620,0.4068,0.3657
+openmrg,RCP|sprog_Rmotion,rate at 60 min,6397,2.2152,0.1215,-0.4440
+openmrg,RCP|sprog_Rmotion,next-hour total,6397,1.1355,0.6370,-0.0002
+openmrg,R|steps_mean,rate at 15 min,6397,2.2355,0.3671,-0.1284
+openmrg,R|steps_mean,rate at 30 min,6397,1.8029,0.4359,-0.1526
+openmrg,R|steps_mean,rate at 60 min,6397,2.0703,0.0889,-0.5712
+openmrg,R|steps_mean,next-hour total,6397,1.1099,0.5747,-0.2718
+openmrg,RCP|steps_mean,rate at 15 min,6397,2.1800,0.4098,0.0583
+openmrg,RCP|steps_mean,rate at 30 min,6397,1.8089,0.4373,0.0886
+openmrg,RCP|steps_mean,rate at 60 min,6397,1.9145,0.2673,-0.2775
+openmrg,RCP|steps_mean,next-hour total,6397,1.0344,0.6391,-0.0375
+openmrg,CP|steps_mean,rate at 15 min,6397,2.1146,0.4543,0.0831
+openmrg,CP|steps_mean,rate at 30 min,6397,1.7355,0.4811,-0.0604
+openmrg,CP|steps_mean,rate at 60 min,6397,1.9965,0.1295,-0.5717
+openmrg,CP|steps_mean,next-hour total,6397,1.0150,0.6508,-0.1715
+openmrg,learned|in-R>tgt-R,rate at 15 min,6397,2.1522,0.4186,-0.1382
+openmrg,learned|in-R>tgt-R,rate at 30 min,6397,1.8436,0.3708,-0.1880
+openmrg,learned|in-R>tgt-R,rate at 60 min,6397,1.9334,0.2257,-0.2686
+openmrg,learned|in-R>tgt-R,next-hour total,6397,1.1268,0.5445,-0.2037
+openmrg,learned|in-C>tgt-R,rate at 15 min,6397,2.2845,0.2854,-0.4598
+openmrg,learned|in-C>tgt-R,rate at 30 min,6397,1.9246,0.2574,-0.4402
+openmrg,learned|in-C>tgt-R,rate at 60 min,6397,1.9966,0.1124,-0.3598
+openmrg,learned|in-C>tgt-R,next-hour total,6397,1.2723,0.3535,-0.4295
+openmrg,learned|in-P>tgt-R,rate at 15 min,6397,2.2076,0.3700,-0.3275
+openmrg,learned|in-P>tgt-R,rate at 30 min,6397,1.8911,0.3176,-0.2960
+openmrg,learned|in-P>tgt-R,rate at 60 min,6397,1.9598,0.1631,-0.4749
+openmrg,learned|in-P>tgt-R,next-hour total,6397,1.1588,0.5151,-0.3637
+openmrg,learned|in-CP>tgt-R,rate at 15 min,6397,2.2393,0.3709,-0.5429
+openmrg,learned|in-CP>tgt-R,rate at 30 min,6397,1.9200,0.2829,-0.5886
+openmrg,learned|in-CP>tgt-R,rate at 60 min,6397,1.9269,0.2211,-0.6083
+openmrg,learned|in-CP>tgt-R,next-hour total,6397,1.2283,0.4642,-0.5968
+openmrg,learned|in-RC>tgt-R,rate at 15 min,6397,2.1908,0.3828,-0.2232
+openmrg,learned|in-RC>tgt-R,rate at 30 min,6397,1.8374,0.3763,-0.3216
+openmrg,learned|in-RC>tgt-R,rate at 60 min,6397,1.9550,0.1806,-0.4564
+openmrg,learned|in-RC>tgt-R,next-hour total,6397,1.1517,0.5226,-0.3460
+openmrg,learned|in-RP>tgt-R,rate at 15 min,6397,2.1952,0.3803,-0.1031
+openmrg,learned|in-RP>tgt-R,rate at 30 min,6397,1.8386,0.3756,-0.1409
+openmrg,learned|in-RP>tgt-R,rate at 60 min,6397,1.9459,0.2150,-0.2232
+openmrg,learned|in-RP>tgt-R,next-hour total,6397,1.1477,0.5222,-0.1704
+openmrg,learned|in-RCP>tgt-R,rate at 15 min,6397,2.1730,0.4015,-0.0593
+openmrg,learned|in-RCP>tgt-R,rate at 30 min,6397,1.8583,0.3628,-0.0499
+openmrg,learned|in-RCP>tgt-R,rate at 60 min,6397,1.9610,0.2075,-0.1250
+openmrg,learned|in-RCP>tgt-R,next-hour total,6397,1.1712,0.5061,-0.0935
+openmrg,learned|in-R>tgt-RCP,rate at 15 min,6397,2.2583,0.4008,0.4279
+openmrg,learned|in-R>tgt-RCP,rate at 30 min,6397,1.9383,0.4149,0.4763
+openmrg,learned|in-R>tgt-RCP,rate at 60 min,6397,2.0167,0.2924,0.3940
+openmrg,learned|in-R>tgt-RCP,next-hour total,6397,1.2958,0.5767,0.3984
+openmrg,learned|in-C>tgt-RCP,rate at 15 min,6397,2.1762,0.4169,0.0788
+openmrg,learned|in-C>tgt-RCP,rate at 30 min,6397,1.8487,0.4266,0.2491
+openmrg,learned|in-C>tgt-RCP,rate at 60 min,6397,1.9920,0.2978,0.2945
+openmrg,learned|in-C>tgt-RCP,next-hour total,6397,1.1207,0.6160,0.1407
+openmrg,learned|in-P>tgt-RCP,rate at 15 min,6397,2.1657,0.4157,0.1470
+openmrg,learned|in-P>tgt-RCP,rate at 30 min,6397,1.9226,0.3512,0.1492
+openmrg,learned|in-P>tgt-RCP,rate at 60 min,6397,1.9975,0.2411,0.0662
+openmrg,learned|in-P>tgt-RCP,next-hour total,6397,1.1647,0.5608,0.0929
+openmrg,learned|in-CP>tgt-RCP,rate at 15 min,6397,2.1368,0.4407,-0.1036
+openmrg,learned|in-CP>tgt-RCP,rate at 30 min,6397,1.8000,0.4322,-0.1397
+openmrg,learned|in-CP>tgt-RCP,rate at 60 min,6397,1.8826,0.3006,-0.2232
+openmrg,learned|in-CP>tgt-RCP,next-hour total,6397,1.0669,0.6305,-0.1780
+openmrg,learned|in-RC>tgt-RCP,rate at 15 min,6397,2.1632,0.4279,0.1685
+openmrg,learned|in-RC>tgt-RCP,rate at 30 min,6397,1.8119,0.4266,0.1635
+openmrg,learned|in-RC>tgt-RCP,rate at 60 min,6397,1.9434,0.3018,0.2086
+openmrg,learned|in-RC>tgt-RCP,next-hour total,6397,1.1112,0.6148,0.1624
+openmrg,learned|in-RP>tgt-RCP,rate at 15 min,6397,2.1021,0.4751,0.2093
+openmrg,learned|in-RP>tgt-RCP,rate at 30 min,6397,1.8168,0.4306,0.1873
+openmrg,learned|in-RP>tgt-RCP,rate at 60 min,6397,1.9253,0.2584,0.0858
+openmrg,learned|in-RP>tgt-RCP,next-hour total,6397,1.0576,0.6307,0.1297
+openmrg,learned|in-RCP>tgt-RCP,rate at 15 min,6397,2.1533,0.4301,-0.0256
+openmrg,learned|in-RCP>tgt-RCP,rate at 30 min,6397,1.9425,0.3362,0.0496
+openmrg,learned|in-RCP>tgt-RCP,rate at 60 min,6397,2.0994,0.2375,0.1648
+openmrg,learned|in-RCP>tgt-RCP,next-hour total,6397,1.2260,0.5210,0.0316
+openmrg,learned|hybrid,rate at 15 min,6397,2.4929,0.3268,0.0305
+openmrg,learned|hybrid,rate at 30 min,6397,2.1972,0.4191,0.2131
+openmrg,learned|hybrid,rate at 60 min,6397,2.4980,0.0996,-0.1274
+openmrg,learned|hybrid,next-hour total,6397,1.3250,0.5475,0.0392
+openmrg,learned_raw|in-R>tgt-R,rate at 15 min,6397,2.1578,0.4200,0.0840
+openmrg,learned_raw|in-R>tgt-R,rate at 30 min,6397,1.8436,0.3701,0.0130
+openmrg,learned_raw|in-R>tgt-R,rate at 60 min,6397,1.9238,0.2206,-0.0438
+openmrg,learned_raw|in-R>tgt-R,next-hour total,6397,1.1179,0.5547,0.0192
+openmrg,learned_raw|in-C>tgt-R,rate at 15 min,6397,2.2622,0.2953,0.0383
+openmrg,learned_raw|in-C>tgt-R,rate at 30 min,6397,1.8954,0.2807,0.0165
+openmrg,learned_raw|in-C>tgt-R,rate at 60 min,6397,1.9440,0.1518,0.0278
+openmrg,learned_raw|in-C>tgt-R,next-hour total,6397,1.2275,0.3930,0.0059
+openmrg,learned_raw|in-P>tgt-R,rate at 15 min,6397,2.2013,0.3712,-0.0304
+openmrg,learned_raw|in-P>tgt-R,rate at 30 min,6397,1.8702,0.3208,-0.0162
+openmrg,learned_raw|in-P>tgt-R,rate at 60 min,6397,1.9206,0.1963,-0.3884
+openmrg,learned_raw|in-P>tgt-R,next-hour total,6397,1.1417,0.5313,-0.1771
+openmrg,learned_raw|in-CP>tgt-R,rate at 15 min,6397,2.2180,0.3812,-0.3524
+openmrg,learned_raw|in-CP>tgt-R,rate at 30 min,6397,1.8887,0.3103,-0.3406
+openmrg,learned_raw|in-CP>tgt-R,rate at 60 min,6397,1.8974,0.2572,-0.3692
+openmrg,learned_raw|in-CP>tgt-R,next-hour total,6397,1.1952,0.5001,-0.4229
+openmrg,learned_raw|in-RC>tgt-R,rate at 15 min,6397,2.1921,0.3854,0.0535
+openmrg,learned_raw|in-RC>tgt-R,rate at 30 min,6397,1.8265,0.3799,-0.0727
+openmrg,learned_raw|in-RC>tgt-R,rate at 60 min,6397,1.9379,0.1905,-0.1635
+openmrg,learned_raw|in-RC>tgt-R,next-hour total,6397,1.1258,0.5356,-0.1164
+openmrg,learned_raw|in-RP>tgt-R,rate at 15 min,6397,2.2408,0.3801,0.3240
+openmrg,learned_raw|in-RP>tgt-R,rate at 30 min,6397,1.8733,0.3748,0.3292
+openmrg,learned_raw|in-RP>tgt-R,rate at 60 min,6397,1.9617,0.2133,0.2507
+openmrg,learned_raw|in-RP>tgt-R,next-hour total,6397,1.1745,0.5263,0.2409
+openmrg,learned_raw|in-RCP>tgt-R,rate at 15 min,6397,2.2075,0.4018,0.2909
+openmrg,learned_raw|in-RCP>tgt-R,rate at 30 min,6397,1.8933,0.3641,0.3784
+openmrg,learned_raw|in-RCP>tgt-R,rate at 60 min,6397,1.9407,0.2117,0.1482
+openmrg,learned_raw|in-RCP>tgt-R,next-hour total,6397,1.1936,0.5154,0.2604
+openmrg,learned_raw|in-R>tgt-RCP,rate at 15 min,6397,2.3708,0.4025,0.8428
+openmrg,learned_raw|in-R>tgt-RCP,rate at 30 min,6397,2.1576,0.4158,1.0875
+openmrg,learned_raw|in-R>tgt-RCP,rate at 60 min,6397,2.0949,0.2931,0.8845
+openmrg,learned_raw|in-R>tgt-RCP,next-hour total,6397,1.4642,0.5772,0.8259
+openmrg,learned_raw|in-C>tgt-RCP,rate at 15 min,6397,2.3110,0.4168,0.5964
+openmrg,learned_raw|in-C>tgt-RCP,rate at 30 min,6397,1.9992,0.4294,0.7739
+openmrg,learned_raw|in-C>tgt-RCP,rate at 60 min,6397,2.0215,0.2987,0.5970
+openmrg,learned_raw|in-C>tgt-RCP,next-hour total,6397,1.2662,0.6195,0.5776
+openmrg,learned_raw|in-P>tgt-RCP,rate at 15 min,6397,2.1517,0.4192,0.1381
+openmrg,learned_raw|in-P>tgt-RCP,rate at 30 min,6397,1.8676,0.3522,0.0717
+openmrg,learned_raw|in-P>tgt-RCP,rate at 60 min,6397,1.8919,0.2523,-0.0826
+openmrg,learned_raw|in-P>tgt-RCP,next-hour total,6397,1.1003,0.5658,0.0408
+openmrg,learned_raw|in-CP>tgt-RCP,rate at 15 min,6397,2.1693,0.4428,0.1547
+openmrg,learned_raw|in-CP>tgt-RCP,rate at 30 min,6397,1.8224,0.4358,0.1109
+openmrg,learned_raw|in-CP>tgt-RCP,rate at 60 min,6397,1.8581,0.3143,-0.0595
+openmrg,learned_raw|in-CP>tgt-RCP,next-hour total,6397,1.0738,0.6339,0.0051
+openmrg,learned_raw|in-RC>tgt-RCP,rate at 15 min,6397,2.1963,0.4285,0.4567
+openmrg,learned_raw|in-RC>tgt-RCP,rate at 30 min,6397,1.8634,0.4281,0.6117
+openmrg,learned_raw|in-RC>tgt-RCP,rate at 60 min,6397,2.0044,0.3073,0.6633
+openmrg,learned_raw|in-RC>tgt-RCP,next-hour total,6397,1.2218,0.6147,0.5948
+openmrg,learned_raw|in-RP>tgt-RCP,rate at 15 min,6397,2.1112,0.4762,0.3342
+openmrg,learned_raw|in-RP>tgt-RCP,rate at 30 min,6397,1.8372,0.4330,0.4311
+openmrg,learned_raw|in-RP>tgt-RCP,rate at 60 min,6397,1.9508,0.2637,0.5193
+openmrg,learned_raw|in-RP>tgt-RCP,next-hour total,6397,1.0824,0.6318,0.3622
+openmrg,learned_raw|in-RCP>tgt-RCP,rate at 15 min,6397,2.1771,0.4305,0.1661
+openmrg,learned_raw|in-RCP>tgt-RCP,rate at 30 min,6397,1.9932,0.3341,0.3398
+openmrg,learned_raw|in-RCP>tgt-RCP,rate at 60 min,6397,2.2426,0.2337,0.5712
+openmrg,learned_raw|in-RCP>tgt-RCP,next-hour total,6397,1.3003,0.5193,0.3049
+openmrg,learned_raw|hybrid,rate at 15 min,6397,2.5243,0.3275,0.1137
+openmrg,learned_raw|hybrid,rate at 30 min,6397,2.3048,0.4193,0.3680
+openmrg,learned_raw|hybrid,rate at 60 min,6397,2.4356,0.1017,0.1124
+openmrg,learned_raw|hybrid,next-hour total,6397,1.3690,0.5481,0.2163

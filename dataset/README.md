@@ -16,9 +16,9 @@ folder holds documentation only. Input files live in the shared data store
 | lands in | `~/data/cml/<dataset>/_sample*/` | `~/data/cml/<dataset>/_download/` (+ extracted files) |
 | list | `python -m core.opensense.example_data --list` | `python -m core.opensense.fetch --list` |
 
-Start with the example subsets; the notebooks in [`examples/`](../examples/)
-read them. The full records are for work that needs more than a few days:
-`projects/opensense_pipeline/src/ingest_*.py` turns them into OpenSense
+Start with the example subsets; the notebooks in [`examples/`](../examples/) and
+[`tutorials/01_open_data.ipynb`](../tutorials/) read them. The full records are for work that needs more than a few days:
+`projects/maps/archive_pipeline/src/ingest_*.py` turns them into OpenSense
 NetCDF files under `open_datasets/<dataset>/processed/`.
 
 ## The datasets
@@ -28,6 +28,7 @@ NetCDF files under `open_datasets/<dataset>/processed/`.
 | **OpenMRG** | Gothenburg, Sweden; Jun-Aug 2015 | 364 CMLs, radar, 11 gauges | `openmrg` (`8d`, `5min_2h`) | `fetch --dataset openmrg`, 318 MB | CC BY-SA 4.0 |
 | **OpenRainER** | Emilia-Romagna, Italy; 2021-2022 | CMLs, radar, gauges | `openrainer` (`8d`) | `fetch --dataset openrainer`, 1.4 GB by default | CC BY 4.0 |
 | **OpenMesh** | New York City; Oct 2023 - Jul 2024 | NYC Mesh community-network links, PWS, ASOS | `openmesh` (`1d`, `1w`, `20d`) | `fetch --dataset openmesh` (+ `openmesh_pws`) | CC BY 4.0 (links), CC BY-NC 4.0 (PWS) |
+| **OpenMRG2 PWS** (preview) | Gothenburg, Sweden; Jun-Aug 2015 | 30 Netatmo PWS, 5 min | - | `fetch --dataset openmrg2_pws` | see [OpenSenseAction/OpenMRG2](https://github.com/OpenSenseAction/OpenMRG2) (not yet on Zenodo) |
 | **Amsterdam PWS** | Amsterdam, Netherlands; 2016-2018 | 134 Netatmo PWS, radar reference | `ams_pws` (`full_period`) | - | CC BY 4.0 |
 | **CML Netherlands** | Netherlands; 2011-2015 | nationwide CMLs | - | not automated yet | see source |
 
@@ -88,14 +89,19 @@ dataset/open_datasets/
 │   └── pynncml_view/     #   symlinks onto ~/data in the Zenodo layout, for PyNNcml (generated)
 ├── OpenRainER_Italy/     # README; processed/ as above
 ├── OpenMesh_NYC/         # the Zenodo package's README.txt, network maps (HTML); processed/
-├── _cml_rnn/             # datasets and models built by projects/cml_rnn (generated)
+├── _cml_rnn/             # datasets and models built by projects/retrieval/rnn_three_networks (generated)
+├── _multisensor_maps/    # per-event caches of projects/maps/multisensor (generated)
+├── _radar_adjustment/    # prepared inputs and adjusted fields of projects/maps/radar_adjustment (generated)
+├── _os_nowcasting/       # per-event radar fields and study state of projects/nowcasting/pysteps (generated)
 └── CML_Netherlands/      # README only
 ```
 
 ## The OpenSense data format
 
 All NetCDF files here follow, or are converted to, the conventions of the
-[OpenSense](https://opensenseaction.eu/) community: CML data on dimensions
+[OpenSense](https://opensenseaction.eu/) community (Fencl et al., 2023,
+[doi:10.12688/openreseurope.16068.1](https://doi.org/10.12688/openreseurope.16068.1);
+[OS_data_format_conventions](https://github.com/OpenSenseAction/OS_data_format_conventions)): CML data on dimensions
 `cml_id`, `sublink_id` and `time`, with `rsl` (received signal level) and,
 where published, `tsl` (transmitted), and link geometry as `site_0_lat`,
 `site_0_lon`, `site_1_lat`, `site_1_lon`, `length`, `frequency`,

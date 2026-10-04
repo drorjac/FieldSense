@@ -12,9 +12,9 @@ Every input file is looked up in two places, in this order
    `data` index project (`~/PycharmProjects/data`). Set `CML_DATA_ROOT` to
    point somewhere else.
 
-Downloads (Zenodo, MRMS, NEXRAD, IEM) are inputs too, so they are written into
+Downloads (Zenodo, 4TU, KNMI, MRMS, NEXRAD, IEM) are inputs too, so they are written into
 `~/data/cml`. What FieldSense *produces* — `processed/`, `_cml_rnn/`,
-`_multisensor_maps/`, nowcast caches, the PyNNcml symlink view — stays under
+`_multisensor_maps/`, `_radar_adjustment/`, `_os_nowcasting/`, `_netherlands/`, nowcast caches, the PyNNcml symlink view — stays under
 `dataset/open_datasets/` (git-ignored).
 
 On a new machine: clone, then either copy the files below into `~/data/cml/`
@@ -72,6 +72,23 @@ PWS [doi:10.5281/zenodo.17508286](https://doi.org/10.5281/zenodo.17508286) (CC B
 | `openmesh/weather/raw_fetch/iem_cache/asos1min_*.csv`, `metar_*.csv`, `asos_*.csv` | ASOS 1-min and METAR reports (NYC, LGA, JFK, EWR) pulled from IEM, per request window | `core.asos`, `core.radar.nexrad` (download on miss) |
 | `openmesh/weather/radar/mrms_cache/<product>/<domain>/<YYYYMMDD>.nc` | NOAA MRMS QPE / precip-type crops over the domain, one file per day | `core.radar.mrms` (download on miss) |
 | `openmesh/weather/radar/nexrad_okx/nexrad_OKX_N0B_<date>_<kind>.nc` | KOKX NEXRAD base reflectivity frames for 8 rain/snow events | `core.radar.nexrad` (download on miss) |
+
+### Netherlands CML — the whole country, Jan 2011 – Mar 2015
+T-Mobile NL commercial microwave links, 15-min minimum and maximum received power (no
+TSL), Nokia (1 dB) and NEC (0.1 dB), ~3070 sub-links on ~1818 paths on average.
+Overeem, Walraven, Leijnse and Uijlenhoet (2024),
+[doi:10.4121/be252844-b672-471e-8d69-27269a862ec1.v1](https://doi.org/10.4121/be252844-b672-471e-8d69-27269a862ec1.v1)
+(4TU.ResearchData), CC BY 4.0. KNMI hourly gauges from KNMI's open climatology service.
+
+| file | what it is | read by |
+|---|---|---|
+| `netherlands/_download/IDRawCMLdata.zip` | the 4TU archive (9.5 GB): one RAINLINK-format text file, ~434 million rows, sorted by time | `fetch --dataset netherlands` writes it; `core.opensense.netherlands` streams it |
+| `netherlands/monthly/cml_<YYYY-MM>.nc` | one month in the OpenSense format: `rsl_min`/`rsl_max(cml_id, sublink_id, time)` (dBm), time = end of the 15-min interval | `core.opensense.netherlands.open_months` (made from the zip on demand) |
+| `netherlands/knmi_hourly/RH_<YYYY-MM>.txt` | KNMI hourly precipitation `RH` of all automatic stations, the service's text response with the station list | `core.opensense.netherlands.knmi_hourly` (download on miss) |
+
+Only the months a study asks for are converted (`maps/netherlands`: May–Aug 2012).
+The archive's other file, `RawCMLdata.zip` (12.6 GB, the operator's daily CSVs), is not
+needed.
 
 ### OpenSense example subsets (small demos)
 From [OpenSenseAction/opensense_example_data](https://github.com/OpenSenseAction/opensense_example_data).

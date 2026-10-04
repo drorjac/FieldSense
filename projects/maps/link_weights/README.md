@@ -1,0 +1,56 @@
+ notebook # link_weights: weighting each link by its expected error
+ notebook 
+ notebook **Question.** A link's error depends on its length: the wet-antenna offset does not grow
+ notebook with the path, so on a short link it is a large share of the signal. If each link's
+ notebook expected error is known, does weighting the links by it make better maps?
+ notebook 
+ notebook **Method.** On the 29 cached storms of [`multisensor`](../multisensor/) (OpenMRG,
+ notebook OpenRainER, OpenMesh), every other storm of a network trains, the rest test. On training
+ notebook storms, hourly link totals are compared with the radar averaged along each path
+ notebook (`core.maps.geometry.path_average_points`); the mean squared error per length bin (0-1,
+ notebook 1-2, 2-4, 4-8, > 8 km) is the error model. On test storms links are mapped three ways with
+ notebook `core.maps.idw.idw_map` (power 2, 10 km): plain; weighted by the inverse error variance of
+ notebook their bin (`weights=`); and plain without the links under 1 km. Maps are scored against the
+ notebook radar on the grid and at held-out gauges. Two retrievals: the dynamic-baseline power law
+ notebook and the RNN.
+ notebook 
+ notebook ## Findings
+ notebook 
+ notebook Full tables: `results/error_model.csv`, `results/summary.csv`, `results/test_scores.csv`.
+ notebook 
+ notebook | held-out gauges, NRMSE (median of test storms) | plain IDW | weighted | no links < 1 km |
+ notebook |---|---|---|---|
+ notebook | Gothenburg, power law | 3.62 | 2.33 | 2.21 |
+ notebook | Emilia-Romagna, power law | 2.61 | 2.36 | 2.57 |
+ notebook | New York, power law | 1.56 | 0.95 | 0.93 |
+ notebook | Gothenburg, RNN | 0.65 | 0.66 | 0.64 |
+ notebook | Emilia-Romagna, RNN | 1.51 | 1.51 | 1.52 |
+ notebook | New York, RNN | 0.74 | 0.72 | 0.76 |
+ notebook 
+ notebook - **Power-law links read far too high on short paths.** Below 1 km the dynamic-baseline
+ notebook   retrieval is +434% against the radar in Gothenburg and about +190% in Emilia-Romagna and
+ notebook   New York; above 4 km the bias is a fraction of that.
+ notebook - **Weighting by the learned error repairs most of the power-law map**, against the gauges
+ notebook   and against the radar. Dropping the short links does about as well where short links are
+ notebook   the whole problem (Gothenburg, New York), not in Emilia-Romagna, where the 1-4 km links
+ notebook   are also biased.
+ notebook - **The RNN's error is flat across lengths**, so weighting changes nothing for it: it has
+ notebook   learned the length-dependent offset the power law misses (as in
+ notebook   [`retrieval/rnn_three_networks`](../../retrieval/rnn_three_networks/)).
+ notebook 
+ notebook **Caveats.** 5 test storms per network; the error model is learned against the radar,
+ notebook which has its own errors (in Emilia-Romagna it reads about double the gauges). The weights
+ notebook are per length bin only; a per-link model (frequency, a wet-antenna fit) is the natural
+ notebook next step, and the subject of [`physics_ml/path_law_1d`](../../physics_ml/path_law_1d/).
+ notebook 
+ notebook ## Running it
+
+Tutorial [11](../../../tutorials/11_dry_maps_and_link_weights.ipynb) teaches the method by hand on the OpenMRG subset.
+ notebook 
+ notebook ```bash
+ notebook python projects/maps/link_weights/src/run.py    # ~1 min; needs maps/multisensor's event inputs
+ notebook ```
+ notebook 
+ notebook | notebook | what |
+ notebook |---|---|
+ notebook | [`01_link_weights.ipynb`](notebooks/01_link_weights.ipynb) | error by length, and the maps on the test storms |
