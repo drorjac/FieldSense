@@ -1,6 +1,6 @@
 # Reorganization and mapping plan
 
-Status (2026-10-03): T0-T20 done, T21 (the PR) pending; algorithm audit merged (`docs/algorithm_audit.md`) on branch `reorg`; see the notes under each task.
+Status (2026-10-04): T0-T21 done. After the audit, its four bugs were fixed and the affected studies rerun (`nowcasting/pysteps`, `simulation/testbed`, `maps/wet_area` synthetic cases; `nowcasting/multisensor` checked unchanged); algorithm audit merged (`docs/algorithm_audit.md`) on branch `reorg`; see the notes under each task.
 
 One continuous run on one branch (`reorg`), no pauses between parts. Commit
 after each task so any task can be reverted on its own; one PR at the end.
@@ -131,7 +131,7 @@ T13-T15 were done as the 1-D proposal's base (`physics_ml/path_law_1d`, `core/si
 
 - [x] T20. Re-run every notebook (except `spatial_interpolation`); numbers
       match the baseline or the difference is explained in the PR.
-- [ ] T21. Final check below, then the PR.
+- [x] T21. Final check below, then the PR.
 
 ## Checks after every task
 
