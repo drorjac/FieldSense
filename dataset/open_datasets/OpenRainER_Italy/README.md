@@ -11,7 +11,7 @@ network, with Arpae-SIMC weather radar and rain gauges.
 
 ```bash
 python -m core.opensense.fetch --dataset openrainer   # CML, gauges and radar rain, 1.4 GB
-python projects/opensense_pipeline/src/ingest_openrainer.py
+python projects/maps/archive_pipeline/src/ingest_openrainer.py
 ```
 
 The two other radar archives (`RADadj.tar`, `RADref.tar`, 1.6 GB each) are

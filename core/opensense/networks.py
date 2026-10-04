@@ -22,7 +22,7 @@ Each :class:`Network` gives the same three things for any window of its record:
 Hourly radar grids are cached per month under ``dataset/open_datasets/<folder>/processed/``.
 Time labels: every accumulation here is converted to hour-ENDING (the hour labelled 12:00
 is 11:00-12:00 UTC). The per-source conventions are in :data:`LABELS`; they were
-established by lagging each source against the links (see ``projects/multisensor_maps``).
+established by lagging each source against the links (see ``projects/maps/multisensor``).
 
     from core.opensense.networks import NETWORKS
     net = NETWORKS["openrainer"]

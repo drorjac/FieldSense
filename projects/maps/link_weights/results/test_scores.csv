@@ -1,0 +1,181 @@
+network,event,retrieval,map,short_share,reference,n,nrmse,corr,rel_bias,csi
+openmesh,openmesh_20231210T16,rnn,idw,0.24,radar,10626,0.5098,0.8803,0.1079,0.8718
+openmesh,openmesh_20231210T16,rnn,idw,0.24,gauges,92,0.6643,0.8093,0.0961,0.9146
+openmesh,openmesh_20231210T16,rnn,idw weighted by length error,0.24,radar,10626,0.5172,0.8808,0.1195,0.872
+openmesh,openmesh_20231210T16,rnn,idw weighted by length error,0.24,gauges,92,0.6724,0.8087,0.1109,0.9036
+openmesh,openmesh_20231210T16,rnn,idw without links < 1 km,0.24,radar,10626,0.5425,0.876,0.1397,0.8716
+openmesh,openmesh_20231210T16,rnn,idw without links < 1 km,0.24,gauges,92,0.6759,0.8122,0.1382,0.9277
+openmesh,openmesh_20231210T16,dynamic,idw,0.24,radar,10626,1.2267,0.6565,0.6579,0.9064
+openmesh,openmesh_20231210T16,dynamic,idw,0.24,gauges,92,1.3864,0.5591,0.7764,0.8587
+openmesh,openmesh_20231210T16,dynamic,idw weighted by length error,0.24,radar,10626,0.8725,0.691,0.2584,0.9064
+openmesh,openmesh_20231210T16,dynamic,idw weighted by length error,0.24,gauges,92,0.8,0.7082,0.1563,0.8681
+openmesh,openmesh_20231210T16,dynamic,idw without links < 1 km,0.24,radar,10626,0.8443,0.6746,0.1703,0.9033
+openmesh,openmesh_20231210T16,dynamic,idw without links < 1 km,0.24,gauges,92,0.7934,0.6932,0.0613,0.8587
+openmesh,openmesh_20231227T15,rnn,idw,0.24,radar,11088,0.8602,0.8687,-0.0837,0.7139
+openmesh,openmesh_20231227T15,rnn,idw,0.24,gauges,95,1.0914,0.7917,-0.1349,0.6774
+openmesh,openmesh_20231227T15,rnn,idw weighted by length error,0.24,radar,11088,0.8579,0.8686,-0.076,0.714
+openmesh,openmesh_20231227T15,rnn,idw weighted by length error,0.24,gauges,95,1.0873,0.7919,-0.123,0.6774
+openmesh,openmesh_20231227T15,rnn,idw without links < 1 km,0.24,radar,11088,0.8666,0.8651,-0.0763,0.7175
+openmesh,openmesh_20231227T15,rnn,idw without links < 1 km,0.24,gauges,95,1.1007,0.7875,-0.1389,0.7049
+openmesh,openmesh_20231227T15,dynamic,idw,0.24,radar,11088,1.8347,0.717,1.1116,0.4901
+openmesh,openmesh_20231227T15,dynamic,idw,0.24,gauges,95,1.7051,0.6897,0.9987,0.5319
+openmesh,openmesh_20231227T15,dynamic,idw weighted by length error,0.24,radar,11088,1.3715,0.7461,0.5342,0.5033
+openmesh,openmesh_20231227T15,dynamic,idw weighted by length error,0.24,gauges,95,1.1939,0.7488,0.2473,0.5444
+openmesh,openmesh_20231227T15,dynamic,idw without links < 1 km,0.24,radar,11088,1.3807,0.7022,0.4085,0.5148
+openmesh,openmesh_20231227T15,dynamic,idw without links < 1 km,0.24,gauges,95,1.2953,0.6823,0.1531,0.5556
+openmesh,openmesh_20240302T12,rnn,idw,0.2308,radar,5544,0.4115,0.8734,-0.1329,0.9293
+openmesh,openmesh_20240302T12,rnn,idw,0.2308,gauges,48,0.4926,0.8544,-0.1743,1.0
+openmesh,openmesh_20240302T12,rnn,idw weighted by length error,0.2308,radar,5544,0.4075,0.8731,-0.1238,0.9291
+openmesh,openmesh_20240302T12,rnn,idw weighted by length error,0.2308,gauges,48,0.4816,0.8606,-0.1662,1.0
+openmesh,openmesh_20240302T12,rnn,idw without links < 1 km,0.2308,radar,5544,0.4194,0.8727,-0.1472,0.9266
+openmesh,openmesh_20240302T12,rnn,idw without links < 1 km,0.2308,gauges,48,0.5335,0.816,-0.189,1.0
+openmesh,openmesh_20240302T12,dynamic,idw,0.2308,radar,5544,0.8725,0.6075,0.4362,0.9298
+openmesh,openmesh_20240302T12,dynamic,idw,0.2308,gauges,48,0.6101,0.8021,0.3465,1.0
+openmesh,openmesh_20240302T12,dynamic,idw weighted by length error,0.2308,radar,5544,0.7021,0.6077,0.1805,0.9288
+openmesh,openmesh_20240302T12,dynamic,idw weighted by length error,0.2308,gauges,48,0.6459,0.6431,0.0973,1.0
+openmesh,openmesh_20240302T12,dynamic,idw without links < 1 km,0.2308,radar,5544,0.6917,0.5899,0.123,0.9254
+openmesh,openmesh_20240302T12,dynamic,idw without links < 1 km,0.2308,gauges,48,0.6839,0.5799,0.0419,1.0
+openmesh,openmesh_20240309T19,rnn,idw,0.25,radar,7392,0.6012,0.9181,-0.1371,0.8634
+openmesh,openmesh_20240309T19,rnn,idw,0.25,gauges,64,0.7353,0.8338,-0.0841,0.8269
+openmesh,openmesh_20240309T19,rnn,idw weighted by length error,0.25,radar,7392,0.5875,0.9202,-0.1265,0.8602
+openmesh,openmesh_20240309T19,rnn,idw weighted by length error,0.25,gauges,64,0.7218,0.838,-0.0684,0.8269
+openmesh,openmesh_20240309T19,rnn,idw without links < 1 km,0.25,radar,7392,0.6214,0.9099,-0.1383,0.8801
+openmesh,openmesh_20240309T19,rnn,idw without links < 1 km,0.25,gauges,64,0.762,0.8211,-0.0923,0.8431
+openmesh,openmesh_20240309T19,dynamic,idw,0.25,radar,7392,1.3363,0.729,0.7135,0.6861
+openmesh,openmesh_20240309T19,dynamic,idw,0.25,gauges,64,1.5618,0.6985,1.0118,0.7188
+openmesh,openmesh_20240309T19,dynamic,idw weighted by length error,0.25,radar,7392,0.9557,0.7755,0.2912,0.7054
+openmesh,openmesh_20240309T19,dynamic,idw weighted by length error,0.25,gauges,64,0.9487,0.767,0.3107,0.7419
+openmesh,openmesh_20240309T19,dynamic,idw without links < 1 km,0.25,radar,7392,0.8971,0.74,0.1089,0.7111
+openmesh,openmesh_20240309T19,dynamic,idw without links < 1 km,0.25,gauges,64,0.9258,0.7025,0.0586,0.7419
+openmesh,openmesh_20240403T07,rnn,idw,0.2273,radar,12012,0.6875,0.7682,-0.2081,0.8291
+openmesh,openmesh_20240403T07,rnn,idw,0.2273,gauges,104,0.8104,0.6704,-0.1495,0.8571
+openmesh,openmesh_20240403T07,rnn,idw weighted by length error,0.2273,radar,12012,0.6841,0.7689,-0.1979,0.8258
+openmesh,openmesh_20240403T07,rnn,idw weighted by length error,0.2273,gauges,104,0.8097,0.6723,-0.1301,0.8469
+openmesh,openmesh_20240403T07,rnn,idw without links < 1 km,0.2273,radar,12012,0.7025,0.755,-0.2068,0.8335
+openmesh,openmesh_20240403T07,rnn,idw without links < 1 km,0.2273,gauges,104,0.8392,0.6419,-0.1506,0.8586
+openmesh,openmesh_20240403T07,dynamic,idw,0.2273,radar,12012,2.5259,0.4429,1.7253,0.8948
+openmesh,openmesh_20240403T07,dynamic,idw,0.2273,gauges,104,2.6211,0.4054,1.9215,0.875
+openmesh,openmesh_20240403T07,dynamic,idw weighted by length error,0.2273,radar,12012,1.8484,0.4967,1.0007,0.8955
+openmesh,openmesh_20240403T07,dynamic,idw weighted by length error,0.2273,gauges,104,1.3289,0.5434,0.6922,0.875
+openmesh,openmesh_20240403T07,dynamic,idw without links < 1 km,0.2273,radar,12012,1.8133,0.4531,0.9408,0.8955
+openmesh,openmesh_20240403T07,dynamic,idw without links < 1 km,0.2273,gauges,104,1.1967,0.5372,0.5804,0.875
+openmrg,openmrg_20150707T17,rnn,idw,0.1723,radar,59640,2.0199,0.7622,0.6067,0.6792
+openmrg,openmrg_20150707T17,rnn,idw,0.1723,gauges,400,1.1139,0.8916,0.1632,0.7337
+openmrg,openmrg_20150707T17,rnn,idw weighted by length error,0.1723,radar,59640,2.0222,0.7627,0.6076,0.6794
+openmrg,openmrg_20150707T17,rnn,idw weighted by length error,0.1723,gauges,400,1.1174,0.891,0.1647,0.7337
+openmrg,openmrg_20150707T17,rnn,idw without links < 1 km,0.1723,radar,59640,2.0159,0.763,0.6035,0.6796
+openmrg,openmrg_20150707T17,rnn,idw without links < 1 km,0.1723,gauges,400,1.0767,0.8964,0.1201,0.7432
+openmrg,openmrg_20150707T17,dynamic,idw,0.1723,radar,59377,3.5221,0.7446,1.4379,0.594
+openmrg,openmrg_20150707T17,dynamic,idw,0.1723,gauges,400,4.2897,0.8968,2.1559,0.5778
+openmrg,openmrg_20150707T17,dynamic,idw weighted by length error,0.1723,radar,59377,3.069,0.7585,1.2253,0.6132
+openmrg,openmrg_20150707T17,dynamic,idw weighted by length error,0.1723,gauges,400,2.3261,0.906,1.0793,0.6609
+openmrg,openmrg_20150707T17,dynamic,idw without links < 1 km,0.1723,radar,59377,3.2054,0.7608,1.2944,0.6034
+openmrg,openmrg_20150707T17,dynamic,idw without links < 1 km,0.1723,gauges,400,2.2365,0.9104,1.076,0.6456
+openmrg,openmrg_20150725T05,rnn,idw,0.1728,radar,14910,1.5544,0.2532,-0.1171,0.7878
+openmrg,openmrg_20150725T05,rnn,idw,0.1728,gauges,100,0.6498,0.8916,0.036,0.8148
+openmrg,openmrg_20150725T05,rnn,idw weighted by length error,0.1728,radar,14910,1.557,0.2503,-0.1193,0.7877
+openmrg,openmrg_20150725T05,rnn,idw weighted by length error,0.1728,gauges,100,0.6527,0.8907,0.0363,0.8148
+openmrg,openmrg_20150725T05,rnn,idw without links < 1 km,0.1728,radar,14910,1.5524,0.2546,-0.1184,0.7883
+openmrg,openmrg_20150725T05,rnn,idw without links < 1 km,0.1728,gauges,100,0.6216,0.9003,0.018,0.8272
+openmrg,openmrg_20150725T05,dynamic,idw,0.1728,radar,14850,2.3135,0.214,0.6525,0.7945
+openmrg,openmrg_20150725T05,dynamic,idw,0.1728,gauges,100,4.8448,0.8511,2.6083,0.9012
+openmrg,openmrg_20150725T05,dynamic,idw weighted by length error,0.1728,radar,14850,2.0509,0.2456,0.5206,0.7958
+openmrg,openmrg_20150725T05,dynamic,idw weighted by length error,0.1728,gauges,100,2.636,0.8973,1.4215,0.8987
+openmrg,openmrg_20150725T05,dynamic,idw without links < 1 km,0.1728,radar,14850,2.1357,0.2318,0.5646,0.792
+openmrg,openmrg_20150725T05,dynamic,idw without links < 1 km,0.1728,gauges,100,2.4662,0.9189,1.3805,0.8974
+openmrg,openmrg_20150728T03,rnn,idw,0.1733,radar,47712,1.9131,0.6179,0.229,0.6731
+openmrg,openmrg_20150728T03,rnn,idw,0.1733,gauges,320,1.6457,0.7495,0.0169,0.6585
+openmrg,openmrg_20150728T03,rnn,idw weighted by length error,0.1733,radar,47712,1.915,0.6171,0.2283,0.6735
+openmrg,openmrg_20150728T03,rnn,idw weighted by length error,0.1733,gauges,320,1.6459,0.7492,0.0126,0.6585
+openmrg,openmrg_20150728T03,rnn,idw without links < 1 km,0.1733,radar,47712,1.911,0.6202,0.2329,0.6731
+openmrg,openmrg_20150728T03,rnn,idw without links < 1 km,0.1733,gauges,320,1.616,0.7606,0.0532,0.6687
+openmrg,openmrg_20150728T03,dynamic,idw,0.1733,radar,47520,2.8187,0.6562,0.8539,0.6343
+openmrg,openmrg_20150728T03,dynamic,idw,0.1733,gauges,320,3.6243,0.7511,1.4833,0.6114
+openmrg,openmrg_20150728T03,dynamic,idw weighted by length error,0.1733,radar,47520,2.5038,0.6637,0.7027,0.65
+openmrg,openmrg_20150728T03,dynamic,idw weighted by length error,0.1733,gauges,320,2.3601,0.7896,0.8307,0.7135
+openmrg,openmrg_20150728T03,dynamic,idw without links < 1 km,0.1733,radar,47520,2.6171,0.6608,0.7562,0.6466
+openmrg,openmrg_20150728T03,dynamic,idw without links < 1 km,0.1733,gauges,320,2.2118,0.8179,0.8071,0.7079
+openmrg,openmrg_20150825T02,rnn,idw,0.1728,radar,31311,1.2554,0.844,-0.0958,0.7354
+openmrg,openmrg_20150825T02,rnn,idw,0.1728,gauges,210,0.6532,0.9461,-0.0708,0.8019
+openmrg,openmrg_20150825T02,rnn,idw weighted by length error,0.1728,radar,31311,1.2573,0.8435,-0.0966,0.7359
+openmrg,openmrg_20150825T02,rnn,idw weighted by length error,0.1728,gauges,210,0.658,0.9457,-0.0744,0.8019
+openmrg,openmrg_20150825T02,rnn,idw without links < 1 km,0.1728,radar,31311,1.2513,0.8449,-0.0931,0.7358
+openmrg,openmrg_20150825T02,rnn,idw without links < 1 km,0.1728,gauges,210,0.6346,0.9458,-0.041,0.7798
+openmrg,openmrg_20150825T02,dynamic,idw,0.1728,radar,31185,1.4024,0.8846,0.434,0.6708
+openmrg,openmrg_20150825T02,dynamic,idw,0.1728,gauges,210,3.3627,0.9192,1.5512,0.6345
+openmrg,openmrg_20150825T02,dynamic,idw weighted by length error,0.1728,radar,31185,1.2009,0.8973,0.3332,0.68
+openmrg,openmrg_20150825T02,dynamic,idw weighted by length error,0.1728,gauges,210,2.0038,0.956,0.8856,0.72
+openmrg,openmrg_20150825T02,dynamic,idw without links < 1 km,0.1728,radar,31185,1.2505,0.896,0.368,0.683
+openmrg,openmrg_20150825T02,dynamic,idw without links < 1 km,0.1728,gauges,210,1.9627,0.9645,0.8803,0.75
+openmrg,openmrg_20150831T17,rnn,idw,0.1728,radar,10437,0.4313,0.7506,0.0054,0.9796
+openmrg,openmrg_20150831T17,rnn,idw,0.1728,gauges,70,0.4446,0.9101,-0.2887,0.9857
+openmrg,openmrg_20150831T17,rnn,idw weighted by length error,0.1728,radar,10437,0.429,0.752,0.0028,0.9796
+openmrg,openmrg_20150831T17,rnn,idw weighted by length error,0.1728,gauges,70,0.4457,0.9092,-0.2893,0.9857
+openmrg,openmrg_20150831T17,rnn,idw without links < 1 km,0.1728,radar,10437,0.4301,0.7523,0.0054,0.9796
+openmrg,openmrg_20150831T17,rnn,idw without links < 1 km,0.1728,gauges,70,0.4337,0.9159,-0.2835,0.9857
+openmrg,openmrg_20150831T17,dynamic,idw,0.1728,radar,10395,1.4034,0.8222,0.8834,0.9611
+openmrg,openmrg_20150831T17,dynamic,idw,0.1728,gauges,70,1.8173,0.6805,1.246,0.9857
+openmrg,openmrg_20150831T17,dynamic,idw weighted by length error,0.1728,radar,10395,1.183,0.8475,0.7434,0.9609
+openmrg,openmrg_20150831T17,dynamic,idw weighted by length error,0.1728,gauges,70,0.9344,0.7459,0.5589,0.9857
+openmrg,openmrg_20150831T17,dynamic,idw without links < 1 km,0.1728,radar,10395,1.2505,0.8468,0.7913,0.9608
+openmrg,openmrg_20150831T17,dynamic,idw without links < 1 km,0.1728,gauges,70,0.8767,0.7618,0.53,0.9857
+openrainer,openrainer_20210926T06,rnn,idw,0.0547,radar,52114,1.302,0.7929,0.4504,0.811
+openrainer,openrainer_20210926T06,rnn,idw,0.0547,gauges,2295,1.2135,0.7747,0.1644,0.8158
+openrainer,openrainer_20210926T06,rnn,idw weighted by length error,0.0547,radar,52114,1.3018,0.793,0.4508,0.8112
+openrainer,openrainer_20210926T06,rnn,idw weighted by length error,0.0547,gauges,2295,1.2131,0.7748,0.164,0.8158
+openrainer,openrainer_20210926T06,rnn,idw without links < 1 km,0.0547,radar,51134,1.3185,0.7917,0.4558,0.808
+openrainer,openrainer_20210926T06,rnn,idw without links < 1 km,0.0547,gauges,2282,1.215,0.776,0.1697,0.8099
+openrainer,openrainer_20210926T06,dynamic,idw,0.0547,radar,51975,3.3356,0.5461,0.8337,0.7848
+openrainer,openrainer_20210926T06,dynamic,idw,0.0547,gauges,2293,2.6053,0.543,0.4684,0.7773
+openrainer,openrainer_20210926T06,dynamic,idw weighted by length error,0.0547,radar,51975,2.9694,0.5592,0.6852,0.7863
+openrainer,openrainer_20210926T06,dynamic,idw weighted by length error,0.0547,gauges,2293,2.3625,0.5589,0.3718,0.7822
+openrainer,openrainer_20210926T06,dynamic,idw without links < 1 km,0.0547,radar,50996,3.2552,0.5287,0.7331,0.7842
+openrainer,openrainer_20210926T06,dynamic,idw without links < 1 km,0.0547,gauges,2280,2.5685,0.5346,0.413,0.7731
+openrainer,openrainer_20211113T11,rnn,idw,0.0515,radar,220533,1.3312,0.7459,-0.197,0.627
+openrainer,openrainer_20211113T11,rnn,idw,0.0515,gauges,9714,1.5077,0.7776,0.3297,0.6715
+openrainer,openrainer_20211113T11,rnn,idw weighted by length error,0.0515,radar,220533,1.3312,0.7459,-0.1956,0.6269
+openrainer,openrainer_20211113T11,rnn,idw weighted by length error,0.0515,gauges,9714,1.5095,0.7777,0.3319,0.6706
+openrainer,openrainer_20211113T11,rnn,idw without links < 1 km,0.0515,radar,216399,1.337,0.7446,-0.1938,0.6243
+openrainer,openrainer_20211113T11,rnn,idw without links < 1 km,0.0515,gauges,9661,1.5209,0.7758,0.3358,0.6695
+openrainer,openrainer_20211113T11,dynamic,idw,0.0515,radar,220503,1.6741,0.6228,-0.1748,0.6192
+openrainer,openrainer_20211113T11,dynamic,idw,0.0515,gauges,9714,1.8988,0.6717,0.2476,0.6505
+openrainer,openrainer_20211113T11,dynamic,idw weighted by length error,0.0515,radar,220503,1.6401,0.6185,-0.2244,0.6177
+openrainer,openrainer_20211113T11,dynamic,idw weighted by length error,0.0515,gauges,9714,1.7767,0.6739,0.192,0.6501
+openrainer,openrainer_20211113T11,dynamic,idw without links < 1 km,0.0515,radar,216369,1.5419,0.6559,-0.2541,0.6134
+openrainer,openrainer_20211113T11,dynamic,idw without links < 1 km,0.0515,gauges,9661,1.7476,0.6818,0.1793,0.6492
+openrainer,openrainer_20220806T09,rnn,idw,0.0234,radar,275586,3.3859,0.6726,-0.4738,0.4803
+openrainer,openrainer_20220806T09,rnn,idw,0.0234,gauges,12308,6.4214,0.5891,0.6106,0.4235
+openrainer,openrainer_20220806T09,rnn,idw weighted by length error,0.0234,radar,275586,3.3856,0.6729,-0.4739,0.4791
+openrainer,openrainer_20220806T09,rnn,idw weighted by length error,0.0234,gauges,12308,6.4211,0.5887,0.6108,0.4247
+openrainer,openrainer_20220806T09,rnn,idw without links < 1 km,0.0234,radar,272412,3.3985,0.6705,-0.4689,0.4789
+openrainer,openrainer_20220806T09,rnn,idw without links < 1 km,0.0234,gauges,12239,6.4787,0.5839,0.6216,0.4208
+openrainer,openrainer_20220806T09,dynamic,idw,0.0234,radar,275571,6.9745,0.3576,0.3624,0.288
+openrainer,openrainer_20220806T09,dynamic,idw,0.0234,gauges,12308,25.1787,0.3087,3.9823,0.2262
+openrainer,openrainer_20220806T09,dynamic,idw weighted by length error,0.0234,radar,275571,6.4831,0.3289,0.2376,0.291
+openrainer,openrainer_20220806T09,dynamic,idw weighted by length error,0.0234,gauges,12308,23.2674,0.2876,3.6103,0.2308
+openrainer,openrainer_20220806T09,dynamic,idw without links < 1 km,0.0234,radar,272397,7.3015,0.3354,0.4311,0.2887
+openrainer,openrainer_20220806T09,dynamic,idw without links < 1 km,0.0234,gauges,12239,25.8397,0.2982,4.2607,0.224
+openrainer,openrainer_20220830T11,rnn,idw,0.0331,radar,204714,3.0205,0.6404,-0.2341,0.4521
+openrainer,openrainer_20220830T11,rnn,idw,0.0331,gauges,9186,4.4079,0.6501,0.4892,0.415
+openrainer,openrainer_20220830T11,rnn,idw weighted by length error,0.0331,radar,204714,3.0201,0.6406,-0.2335,0.4525
+openrainer,openrainer_20220830T11,rnn,idw weighted by length error,0.0331,gauges,9186,4.402,0.6513,0.4898,0.4166
+openrainer,openrainer_20220830T11,rnn,idw without links < 1 km,0.0331,radar,201654,2.9969,0.6458,-0.2273,0.4527
+openrainer,openrainer_20220830T11,rnn,idw without links < 1 km,0.0331,gauges,9134,4.4023,0.6499,0.4957,0.4121
+openrainer,openrainer_20220830T11,dynamic,idw,0.0331,radar,204567,4.4974,0.462,0.3048,0.3504
+openrainer,openrainer_20220830T11,dynamic,idw,0.0331,gauges,9172,8.0506,0.4613,1.636,0.2998
+openrainer,openrainer_20220830T11,dynamic,idw weighted by length error,0.0331,radar,204567,4.2824,0.4547,0.1816,0.3496
+openrainer,openrainer_20220830T11,dynamic,idw weighted by length error,0.0331,gauges,9172,7.5055,0.4605,1.4282,0.2981
+openrainer,openrainer_20220830T11,dynamic,idw without links < 1 km,0.0331,radar,201507,4.5618,0.455,0.3049,0.3523
+openrainer,openrainer_20220830T11,dynamic,idw without links < 1 km,0.0331,gauges,9120,8.2143,0.4481,1.7139,0.2994
+openrainer,openrainer_20221121T17,rnn,idw,0.0234,radar,133848,1.2904,0.419,-0.233,0.7272
+openrainer,openrainer_20221121T17,rnn,idw,0.0234,gauges,6068,1.3774,0.5574,0.2065,0.7796
+openrainer,openrainer_20221121T17,rnn,idw weighted by length error,0.0234,radar,133848,1.2905,0.4186,-0.2325,0.7275
+openrainer,openrainer_20221121T17,rnn,idw weighted by length error,0.0234,gauges,6068,1.3759,0.5578,0.2065,0.78
+openrainer,openrainer_20221121T17,rnn,idw without links < 1 km,0.0234,radar,132429,1.2916,0.4204,-0.2288,0.7258
+openrainer,openrainer_20221121T17,rnn,idw without links < 1 km,0.0234,gauges,6035,1.3873,0.5565,0.2121,0.7799
+openrainer,openrainer_20221121T17,dynamic,idw,0.0234,radar,133260,1.5667,0.3718,-0.1672,0.7273
+openrainer,openrainer_20221121T17,dynamic,idw,0.0234,gauges,6048,2.0072,0.4397,0.2233,0.7665
+openrainer,openrainer_20221121T17,dynamic,idw weighted by length error,0.0234,radar,133260,1.4201,0.3986,-0.224,0.7281
+openrainer,openrainer_20221121T17,dynamic,idw weighted by length error,0.0234,gauges,6048,1.7728,0.4655,0.1433,0.7696
+openrainer,openrainer_20221121T17,dynamic,idw without links < 1 km,0.0234,radar,131841,1.5574,0.3824,-0.1546,0.7297
+openrainer,openrainer_20221121T17,dynamic,idw without links < 1 km,0.0234,gauges,6015,2.0004,0.4441,0.2325,0.7679

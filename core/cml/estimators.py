@@ -12,7 +12,7 @@ and returns an ``xarray.Dataset`` with ``rain`` plus method diagnostics
 
 Gap handling (``gap_fill``) is a parameter of every estimator, because it is the main
 practical difference between the two implementations - see
-:mod:`core.cml.preprocess` and ``projects/nyc_rain_maps/docs/METHODS.md``:
+:mod:`core.cml.preprocess` and ``projects/maps/nyc/docs/METHODS.md``:
 
 * ``"none"`` - gaps stay NaN (rain is NaN there);
 * ``"min_rsl"`` - implementation_2 (all gaps -> deepest fade);
@@ -359,7 +359,7 @@ class NearbyLinks(RainEstimator):
 class PyNNcmlGRU(RainEstimator):
     """PyNNcml pretrained two-step GRU on 15-min min/max RSL (implementation_2).
 
-    Caveats (documented in projects/nyc_rain_maps/docs/METHODS.md): the network was trained on OpenMRG
+    Caveats (documented in projects/maps/nyc/docs/METHODS.md): the network was trained on OpenMRG
     links at 18-25 GHz, and its length normalisation suggests metres, while
     implementation_2 passes km (``length_unit`` reproduces either). Output is clipped at
     0 and stamped interval-ENDING.

@@ -1,0 +1,8 @@
+{
+ "n_sequences": 700,
+ "n_samples": 2796,
+ "epochs": 20,
+ "prior": "LK",
+ "val_epe_px": 0.7034287452697754,
+ "minutes": 88.25562043190003
+}

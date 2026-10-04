@@ -1,7 +1,7 @@
 """Rain retrieval methods for commercial microwave links, one class per method.
 
 The methods of the two student implementations unified in ``pcpn_maps`` (see
-``projects/nyc_rain_maps/docs/METHODS.md``), on a flat *link set*: ``rsl(link, time)``
+``projects/maps/nyc/docs/METHODS.md``), on a flat *link set*: ``rsl(link, time)``
 at 1 min, optional ``tsl(link, time)``, and per-link ``frequency`` (GHz), ``length`` (km),
 ``polarization`` ("v"/"h"), site coordinates and ``mid_lat``/``mid_lon``.
 ``core.opensense.openmesh`` and ``core.opensense.networks`` build link sets.

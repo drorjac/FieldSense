@@ -48,28 +48,9 @@ WET_THRESHOLD_MM_H = 0.1
 # matching
 # --------------------------------------------------------------------------
 def _line_geometry(ds_cml: xr.Dataset | xr.DataArray) -> xr.Dataset:
-    """Just the per-link geometry poligrain needs, with no time axis."""
-    names = ("site_0_x", "site_0_y", "site_1_x", "site_1_y",
-             "site_0_lon", "site_0_lat", "site_1_lon", "site_1_lat")
-    missing = [n for n in names[:4] if n not in ds_cml.coords]
-    if missing:
-        raise ValueError(f"CML data is missing projected endpoints {missing}; "
-                         f"run conventions.project_cml first")
-    geo = xr.Dataset(coords={"cml_id": ds_cml.cml_id})
-    for n in names:
-        if n in ds_cml.coords:
-            c = ds_cml[n]
-            if "sublink_id" in c.dims:
-                c = c.isel(sublink_id=0, drop=True)
-            geo.coords[n] = ("cml_id", np.asarray(c))
-    # GridAtLines copies site lon/lat onto its output for plotting even when
-    # it computed in projected metres, and fails without them. They are not
-    # read numerically, so NaN placeholders are honest when a caller has
-    # projected coordinates only.
-    for n in names[4:]:
-        if n not in geo.coords:
-            geo.coords[n] = ("cml_id", np.full(geo.sizes["cml_id"], np.nan))
-    return geo
+    """Just the per-link geometry poligrain needs (``core.maps.geometry.line_geometry``)."""
+    from core.maps.geometry import line_geometry
+    return line_geometry(ds_cml)
 
 
 def radar_along_links(da_rad: xr.DataArray, ds_cml: xr.Dataset | xr.DataArray,
@@ -85,14 +66,9 @@ def radar_along_links(da_rad: xr.DataArray, ds_cml: xr.Dataset | xr.DataArray,
     rather than the link smeared out onto the grid. Links that leave the
     radar domain get the average of the part inside it.
     """
-    import poligrain as plg
+    from core.maps.geometry import path_average_intersect
 
-    if "time" in da_rad.dims:
-        da_rad = da_rad.transpose("time", "y", "x")
-    geo = _line_geometry(ds_cml)
-    gal = plg.spatial.GridAtLines(da_rad, geo, grid_point_location=grid_point_location,
-                                  use_lon_lat=False)
-    out = gal(da_rad)
+    out = path_average_intersect(da_rad, ds_cml, plane="xy", grid_point_location=grid_point_location)
     out.attrs.update(units=da_rad.attrs.get("units", "mm h-1"),
                      long_name="radar path average")
     return out
@@ -169,28 +145,14 @@ def grid_at_points(da_grid: xr.DataArray, da_points: xr.DataArray,
 
 
 def distance_to_network(ds_cml, x, y, chunk: int = 20000) -> np.ndarray:
-    """Shortest distance (km) from each point to any link path.
+    """Shortest distance (km) from each point to any link path (point-to-segment).
 
-    Point-to-segment, not point-to-midpoint: a CML measures along its whole
-    line, so a point beside the middle of a long link is well covered even
-    though both endpoints are far away. ``x``/``y`` can have any shape (a
-    gauge list, a 2-D grid); the result has the same shape.
+    ``x``/``y`` can have any shape (a gauge list, a 2-D grid); the result has the same
+    shape. See ``core.maps.geometry.segment_distance_km``.
     """
-    x0, y0, x1, y1 = (np.asarray(ds_cml[c], dtype=float).ravel()
-                      for c in ("site_0_x", "site_0_y", "site_1_x", "site_1_y"))
-    vx, vy = x1 - x0, y1 - y0
-    len2 = np.maximum(vx * vx + vy * vy, 1e-9)
-
-    px = np.asarray(x, dtype=float)
-    py = np.asarray(y, dtype=float)
-    flat_x, flat_y = px.ravel(), py.ravel()
-    out = np.empty(flat_x.size)
-    for s in range(0, flat_x.size, chunk):
-        qx = flat_x[s:s + chunk, None]
-        qy = flat_y[s:s + chunk, None]
-        t = np.clip(((qx - x0) * vx + (qy - y0) * vy) / len2, 0.0, 1.0)
-        out[s:s + chunk] = np.hypot(qx - (x0 + t * vx), qy - (y0 + t * vy)).min(axis=1)
-    return (out / 1000.0).reshape(px.shape)
+    from core.maps.geometry import segment_distance_km
+    return segment_distance_km(*(ds_cml[c] for c in ("site_0_x", "site_0_y", "site_1_x", "site_1_y")),
+                               x, y, chunk=chunk)
 
 
 # --------------------------------------------------------------------------

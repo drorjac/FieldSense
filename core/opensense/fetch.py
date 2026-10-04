@@ -1,6 +1,7 @@
 """
-Fetch raw open datasets from Zenodo (and, for data not yet on Zenodo, from
-the direct links its authors publish).
+Fetch raw open datasets from Zenodo, from 4TU.ResearchData (the Dutch CML
+archive) and, for data not yet on Zenodo, from the direct links its authors
+publish.
 
 Downloads are resumable (HTTP Range), verified against the checksum Zenodo
 publishes, and idempotent - an already-complete, verified file is skipped. Raw
@@ -10,6 +11,7 @@ source's ``raw_dir``; see ``core/data_paths.py`` and ``DATA.md``), never in git.
     python -m core.opensense.fetch --dataset openmrg
     python -m core.opensense.fetch --dataset openrainer --files CML.tar AWS.tar RADrain.tar
     python -m core.opensense.fetch --dataset openmrg2_pws    # direct links, checksummed here
+    python -m core.opensense.fetch --dataset netherlands     # 4TU, 9.5 GB
     python -m core.opensense.fetch --list
 """
 
@@ -47,6 +49,9 @@ class Source:
     # (key, url, md5, bytes) for data not (yet) on Zenodo; checksums are ours,
     # taken at first download, so a changed upstream file fails loudly
     direct: tuple = ()
+    # 4TU.ResearchData article uuid. When set, ``record_id`` is unused and the
+    # file listing (name, size, md5) comes from the 4TU API instead of Zenodo.
+    fourtu: str = ""
 
 
 SOURCES = {
@@ -109,13 +114,35 @@ SOURCES = {
              "8a98f068c03c111e8883de49eb91b785", 152389),
         ),
     ),
+    # Overeem et al. (2024): Dutch CML (T-Mobile NL), 15-min Pmin/Pmax,
+    # 2011-2015, in RAINLINK's text format. Only IDRawCMLdata.zip (9.5 GB) is
+    # used; RawCMLdata.zip (12.6 GB) holds the same data as daily CSVs.
+    "netherlands": Source(
+        name="Netherlands CML (Overeem et al. 2024, 4TU)",
+        record_id="",
+        folder="_netherlands",
+        raw_dir=dp.NETHERLANDS_DOWNLOAD,
+        license="CC-BY-4.0",
+        doi="10.4121/be252844-b672-471e-8d69-27269a862ec1.v1",
+        default_files=("IDRawCMLdata.zip",),
+        fourtu="be252844-b672-471e-8d69-27269a862ec1",
+    ),
 }
 
-DRIVE = "https://drive.usercontent.google.com/download?id={}&confirm=yes"
+FOURTU = "https://data.4tu.nl/v2/articles/{}/files"
+DRIVE ="https://drive.usercontent.google.com/download?id={}&confirm=yes"
 
 
 def list_record(source: Source) -> list[dict]:
-    """Return Zenodo's file listing for a record, or the direct files."""
+    """Return Zenodo's (or 4TU's) file listing for a record, or the direct files."""
+    if source.fourtu:
+        r = requests.get(FOURTU.format(source.fourtu), timeout=60)
+        r.raise_for_status()
+        return [{"key": f["name"], "size": f["size"],
+                 "checksum": (f"md5:{f['computed_md5']}"
+                              if f.get("computed_md5") else ""),
+                 "url": f["download_url"]}
+                for f in r.json()]
     if source.direct:
         return [{"key": k, "size": n, "checksum": f"md5:{md5}", "url": DRIVE.format(i)}
                 for k, i, md5, n in source.direct]

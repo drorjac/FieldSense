@@ -200,12 +200,13 @@ def wet_antenna_attenuation(a_obs: np.ndarray, k: np.ndarray, alpha: np.ndarray,
     ``a_obs`` is (time, sublink); the per-sublink arrays are 1-D.
 
     Every model here is a function of the rain rate, which is what is being
-    solved for. The ``saturating`` model is inverted by fixed-point
-    iteration, which is how this chain has always done it. The pycomlink
-    models are inverted with a per-sublink lookup table from
+    solved for. Each is inverted with a per-sublink lookup table from
     ``A_obs = A_rain + WAA(R(A_rain))`` to ``WAA`` - the same construction as
     pycomlink's ``*_from_A_obs`` functions, but using this repository's
     ITU-R P.838-3 coefficients so every model shares one k-R relation.
+    (The ``saturating`` model used to be inverted by 8 fixed-point steps,
+    which do not converge on low-sensitivity links - small ``k L`` - where
+    light rain then came back as 0.)
     """
     if cfg.waa_model == "none":
         return np.zeros_like(a_obs)
@@ -214,23 +215,18 @@ def wet_antenna_attenuation(a_obs: np.ndarray, k: np.ndarray, alpha: np.ndarray,
     inv_alpha = (1.0 / alpha)[None, :]
 
     if cfg.waa_model == "saturating":
-        rain = np.zeros_like(a_obs)
-        waa = np.zeros_like(a_obs)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            for _ in range(8):
-                waa = cfg.waa_max_db * (1.0 - np.exp(-cfg.waa_rate_per_mm_h * rain))
-                rain = (np.clip(a_obs - waa, 0.0, None) / kl) ** inv_alpha
-                rain[~np.isfinite(rain)] = 0.0
-        return waa
+        def waa_of_rain(r, _f_ghz):
+            return cfg.waa_max_db * (1.0 - np.exp(-cfg.waa_rate_per_mm_h * r))
+    elif cfg.waa_model == "pastorek2021":
+        from pycomlink.processing import wet_antenna as pcm_waa
 
-    from pycomlink.processing import wet_antenna as pcm_waa
-
-    if cfg.waa_model == "pastorek2021":
         def waa_of_rain(r, _f_ghz):
             return pcm_waa.waa_pastorek_2021(
                 R=r, A_max=cfg.waa_pastorek_a_max_db,
                 zeta=cfg.waa_pastorek_zeta, d=cfg.waa_pastorek_d)
     else:  # leijnse2008
+        from pycomlink.processing import wet_antenna as pcm_waa
+
         def waa_of_rain(r, f_ghz):
             return pcm_waa.waa_leijnse_2008(R=r, f_Hz=f_ghz * 1e9)
 

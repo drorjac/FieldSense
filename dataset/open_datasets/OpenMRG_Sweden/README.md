@@ -11,7 +11,7 @@ Sweden, June-August 2015, published by SMHI.
 
 ```bash
 python -m core.opensense.fetch --dataset openmrg      # 318 MB zip into raw/
-python projects/opensense_pipeline/src/ingest_openmrg.py   # OpenSense NetCDF into processed/
+python projects/maps/archive_pipeline/src/ingest_openmrg.py   # OpenSense NetCDF into processed/
 ```
 
 `readme.txt` is SMHI's description of every file in the archive, and

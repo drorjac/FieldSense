@@ -8,7 +8,7 @@ of the domain has data count as dry, so archive gaps never merge or invent event
     from core.events import detect_events
     events = detect_events(radar_hourly)          # one row per event
 
-``projects/nyc_rain_maps`` adds precipitation type (MRMS PrecipFlag + ASOS) on top.
+``projects/maps/nyc`` adds precipitation type (MRMS PrecipFlag + ASOS) on top.
 """
 
 from __future__ import annotations
